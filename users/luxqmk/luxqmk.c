@@ -48,6 +48,7 @@ uint8_t g_reactive_blend       = REACTIVE_BLEND_ADDITIVE; // 0 = Additive Glow, 
  * Save user custom configuration to persistent EEPROM storage
  */
 void luxqmk_eeprom_save(void) {
+#if defined(VIA_ENABLE) && defined(VIA_EEPROM_CUSTOM_CONFIG_SIZE)
     uint8_t buf[VIA_EEPROM_CUSTOM_CONFIG_SIZE];
     memset(buf, 0, sizeof(buf));
 
@@ -78,12 +79,14 @@ void luxqmk_eeprom_save(void) {
     buf[31] = (g_reactive_speed & 0x7F) | ((g_reactive_blend & 0x01) << 7);
 
     via_update_custom_config(buf, 0, sizeof(buf));
+#endif
 }
 
 /**
  * Load user custom configuration from EEPROM upon startup
  */
 void luxqmk_eeprom_load(void) {
+#if defined(VIA_ENABLE) && defined(VIA_EEPROM_CUSTOM_CONFIG_SIZE)
     uint8_t buf[VIA_EEPROM_CUSTOM_CONFIG_SIZE];
     via_read_custom_config(buf, 0, sizeof(buf));
 
@@ -188,6 +191,7 @@ void luxqmk_eeprom_load(void) {
             g_reactive_blend  = (r_spd >> 7) & 0x01;
         }
     }
+#endif
 }
 
 /**
@@ -207,6 +211,7 @@ void keyboard_post_init_user(void) {
 /**
  * Handle custom VIA / LuxQMK Studio WebHID protocol commands
  */
+#if defined(VIA_ENABLE)
 void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
     uint8_t *command_id = &(data[0]);
     uint8_t channel_id  = data[1];
@@ -437,6 +442,7 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
 
     *command_id = id_unhandled;
 }
+#endif
 
 /**
  * Optional key record processing hook for keymaps
@@ -667,13 +673,19 @@ bool rgb_matrix_indicators_user(void) {
                         continue;
                     }
 
+#if defined(DYNAMIC_KEYMAP_ENABLE)
                     uint16_t keycode = dynamic_keymap_get_keycode(current_layer, r, c);
+#else
+                    uint16_t keycode = keymap_key_to_keycode(current_layer, (keypos_t){ .row = r, .col = c });
+#endif
                     if (keycode == KC_TRNS || keycode == KC_NO) {
                         if (g_layer_dim_level == 0) {
                             rgb_matrix_set_color(led, 0, 0, 0);
                         } else if (g_layer_dim_level < 255) {
-                            uint8_t red, green, blue;
+                            uint8_t red = 0, green = 0, blue = 0;
+#if defined(AW20216S_LED_COUNT)
                             aw20216s_get_color(led, &red, &green, &blue);
+#endif
                             uint8_t r_dim = ((uint16_t)red * g_layer_dim_level) / 255;
                             uint8_t g_dim = ((uint16_t)green * g_layer_dim_level) / 255;
                             uint8_t b_dim = ((uint16_t)blue * g_layer_dim_level) / 255;

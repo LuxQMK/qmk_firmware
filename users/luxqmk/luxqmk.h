@@ -2,6 +2,18 @@
 
 #include QMK_KEYBOARD_H
 
+#ifndef RGB_MATRIX_LED_COUNT
+#    if defined(DRIVER_LED_TOTAL)
+#        define RGB_MATRIX_LED_COUNT DRIVER_LED_TOTAL
+#    else
+#        define RGB_MATRIX_LED_COUNT 0
+#    endif
+#endif
+
+#ifndef DRIVER_LED_TOTAL
+#    define DRIVER_LED_TOTAL RGB_MATRIX_LED_COUNT
+#endif
+
 /**
  * Custom layer definitions (shared across keyboards)
  */
