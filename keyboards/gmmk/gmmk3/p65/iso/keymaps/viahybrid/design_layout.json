@@ -1,0 +1,346 @@
+{
+    "name": "GMMK3 65% ISO",
+    "vendorId": "0x504B",
+    "productId": "0x320F",
+    "matrix": {
+      "rows": 14,
+      "cols": 8
+    },
+    "keycodes": [
+      "qmk_lighting"
+    ],
+    "menus": [
+      "qmk_rgb_matrix"
+    ],
+    "customKeycodes": [
+      {
+        "name": "OpenRGB Mode",
+        "title": "Toggle OpenRGB Hybrid Mode",
+        "shortName": "ORGB"
+      },
+      {
+        "name": "Reverse RGB",
+        "title": "Reverse RGB Matrix Direction",
+        "shortName": "RGB_REV"
+      }
+    ],
+    "customMenus": [
+      {
+        "label": "LuxQMK Lighting",
+        "content": [
+          {
+            "label": "Reverse RGB Direction",
+            "type": "toggle",
+            "content": ["USER_VAL_RGB_REVERSE", 1, 1]
+          },
+          {
+            "label": "Layer Lighting",
+            "type": "toggle",
+            "content": ["USER_VAL_LAYER_LIGHTING_ENABLE", 1, 2]
+          },
+          {
+            "label": "Layer Dim Level",
+            "type": "range",
+            "options": [0, 255],
+            "content": ["USER_VAL_LAYER_DIM_LEVEL", 1, 3]
+          },
+          {
+            "label": "Layer 1 Color",
+            "type": "color",
+            "content": ["USER_VAL_LAYER_1_COLOR", 1, 4]
+          },
+          {
+            "label": "Layer 2 Color",
+            "type": "color",
+            "content": ["USER_VAL_LAYER_2_COLOR", 1, 5]
+          },
+          {
+            "label": "Layer 3 Color",
+            "type": "color",
+            "content": ["USER_VAL_LAYER_3_COLOR", 1, 6]
+          }
+        ]
+      },
+      {
+        "label": "Indicators & Locks",
+        "content": [
+          {
+            "label": "Logo LED Mode",
+            "type": "dropdown",
+            "options": [
+              ["RGB Animation", 0],
+              ["Lock Indicator (RGB Idle)", 1],
+              ["Lock Indicator (Off Idle)", 2]
+            ],
+            "content": ["USER_VAL_LOGO_MODE", 1, 7]
+          },
+          {
+            "label": "Caps Lock Color (#FF0000)",
+            "type": "color",
+            "content": ["USER_VAL_LOGO_COLOR_CAPS", 1, 8]
+          },
+          {
+            "label": "Num Lock Color (#0000FF)",
+            "type": "color",
+            "content": ["USER_VAL_LOGO_COLOR_NUM", 1, 9]
+          },
+          {
+            "label": "Scroll Lock Color (#00FF00)",
+            "type": "color",
+            "content": ["USER_VAL_LOGO_COLOR_SCROLL", 1, 10]
+          },
+          {
+            "label": "Caps + Num Color (#FF00FF)",
+            "type": "color",
+            "content": ["USER_VAL_LOGO_COLOR_CAPS_NUM", 1, 11]
+          },
+          {
+            "label": "Caps + Scroll Color (#FFFF00)",
+            "type": "color",
+            "content": ["USER_VAL_LOGO_COLOR_CAPS_SCROLL", 1, 12]
+          },
+          {
+            "label": "Num + Scroll Color (#00FFFF)",
+            "type": "color",
+            "content": ["USER_VAL_LOGO_COLOR_NUM_SCROLL", 1, 13]
+          },
+          {
+            "label": "All Locks Color (#FFFFFF)",
+            "type": "color",
+            "content": ["USER_VAL_LOGO_COLOR_ALL", 1, 14]
+          },
+          {
+            "label": "Win Lock Indicator Mode",
+            "type": "dropdown",
+            "options": [
+              ["RGB Animation", 0],
+              ["Turn Off LED", 1],
+              ["Solid Color", 2]
+            ],
+            "content": ["USER_VAL_WIN_LOCK_MODE", 1, 17]
+          },
+          {
+            "label": "Win Lock Color (#FF0000)",
+            "type": "color",
+            "content": ["USER_VAL_WIN_LOCK_COLOR", 1, 18]
+          },
+          {
+            "label": "Win Lock State",
+            "type": "toggle",
+            "content": ["USER_VAL_WIN_LOCK_STATE", 1, 19]
+          }
+        ]
+      },
+      {
+        "label": "Reactive RGB Overlay",
+        "content": [
+          {
+            "label": "Reactive Overlay Enable",
+            "type": "toggle",
+            "content": ["USER_VAL_REACTIVE_ENABLE", 1, 20]
+          },
+          {
+            "label": "Reactive Mode",
+            "type": "dropdown",
+            "options": [
+              ["Disabled", 0],
+              ["Fade (Simple)", 1],
+              ["Splash Ripple", 2],
+              ["Splash Rainbow", 3],
+              ["Cross (+)", 4],
+              ["Nexus Star (X)", 5],
+              ["Typing Heatmap", 6]
+            ],
+            "content": ["USER_VAL_REACTIVE_MODE", 1, 21]
+          },
+          {
+            "label": "Reactive Color",
+            "type": "color",
+            "content": ["USER_VAL_REACTIVE_COLOR", 1, 22]
+          },
+          {
+            "label": "Reactive Speed",
+            "type": "range",
+            "options": [10, 255],
+            "content": ["USER_VAL_REACTIVE_SPEED", 1, 23]
+          },
+          {
+            "label": "Reactive Blend Mode",
+            "type": "dropdown",
+            "options": [
+              ["Additive Glow", 0],
+              ["Solid Color Override", 1]
+            ],
+            "content": ["USER_VAL_REACTIVE_BLEND", 1, 24]
+          }
+        ]
+      }
+    ],
+    "layouts": {
+      "keymap": [
+        [
+          {
+            "c": "#777777"
+          },
+          "1,3",
+          {
+            "c": "#cccccc"
+          },
+          "1,7",
+          "2,7",
+          "3,7",
+          "4,7",
+          "4,6",
+          "5,6",
+          "5,7",
+          "6,7",
+          "7,7",
+          "8,7",
+          "8,6",
+          "6,6",
+          {
+            "c": "#aaaaaa",
+            "w": 2
+          },
+          "10,1",
+          {
+            "c": "#cccccc",
+            "x": 0.5
+          },
+          "11,6\n\n\n\n\n\n\n\n\ne0"
+        ],
+        [
+          {
+            "c": "#aaaaaa",
+            "w": 1.5
+          },
+          "1,1",
+          {
+            "c": "#cccccc"
+          },
+          "1,0",
+          "2,0",
+          "3,0",
+          "4,0",
+          "4,1",
+          "5,1",
+          "5,0",
+          "6,0",
+          "7,0",
+          "8,0",
+          "8,1",
+          "6,1",
+          {
+            "c": "#777777",
+            "x": 0.25,
+            "w": 1.25,
+            "h": 2,
+            "w2": 1.5,
+            "h2": 1,
+            "x2": -0.25
+          },
+          "10,4"
+        ],
+        [
+          {
+            "c": "#aaaaaa",
+            "w": 1.75
+          },
+          "2,1",
+          {
+            "c": "#cccccc"
+          },
+          "1,2",
+          "2,2",
+          "3,2",
+          "4,2",
+          "4,3",
+          "5,3",
+          "5,2",
+          "6,2",
+          "7,2",
+          "8,2",
+          "8,3",
+          "10,2",
+          {
+            "c": "#cccccc",
+            "x": 1.25
+          },
+          "1,5"
+        ],
+        [
+          {
+            "c": "#aaaaaa",
+            "w": 1.25
+          },
+          "0,0",
+          {
+            "c": "#cccccc"
+          },
+          "0,1",
+          "1,4",
+          "2,4",
+          "3,4",
+          "4,4",
+          "4,5",
+          "5,5",
+          "5,4",
+          "6,4",
+          "7,4",
+          "8,5",
+          {
+            "c": "#aaaaaa",
+            "w": 1.75
+          },
+          "9,1",
+          {
+            "c": "#777777"
+          },
+          "3,5",
+          {
+            "c": "#cccccc"
+          },
+          "2,5"
+        ],
+        [
+          {
+            "c": "#aaaaaa",
+            "w": 1.25
+          },
+          "0,6",
+          {
+            "c": "#aaaaaa",
+            "w": 1.25
+          },
+          "9,0",
+          {
+            "c": "#aaaaaa",
+            "w": 1.25
+          },
+          "9,3",
+          {
+            "c": "#cccccc",
+            "w": 6.25
+          },
+          "9,4",
+          {
+            "c": "#aaaaaa",
+            "w": 1.25
+          },
+          "9,5",
+          {
+            "c": "#aaaaaa",
+            "w": 1.25
+          },
+          "9,2",
+          {
+            "x": 0.5,
+            "c": "#777777"
+          },
+          "0,3",
+          "7,3",
+          "0,5"
+        ]
+      ]
+    }
+  }

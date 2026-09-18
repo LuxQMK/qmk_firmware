@@ -1,0 +1,4 @@
+VIA_ENABLE = yes
+VIA_OPENRGB_HYBRID = yes
+ENCODER_MAP_ENABLE = yes
+USER_NAME = luxqmk

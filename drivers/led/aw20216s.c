@@ -150,6 +150,25 @@ void aw20216s_set_color(int index, uint8_t red, uint8_t green, uint8_t blue) {
     driver_buffers[led.driver].pwm_buffer_dirty  = true;
 }
 
+void aw20216s_get_color(int index, uint8_t *red, uint8_t *green, uint8_t *blue) {
+    if (index < 0 || index >= AW20216S_LED_COUNT) {
+        return;
+    }
+
+    aw20216s_led_t led;
+    memcpy_P(&led, (&g_aw20216s_leds[index]), sizeof(led));
+
+    if (red) {
+        *red = driver_buffers[led.driver].pwm_buffer[led.r];
+    }
+    if (green) {
+        *green = driver_buffers[led.driver].pwm_buffer[led.g];
+    }
+    if (blue) {
+        *blue = driver_buffers[led.driver].pwm_buffer[led.b];
+    }
+}
+
 void aw20216s_set_color_all(uint8_t red, uint8_t green, uint8_t blue) {
     for (uint8_t i = 0; i < AW20216S_LED_COUNT; i++) {
         aw20216s_set_color(i, red, green, blue);
