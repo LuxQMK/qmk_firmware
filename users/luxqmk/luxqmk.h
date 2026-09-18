@@ -48,12 +48,13 @@ enum win_lock_led_mode {
  */
 enum reactive_overlay_mode {
     REACTIVE_MODE_OFF = 0,
-    REACTIVE_MODE_FADE,           // Key-press fade trail (Reactive Simple)
-    REACTIVE_MODE_SPLASH,         // Expanding single-color ripple
-    REACTIVE_MODE_SPLASH_RAINBOW, // Expanding rainbow ripple
-    REACTIVE_MODE_CROSS,          // Expanding cross (+)
-    REACTIVE_MODE_NEXUS,          // Expanding nexus star (X)
-    REACTIVE_MODE_HEATMAP         // Typing intensity heatmap
+    REACTIVE_MODE_FADE,           // 1: Key-press fade trail (Reactive Simple)
+    REACTIVE_MODE_SPLASH,         // 2: Expanding single-color ripple
+    REACTIVE_MODE_SPLASH_RAINBOW, // 3: Expanding rainbow ripple
+    REACTIVE_MODE_CROSS,          // 4: Expanding cross (+)
+    REACTIVE_MODE_NEXUS,          // 5: Expanding nexus star (X)
+    REACTIVE_MODE_WIDE,           // 6: Wide expanding wave
+    REACTIVE_MODE_HEATMAP         // 7: Typing intensity heatmap
 };
 
 enum reactive_blend_mode {

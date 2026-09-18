@@ -554,6 +554,25 @@ bool rgb_matrix_indicators_user(void) {
                     break;
                 }
 
+                case REACTIVE_MODE_WIDE: {
+                    uint16_t sum_int = 0;
+                    for (uint8_t j = 0; j < hit_count; j++) {
+                        int16_t  dx   = g_led_config.point[i].x - g_last_hit_tracker.x[j];
+                        int16_t  dy   = g_led_config.point[i].y - g_last_hit_tracker.y[j];
+                        uint8_t  dist = sqrt16(dx * dx + dy * dy);
+                        uint16_t tick = scale16by8(g_last_hit_tracker.tick[j], qadd8(g_reactive_speed, 1));
+
+                        int16_t effect = (int16_t)tick - (int16_t)dist;
+                        if (effect >= 0 && effect < 48 && tick < 255) {
+                            uint16_t wave_int = (48 - effect) * (255 - tick) / 48;
+                            sum_int = qadd8(sum_int, wave_int);
+                            any_active = true;
+                        }
+                    }
+                    reactive_intensity = sum_int;
+                    break;
+                }
+
                 case REACTIVE_MODE_HEATMAP: {
                     for (int8_t j = hit_count - 1; j >= 0; j--) {
                         if (g_last_hit_tracker.index[j] == i) {

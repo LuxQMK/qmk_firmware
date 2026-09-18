@@ -140,11 +140,12 @@
             "options": [
               ["Disabled", 0],
               ["Fade (Simple)", 1],
-              ["Splash Ripple", 2],
-              ["Splash Rainbow", 3],
+              ["Splash Ripple (Solid)", 2],
+              ["Splash Ripple (Rainbow)", 3],
               ["Cross (+)", 4],
               ["Nexus Star (X)", 5],
-              ["Typing Heatmap", 6]
+              ["Wide Wave", 6],
+              ["Typing Heatmap", 7]
             ],
             "content": ["USER_VAL_REACTIVE_MODE", 1, 21]
           },
