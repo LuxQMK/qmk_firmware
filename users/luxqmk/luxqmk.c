@@ -4,6 +4,7 @@
 #include "drivers/led/aw20216s.h"
 #include "color.h"
 #include "eeprom.h"
+#include "version.h"
 #include <lib/lib8tion/lib8tion.h>
 #include <stdlib.h>
 
@@ -403,6 +404,29 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                 } else if (*command_id == id_custom_set_value) {
                     g_reactive_blend = data[3];
                     luxqmk_eeprom_save();
+                }
+                return;
+
+            case USER_VAL_LUXQMK_VERSION:
+                if (*command_id == id_custom_get_value) {
+                    data[3] = LUXQMK_VERSION_MAJOR;
+                    data[4] = LUXQMK_VERSION_MINOR;
+                    data[5] = LUXQMK_VERSION_PATCH;
+                    data[6] = (uint8_t)(LUXQMK_CAP_REACTIVE_OVERLAY | LUXQMK_CAP_DIRECTION_REVERSE | LUXQMK_CAP_LOGO_LED | LUXQMK_CAP_WIN_LOCK | LUXQMK_CAP_LAYER_LIGHTING | LUXQMK_CAP_HEATMAP);
+                }
+                return;
+
+            case USER_VAL_QMK_VERSION:
+                if (*command_id == id_custom_get_value) {
+                    const char *ver = QMK_VERSION;
+                    uint8_t i = 0;
+                    while (ver[i] != '\0' && (3 + i) < length) {
+                        data[3 + i] = (uint8_t)ver[i];
+                        i++;
+                    }
+                    if ((3 + i) < length) {
+                        data[3 + i] = '\0';
+                    }
                 }
                 return;
 

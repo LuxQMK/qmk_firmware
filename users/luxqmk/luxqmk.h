@@ -94,6 +94,24 @@ enum reactive_blend_mode {
 #define USER_VAL_REACTIVE_BLEND          24
 
 /**
+ * LuxQMK Semantic Versioning & Capabilities
+ */
+#define LUXQMK_VERSION_MAJOR             0
+#define LUXQMK_VERSION_MINOR             1
+#define LUXQMK_VERSION_PATCH             0
+#define LUXQMK_VERSION_STRING            "0.1.0"
+
+#define LUXQMK_CAP_REACTIVE_OVERLAY      (1 << 0)
+#define LUXQMK_CAP_DIRECTION_REVERSE     (1 << 1)
+#define LUXQMK_CAP_LOGO_LED              (1 << 2)
+#define LUXQMK_CAP_WIN_LOCK              (1 << 3)
+#define LUXQMK_CAP_LAYER_LIGHTING        (1 << 4)
+#define LUXQMK_CAP_HEATMAP               (1 << 5)
+
+#define USER_VAL_LUXQMK_VERSION          25
+#define USER_VAL_QMK_VERSION             26
+
+/**
  * Global configuration variables
  */
 extern bool g_custom_rgb_reverse;

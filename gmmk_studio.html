@@ -2776,27 +2776,31 @@ input:checked + .switch-slider:before {
             <div class="hardware-info-grid">
               <div class="hardware-info-item">
                 <span class="hardware-info-label" data-i18n="lblKeyboardModel">Keyboard Model:</span>
-                <span class="hardware-info-value highlight" data-i18n="valKeyboardModel">Glorious GMMK 3 100% ANSI</span>
+                <span id="hw-keyboard-model" class="hardware-info-value highlight" data-i18n="valKeyboardModel">Glorious GMMK 3 100% ANSI</span>
               </div>
               <div class="hardware-info-item">
                 <span class="hardware-info-label" data-i18n="lblMcuChip">MCU Microcontroller:</span>
-                <span class="hardware-info-value" data-i18n="valMcuChip">WB32FQ95 (ARM Cortex-M4)</span>
+                <span id="hw-mcu-chip" class="hardware-info-value" data-i18n="valMcuChip">WB32FQ95 (ARM Cortex-M4)</span>
               </div>
               <div class="hardware-info-item">
                 <span class="hardware-info-label" data-i18n="lblUsbVidPid">USB VID / PID:</span>
-                <span class="hardware-info-value" data-i18n="valUsbVidPid">VID: 0x504B | PID: 0x320F</span>
+                <span id="hw-usb-vidpid" class="hardware-info-value" data-i18n="valUsbVidPid">VID: 0x504B | PID: 0x320F</span>
               </div>
               <div class="hardware-info-item">
-                <span class="hardware-info-label" data-i18n="lblProtocolVersion">Firmware / Protocol:</span>
-                <span class="hardware-info-value" data-i18n="valProtocolVersion">QMK v0.22+ / VIA Protocol v12</span>
+                <span class="hardware-info-label" data-i18n="lblProtocolVersion">Firmware & Engine:</span>
+                <span id="hw-protocol-version" class="hardware-info-value" data-i18n="valProtocolVersion">LuxQMK v0.1.0 (QMK v0.22.14 / VIA v12)</span>
               </div>
               <div class="hardware-info-item">
                 <span class="hardware-info-label" data-i18n="lblMatrixLayout">Physical Matrix:</span>
-                <span class="hardware-info-value" data-i18n="valMatrixLayout">14 Rows × 8 Cols (112 Key Positions)</span>
+                <span id="hw-matrix-layout" class="hardware-info-value" data-i18n="valMatrixLayout">14 Rows × 8 Cols (112 Key Positions)</span>
               </div>
               <div class="hardware-info-item">
                 <span class="hardware-info-label" data-i18n="lblEepromSize">Custom EEPROM Buffer:</span>
-                <span class="hardware-info-value" data-i18n="valEepromSize">32 Bytes Dedicated Storage</span>
+                <span id="hw-eeprom-size" class="hardware-info-value" data-i18n="valEepromSize">32 Bytes Dedicated Storage</span>
+              </div>
+              <div class="hardware-info-item">
+                <span class="hardware-info-label" data-i18n="lblCompatibilityStatus">Compatibility Status:</span>
+                <span id="hw-compat-status" class="hardware-info-value" style="color: var(--accent-green, #00ff88);" data-i18n="valCompatibilityStatus">✓ Fully Compatible (LuxQMK Studio v0.1.0)</span>
               </div>
             </div>
 
@@ -3297,10 +3301,14 @@ input:checked + .switch-slider:before {
  * LuxQMK Studio - Device Manager & Adaptive Capability Engine
  */
 (function () {
+  const STUDIO_VERSION = "0.1.0";
+  const REQUIRED_FW_VERSION = { major: 0, minor: 1, patch: 0 };
+
   class DeviceManager {
     constructor() {
       this.registry = [];
       this.activeProfile = null;
+      this.firmwareInfo = null;
       this.initRegistry();
     }
 
@@ -3322,6 +3330,9 @@ input:checked + .switch-slider:before {
     }
 
     hasCapability(capName) {
+      if (this.firmwareInfo && this.firmwareInfo.capabilities && this.firmwareInfo.capabilities[capName] !== undefined) {
+        return !!this.firmwareInfo.capabilities[capName];
+      }
       return !!(this.activeProfile && this.activeProfile.capabilities && this.activeProfile.capabilities[capName]);
     }
 
@@ -3353,6 +3364,11 @@ input:checked + .switch-slider:before {
       return matched;
     }
 
+    setFirmwareInfo(info) {
+      this.firmwareInfo = info;
+      this.applyProfileUI();
+    }
+
     applyProfileUI() {
       const profile = this.activeProfile;
       if (!profile) return;
@@ -3374,20 +3390,57 @@ input:checked + .switch-slider:before {
       const hwMatrix = document.getElementById('hw-matrix-layout');
       if (hwMatrix) hwMatrix.textContent = profile.matrix;
 
+      // Update Firmware & Engine information
+      const hwProto = document.getElementById('hw-protocol-version');
+      const hwCompat = document.getElementById('hw-compat-status');
+
+      if (hwProto) {
+        if (this.firmwareInfo && this.firmwareInfo.versionString && this.firmwareInfo.major !== undefined && (this.firmwareInfo.major > 0 || this.firmwareInfo.minor > 0 || this.firmwareInfo.patch > 0)) {
+          const qmkStr = this.firmwareInfo.qmkVersion || 'QMK';
+          hwProto.textContent = `LuxQMK ${this.firmwareInfo.versionString} (${qmkStr} / VIA v12)`;
+        } else if (this.firmwareInfo) {
+          hwProto.textContent = `Legacy VIA / QMK (Unknown LuxQMK version)`;
+        } else {
+          hwProto.textContent = `LuxQMK v${STUDIO_VERSION} (QMK v0.22.14 / VIA v12)`;
+        }
+      }
+
+      if (hwCompat) {
+        const i18n = window.i18n;
+        if (!this.firmwareInfo || (this.firmwareInfo.major === 0 && this.firmwareInfo.minor === 0 && this.firmwareInfo.patch === 0)) {
+          hwCompat.textContent = i18n ? i18n.t('statusFwLegacy') : '⚠️ Legacy Firmware / Unknown Version';
+          hwCompat.style.color = 'var(--accent-amber, #ffaa00)';
+        } else {
+          const fw = this.firmwareInfo;
+          if (fw.major < REQUIRED_FW_VERSION.major || (fw.major === REQUIRED_FW_VERSION.major && fw.minor < REQUIRED_FW_VERSION.minor)) {
+            hwCompat.textContent = i18n ? i18n.t('statusFwUpdateRequired') : '⚠️ Firmware Update Required (LuxQMK v0.1.0+)';
+            hwCompat.style.color = 'var(--accent-red, #ff4466)';
+          } else if (fw.major > REQUIRED_FW_VERSION.major || (fw.major === REQUIRED_FW_VERSION.major && fw.minor > REQUIRED_FW_VERSION.minor)) {
+            hwCompat.textContent = i18n ? i18n.t('statusFwNewer') : 'ℹ️ Newer Firmware Detected (Update Studio)';
+            hwCompat.style.color = 'var(--accent-cyan, #00e5ff)';
+          } else {
+            hwCompat.textContent = i18n ? i18n.t('statusFwCompatible') : `✓ Fully Compatible (LuxQMK Studio v${STUDIO_VERSION})`;
+            hwCompat.style.color = 'var(--accent-green, #00ff88)';
+          }
+        }
+      }
+
       // 2. Adapt Rotary Encoder UI visibility
       const encoderSection = document.getElementById('encoder-controls');
       const knobElement = document.querySelector('.rotary-knob');
+      const hasEncoder = profile.capabilities.hasRotaryEncoder;
       if (encoderSection) {
-        encoderSection.style.display = profile.capabilities.hasRotaryEncoder ? 'block' : 'none';
+        encoderSection.style.display = hasEncoder ? 'block' : 'none';
       }
       if (knobElement) {
-        knobElement.style.display = profile.capabilities.hasRotaryEncoder ? 'flex' : 'none';
+        knobElement.style.display = hasEncoder ? 'flex' : 'none';
       }
 
       // 3. Adapt Logo Badge LED UI visibility
       const logoCard = document.getElementById('card-logo-led');
+      const hasLogo = this.hasCapability('hasLogoBadgeLed') || (profile.capabilities && profile.capabilities.hasLogoBadgeLed);
       if (logoCard) {
-        logoCard.style.display = profile.capabilities.hasLogoBadgeLed ? 'block' : 'none';
+        logoCard.style.display = hasLogo ? 'block' : 'none';
       }
 
       // 4. Update Header Device Label
@@ -5818,7 +5871,7 @@ input:checked + .switch-slider:before {
       lblLegalTitle: "Legal Notices & Disclaimer",
       lblLegalDesc: "LuxQMK Studio is an independent companion configuration suite developed for keyboards running LuxQMK custom firmware (fork of QMK Firmware) communicating via standard WebHID / VIA protocol channels.<br><br>QMK Firmware is open-source software licensed under GPLv2+. VIA is an open configuration protocol standard.<br><br>All product names, logos, trademarks, and registered trademarks (including Glorious, GMMK 3, GMMK 2, WB32) are property of their respective owners and are used solely for identification and compatibility purposes.",
       msgUpdateCheckTitle: "LuxQMK Studio Updates",
-      msgUpdateCheckLatest: "You are running the latest version of LuxQMK Studio (v1.0.0). Automatic update downloads will be available soon!",
+      msgUpdateCheckLatest: "You are running the latest version of LuxQMK Studio (v0.1.0). Automatic update downloads will be available soon!",
       tooltipAddDevice: "Add / Pair New Device (+)",
       optSearchingDevices: "Searching for devices...",
       optNoDevices: "No devices found (Click + to connect)",
@@ -6094,12 +6147,18 @@ input:checked + .switch-slider:before {
       valMcuChip: "WB32FQ95 (ARM Cortex-M4)",
       lblUsbVidPid: "USB VID / PID:",
       valUsbVidPid: "VID: 0x504B | PID: 0x320F",
-      lblProtocolVersion: "Firmware / Protocol:",
-      valProtocolVersion: "QMK v0.22+ / VIA Protocol v12",
+      lblProtocolVersion: "Firmware & Engine:",
+      valProtocolVersion: "LuxQMK v0.1.0 (QMK v0.22.14 / VIA v12)",
       lblMatrixLayout: "Physical Matrix:",
       valMatrixLayout: "14 Rows × 8 Cols (112 Key Positions)",
       lblEepromSize: "Custom EEPROM Buffer:",
       valEepromSize: "32 Bytes Dedicated Storage",
+      lblCompatibilityStatus: "Compatibility Status:",
+      valCompatibilityStatus: "✓ Fully Compatible (LuxQMK Studio v0.1.0)",
+      statusFwCompatible: "✓ Fully Compatible (LuxQMK Studio v0.1.0)",
+      statusFwUpdateRequired: "⚠️ Firmware Update Required (LuxQMK v0.1.0+ recommended)",
+      statusFwNewer: "ℹ️ Newer Firmware Detected (Update LuxQMK Studio)",
+      statusFwLegacy: "⚠️ Legacy Firmware (Basic features only)",
 
       // Settings View - Maintenance Tools
       cardMaintenanceTitle: "Maintenance & EEPROM Tools",
@@ -6143,7 +6202,7 @@ input:checked + .switch-slider:before {
       lblLegalTitle: "Informacje prawne i nota licencyjna",
       lblLegalDesc: "LuxQMK Studio jest niezależnym oprogramowaniem towarzyszącym do konfiguracji klawiatur bazującym na protokole WebHID oraz VIA. Komponenty firmware stanowią zmodyfikowany fork QMK Firmware na licencji GNU GPL v2/v3.<br><br>QMK Firmware jest oprogramowaniem open-source na licencji GPLv2+. VIA jest otwartym standardem protokołu konfiguracji.<br><br>Wszelkie nazwy produktów, logotypy, znaki towarowe i zarejestrowane znaki handlowe (w tym Glorious, GMMK 3, GMMK 2, WB32) należą do ich prawnych właścicieli i zostały użyte wyłącznie w celach informacyjnych oraz identyfikacji kompatybilności sprzętowej.",
       msgUpdateCheckTitle: "Aktualizacje LuxQMK Studio",
-      msgUpdateCheckLatest: "Posiadasz najnowszą wersję LuxQMK Studio (v1.0.0). Automatyczne pobieranie aktualizacji z poziomu programu będzie dostępne wkrótce!",
+      msgUpdateCheckLatest: "Posiadasz najnowszą wersję LuxQMK Studio (v0.1.0). Automatyczne pobieranie aktualizacji z poziomu programu będzie dostępne wkrótce!",
       tooltipAddDevice: "Dodaj / Połącz nowe urządzenie (+)",
       optSearchingDevices: "Wyszukiwanie urządzeń...",
       optNoDevices: "Brak urządzeń (Kliknij + aby połączyć)",
@@ -6419,12 +6478,18 @@ input:checked + .switch-slider:before {
       valMcuChip: "WB32FQ95 (ARM Cortex-M4)",
       lblUsbVidPid: "Identyfikatory USB:",
       valUsbVidPid: "VID: 0x504B | PID: 0x320F",
-      lblProtocolVersion: "Silnik / Protokół:",
-      valProtocolVersion: "QMK v0.22+ / VIA Protocol v12",
+      lblProtocolVersion: "Wersja Firmware & Silnika:",
+      valProtocolVersion: "LuxQMK v0.1.0 (QMK v0.22.14 / VIA v12)",
       lblMatrixLayout: "Matryca Fizyczna:",
       valMatrixLayout: "14 Wierszy × 8 Kolumn (112 pozycji)",
       lblEepromSize: "Pamięć Niestandardowa EEPROM:",
       valEepromSize: "32 Bajty Pamięci Trwałej",
+      lblCompatibilityStatus: "Status Zgodności:",
+      valCompatibilityStatus: "✓ W pełni zgodny (LuxQMK Studio v0.1.0)",
+      statusFwCompatible: "✓ W pełni zgodny (LuxQMK Studio v0.1.0)",
+      statusFwUpdateRequired: "⚠️ Wymagana aktualizacja firmware (zalecany LuxQMK v0.1.0+)",
+      statusFwNewer: "ℹ️ Wykryto nowszy firmware (Zalecana aktualizacja LuxQMK Studio)",
+      statusFwLegacy: "⚠️ Oprogramowanie starszego typu (Tylko podstawowe funkcje)",
 
       // Settings View - Maintenance Tools
       cardMaintenanceTitle: "Narzędzia Serwisowe & Pamięć EEPROM",
@@ -6573,7 +6638,9 @@ input:checked + .switch-slider:before {
     REACTIVE_MODE: 21,
     REACTIVE_COLOR: 22,
     REACTIVE_SPEED: 23,
-    REACTIVE_BLEND: 24
+    REACTIVE_BLEND: 24,
+    LUXQMK_VERSION: 25,
+    QMK_VERSION: 26
   };
 
   const RGB_MATRIX_VAL = {
@@ -6988,6 +7055,52 @@ input:checked + .switch-slider:before {
         num: res[4] === 1,
         scroll: res[5] === 1
       };
+    }
+
+    async getFirmwareVersion() {
+      try {
+        const res = await this.getCustomValue(CHANNELS.CUSTOM, CUSTOM_VAL.LUXQMK_VERSION);
+        if (!res || res[0] === 0xFF || res[1] !== CHANNELS.CUSTOM || res[2] !== CUSTOM_VAL.LUXQMK_VERSION) {
+          return { major: 0, minor: 0, patch: 0, versionString: "Legacy / Generic VIA", capabilities: {} };
+        }
+        const major = res[3];
+        const minor = res[4];
+        const patch = res[5];
+        const capFlags = res[6] || 0;
+        return {
+          major,
+          minor,
+          patch,
+          versionString: `v${major}.${minor}.${patch}`,
+          capabilities: {
+            reactiveOverlay: (capFlags & 0x01) !== 0,
+            directionReverse: (capFlags & 0x02) !== 0,
+            logoBadgeLed: (capFlags & 0x04) !== 0,
+            winLock: (capFlags & 0x08) !== 0,
+            layerLighting: (capFlags & 0x10) !== 0,
+            heatmap: (capFlags & 0x20) !== 0
+          }
+        };
+      } catch (e) {
+        return { major: 0, minor: 0, patch: 0, versionString: "Legacy / Generic VIA", capabilities: {} };
+      }
+    }
+
+    async getQMKVersion() {
+      try {
+        const res = await this.getCustomValue(CHANNELS.CUSTOM, CUSTOM_VAL.QMK_VERSION);
+        if (!res || res[0] === 0xFF || res[1] !== CHANNELS.CUSTOM || res[2] !== CUSTOM_VAL.QMK_VERSION) {
+          return "QMK";
+        }
+        let str = "";
+        for (let i = 3; i < res.length; i++) {
+          if (res[i] === 0) break;
+          str += String.fromCharCode(res[i]);
+        }
+        return str.trim() || "QMK";
+      } catch (e) {
+        return "QMK";
+      }
     }
 
     async resetEEPROM() {
@@ -10799,6 +10912,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     await refreshDeviceList();
 
     try {
+      // Query LuxQMK & QMK firmware version for smart capability handshake
+      const fwInfo = await protocol.getFirmwareVersion();
+      const qmkVer = await protocol.getQMKVersion();
+      fwInfo.qmkVersion = qmkVer;
+      if (window.deviceManager) {
+        window.deviceManager.setFirmwareInfo(fwInfo);
+      }
+
       if (window.gLightingController) {
         window.gLightingController.clearStaleHits();
         window.gLightingController.startVisualizer();
