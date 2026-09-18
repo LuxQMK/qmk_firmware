@@ -47,58 +47,66 @@ uint8_t g_reactive_blend       = REACTIVE_BLEND_ADDITIVE; // 0 = Additive Glow, 
  * Save user custom configuration to persistent EEPROM storage
  */
 void luxqmk_eeprom_save(void) {
-    eeprom_update_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 0), g_custom_rgb_reverse ? 1 : 0);
-    eeprom_update_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 1), g_layer_lighting_enable ? 1 : 0);
-    eeprom_update_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 2), g_layer_dim_level);
-    eeprom_update_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 3), g_layer_colors[1].h);
-    eeprom_update_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 4), g_layer_colors[1].s);
-    eeprom_update_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 5), g_layer_colors[2].h);
-    eeprom_update_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 6), g_layer_colors[2].s);
-    eeprom_update_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 7), g_layer_colors[3].h);
-    eeprom_update_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 8), g_layer_colors[3].s);
+    uint8_t buf[VIA_EEPROM_CUSTOM_CONFIG_SIZE];
+    memset(buf, 0, sizeof(buf));
 
-    eeprom_update_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 9), g_logo_mode);
+    buf[0] = g_custom_rgb_reverse ? 1 : 0;
+    buf[1] = g_layer_lighting_enable ? 1 : 0;
+    buf[2] = g_layer_dim_level;
+    buf[3] = g_layer_colors[1].h;
+    buf[4] = g_layer_colors[1].s;
+    buf[5] = g_layer_colors[2].h;
+    buf[6] = g_layer_colors[2].s;
+    buf[7] = g_layer_colors[3].h;
+    buf[8] = g_layer_colors[3].s;
+
+    buf[9] = g_logo_mode;
     for (uint8_t i = 1; i < 8; i++) {
-        eeprom_update_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 10 + ((i - 1) * 2)), g_logo_lock_colors[i].h);
-        eeprom_update_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 11 + ((i - 1) * 2)), g_logo_lock_colors[i].s);
+        buf[10 + ((i - 1) * 2)] = g_logo_lock_colors[i].h;
+        buf[11 + ((i - 1) * 2)] = g_logo_lock_colors[i].s;
     }
 
-    eeprom_update_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 24), g_win_lock_mode);
-    eeprom_update_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 25), g_win_lock_color.h);
-    eeprom_update_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 26), g_win_lock_color.s);
+    buf[24] = g_win_lock_mode;
+    buf[25] = g_win_lock_color.h;
+    buf[26] = g_win_lock_color.s;
 
-    eeprom_update_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 27), g_reactive_enable ? 1 : 0);
-    eeprom_update_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 28), g_reactive_mode);
-    eeprom_update_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 29), g_reactive_color.h);
-    eeprom_update_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 30), g_reactive_color.s);
-    eeprom_update_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 31), (g_reactive_speed & 0x7F) | ((g_reactive_blend & 0x01) << 7));
+    buf[27] = g_reactive_enable ? 1 : 0;
+    buf[28] = g_reactive_mode;
+    buf[29] = g_reactive_color.h;
+    buf[30] = g_reactive_color.s;
+    buf[31] = (g_reactive_speed & 0x7F) | ((g_reactive_blend & 0x01) << 7);
+
+    via_update_custom_config(buf, 0, sizeof(buf));
 }
 
 /**
  * Load user custom configuration from EEPROM upon startup
  */
 void luxqmk_eeprom_load(void) {
-    uint8_t rev    = eeprom_read_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 0));
-    uint8_t enable = eeprom_read_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 1));
-    uint8_t dim    = eeprom_read_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 2));
-    uint8_t l1_h   = eeprom_read_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 3));
-    uint8_t l1_s   = eeprom_read_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 4));
-    uint8_t l2_h   = eeprom_read_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 5));
-    uint8_t l2_s   = eeprom_read_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 6));
-    uint8_t l3_h   = eeprom_read_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 7));
-    uint8_t l3_s   = eeprom_read_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 8));
+    uint8_t buf[VIA_EEPROM_CUSTOM_CONFIG_SIZE];
+    via_read_custom_config(buf, 0, sizeof(buf));
 
-    uint8_t logo_mode = eeprom_read_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 9));
+    uint8_t rev    = buf[0];
+    uint8_t enable = buf[1];
+    uint8_t dim    = buf[2];
+    uint8_t l1_h   = buf[3];
+    uint8_t l1_s   = buf[4];
+    uint8_t l2_h   = buf[5];
+    uint8_t l2_s   = buf[6];
+    uint8_t l3_h   = buf[7];
+    uint8_t l3_s   = buf[8];
 
-    uint8_t win_lock_mode = eeprom_read_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 24));
-    uint8_t win_lock_h    = eeprom_read_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 25));
-    uint8_t win_lock_s    = eeprom_read_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 26));
+    uint8_t logo_mode = buf[9];
 
-    uint8_t r_enable = eeprom_read_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 27));
-    uint8_t r_mode   = eeprom_read_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 28));
-    uint8_t r_h      = eeprom_read_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 29));
-    uint8_t r_s      = eeprom_read_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 30));
-    uint8_t r_spd    = eeprom_read_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 31));
+    uint8_t win_lock_mode = buf[24];
+    uint8_t win_lock_h    = buf[25];
+    uint8_t win_lock_s    = buf[26];
+
+    uint8_t r_enable = buf[27];
+    uint8_t r_mode   = buf[28];
+    uint8_t r_h      = buf[29];
+    uint8_t r_s      = buf[30];
+    uint8_t r_spd    = buf[31];
 
     if (enable == 0xFF) {
         // Uninitialized EEPROM defaults
@@ -150,8 +158,8 @@ void luxqmk_eeprom_load(void) {
         } else {
             g_logo_mode = logo_mode;
             for (uint8_t i = 1; i < 8; i++) {
-                g_logo_lock_colors[i].h = eeprom_read_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 10 + ((i - 1) * 2)));
-                g_logo_lock_colors[i].s = eeprom_read_byte((void *)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + 11 + ((i - 1) * 2)));
+                g_logo_lock_colors[i].h = buf[10 + ((i - 1) * 2)];
+                g_logo_lock_colors[i].s = buf[11 + ((i - 1) * 2)];
             }
         }
 
@@ -190,7 +198,7 @@ void keyboard_post_init_user(void) {
 #if defined(NKRO_ENABLE)
     if (!keymap_config.nkro) {
         keymap_config.nkro = 1;
-        eeconfig_update_keymap(keymap_config.raw);
+        eeconfig_update_keymap(&keymap_config);
     }
 #endif
 }
@@ -347,7 +355,7 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                     data[3] = keymap_config.no_gui ? 1 : 0;
                 } else if (*command_id == id_custom_set_value) {
                     keymap_config.no_gui = (data[3] != 0);
-                    eeconfig_update_keymap(keymap_config.raw);
+                    eeconfig_update_keymap(&keymap_config);
                 }
                 return;
 
@@ -414,11 +422,6 @@ bool process_record_user_custom(uint16_t keycode, keyrecord_t *record) {
     return true;
 }
 
-// Mode toggle visual confirmation variables (3 blinks)
-static bool     is_orgb_mode     = false;
-static uint32_t orgb_blink_timer = 0;
-static uint8_t  orgb_blink_mode  = 0; // 0 = none, 1 = OpenRGB (Green), 2 = VIA / LuxQMK Studio (Blue)
-
 /**
  * Central QMK key event processor
  */
@@ -426,13 +429,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
         case ORGB:
         case QK_USER_0:
-        #ifdef VIA_OPENRGB_HYBRID
-            if (record->event.pressed) {
-                is_orgb_mode = !is_orgb_mode;
-                orgb_blink_mode = is_orgb_mode ? 1 : 2;
-                orgb_blink_timer = timer_read32();
-            }
-        #endif
             return false;
 
         case RGB_REV:
@@ -449,30 +445,10 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 }
 
 /**
- * RGB Matrix indicator rendering pipeline (Mode Blink -> Dual-Layer Reactive -> Layer Lighting -> Board Hardware Modules)
+ * RGB Matrix indicator rendering pipeline (Dual-Layer Reactive -> Layer Lighting -> Board Hardware Modules)
  */
 #ifdef RGB_MATRIX_ENABLE
 bool rgb_matrix_indicators_user(void) {
-    // 0. Mode switch visual confirmation animation (3 blinks)
-    if (orgb_blink_mode != 0) {
-        uint32_t elapsed = timer_elapsed32(orgb_blink_timer);
-        if (elapsed < 1800) {
-            uint16_t cycle = elapsed % 600; // 3 cycles of 600ms = 1.8 seconds
-            if (cycle < 350) { // 350ms on, 250ms off
-                if (orgb_blink_mode == 1) {
-                    rgb_matrix_set_color_all(0, 255, 0);   // Green = OpenRGB
-                } else {
-                    rgb_matrix_set_color_all(0, 140, 255); // Cyan/Blue = LuxQMK Studio
-                }
-            } else {
-                rgb_matrix_set_color_all(0, 0, 0); // Black during interval
-            }
-        } else {
-            orgb_blink_mode = 0;
-        }
-        return true;
-    }
-
     // 1. Dual-Layer Reactive Lighting Overlay
     if (g_reactive_enable && g_reactive_mode != REACTIVE_MODE_OFF && g_last_hit_tracker.count > 0) {
         uint8_t val = rgb_matrix_get_val();
