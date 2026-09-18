@@ -38,10 +38,12 @@ bool effect_runner_bloom(effect_params_t* params, flower_blooming_f effect_func)
 }
 
 static hsv_t FLOWER_BLOOMING_math(hsv_t hsv, uint8_t i, uint8_t time) {
+    extern bool g_custom_rgb_reverse;
+    int16_t t = g_custom_rgb_reverse ? -time : time;
     if (g_led_config.point[i].y > k_rgb_matrix_center.y)
-        hsv.h = g_led_config.point[i].x * 3 - g_led_config.point[i].y * 3 + time;
+        hsv.h = g_led_config.point[i].x * 3 - g_led_config.point[i].y * 3 + t;
     else
-        hsv.h = g_led_config.point[i].x * 3 - g_led_config.point[i].y * 3 - time;
+        hsv.h = g_led_config.point[i].x * 3 - g_led_config.point[i].y * 3 - t;
     return hsv;
 }
 

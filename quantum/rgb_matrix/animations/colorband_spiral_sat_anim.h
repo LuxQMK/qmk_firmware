@@ -3,7 +3,8 @@ RGB_MATRIX_EFFECT(BAND_SPIRAL_SAT)
 #    ifdef RGB_MATRIX_CUSTOM_EFFECT_IMPLS
 
 static hsv_t BAND_SPIRAL_SAT_math(hsv_t hsv, int16_t dx, int16_t dy, uint8_t dist, uint8_t time) {
-    hsv.s = scale8(hsv.s + dist - time - atan2_8(dy, dx), hsv.s);
+    extern bool g_custom_rgb_reverse;
+    hsv.s = scale8(hsv.s + dist + (g_custom_rgb_reverse ? time : -time) - atan2_8(dy, dx), hsv.s);
     return hsv;
 }
 

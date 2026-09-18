@@ -3,7 +3,8 @@ RGB_MATRIX_EFFECT(CYCLE_ALL)
 #    ifdef RGB_MATRIX_CUSTOM_EFFECT_IMPLS
 
 static hsv_t CYCLE_ALL_math(hsv_t hsv, uint8_t i, uint8_t time) {
-    hsv.h = time;
+    extern bool g_custom_rgb_reverse;
+    hsv.h = g_custom_rgb_reverse ? (255 - time) : time;
     return hsv;
 }
 

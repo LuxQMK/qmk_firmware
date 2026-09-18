@@ -3,7 +3,8 @@ RGB_MATRIX_EFFECT(CYCLE_PINWHEEL)
 #    ifdef RGB_MATRIX_CUSTOM_EFFECT_IMPLS
 
 static hsv_t CYCLE_PINWHEEL_math(hsv_t hsv, int16_t dx, int16_t dy, uint8_t time) {
-    hsv.h = atan2_8(dy, dx) + time;
+    extern bool g_custom_rgb_reverse;
+    hsv.h = atan2_8(dy, dx) + (g_custom_rgb_reverse ? -time : time);
     return hsv;
 }
 

@@ -22,7 +22,7 @@ static bool PIXEL_FLOW(effect_params_t* params) {
         // Clear LEDs and fill the state array
         rgb_matrix_set_color_all(0, 0, 0);
         for (uint8_t j = 0; j < RGB_MATRIX_LED_COUNT; ++j) {
-            led[j] = (random8() & 2) ? (rgb_t){0, 0, 0} : rgb_matrix_hsv_to_rgb((hsv_t){random8(), random8_min_max(127, 255), rgb_matrix_config.hsv.v});
+            led[j] = (random8() & 2) ? (rgb_t){0, 0, 0} : hsv_to_rgb((hsv_t){random8(), random8_min_max(127, 255), rgb_matrix_config.hsv.v});
         }
     }
 
@@ -34,12 +34,22 @@ static bool PIXEL_FLOW(effect_params_t* params) {
     }
 
     if (!rgb_matrix_check_finished_leds(led_max)) {
-        // Shift LED state forward
-        for (uint8_t j = 0; j < led_max - 1; ++j) {
-            led[j] = led[j + 1];
+        extern bool g_custom_rgb_reverse;
+        if (g_custom_rgb_reverse) {
+            // Shift LED state backward
+            for (uint8_t j = led_max - 1; j > 0; --j) {
+                led[j] = led[j - 1];
+            }
+            // Fill first LED
+            led[0] = (random8() & 2) ? (rgb_t){0, 0, 0} : hsv_to_rgb((hsv_t){random8(), random8_min_max(127, 255), rgb_matrix_config.hsv.v});
+        } else {
+            // Shift LED state forward
+            for (uint8_t j = 0; j < led_max - 1; ++j) {
+                led[j] = led[j + 1];
+            }
+            // Fill last LED
+            led[led_max - 1] = (random8() & 2) ? (rgb_t){0, 0, 0} : hsv_to_rgb((hsv_t){random8(), random8_min_max(127, 255), rgb_matrix_config.hsv.v});
         }
-        // Fill last LED
-        led[led_max - 1] = (random8() & 2) ? (rgb_t){0, 0, 0} : rgb_matrix_hsv_to_rgb((hsv_t){random8(), random8_min_max(127, 255), rgb_matrix_config.hsv.v});
         // Set pulse timer
         wait_timer = g_rgb_timer + interval();
     }

@@ -3,7 +3,8 @@ RGB_MATRIX_EFFECT(CYCLE_SPIRAL)
 #    ifdef RGB_MATRIX_CUSTOM_EFFECT_IMPLS
 
 static hsv_t CYCLE_SPIRAL_math(hsv_t hsv, int16_t dx, int16_t dy, uint8_t dist, uint8_t time) {
-    hsv.h = dist - time - atan2_8(dy, dx);
+    extern bool g_custom_rgb_reverse;
+    hsv.h = dist + (g_custom_rgb_reverse ? time : -time) - atan2_8(dy, dx);
     return hsv;
 }
 

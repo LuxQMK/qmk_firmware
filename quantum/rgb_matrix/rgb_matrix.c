@@ -72,6 +72,8 @@ uint8_t g_rgb_frame_buffer[MATRIX_ROWS][MATRIX_COLS] = {{0}};
 last_hit_t g_last_hit_tracker;
 #endif // RGB_MATRIX_KEYREACTIVE_ENABLED
 
+__attribute__((weak)) bool g_custom_rgb_reverse = false;
+
 #ifndef RGB_MATRIX_FLAG_STEPS
 #    define RGB_MATRIX_FLAG_STEPS {LED_FLAG_ALL, LED_FLAG_KEYLIGHT | LED_FLAG_MODIFIER, LED_FLAG_UNDERGLOW, LED_FLAG_NONE}
 #endif

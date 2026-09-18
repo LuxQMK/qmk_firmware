@@ -3,9 +3,10 @@ RGB_MATRIX_EFFECT(CYCLE_OUT_IN_DUAL)
 #    ifdef RGB_MATRIX_CUSTOM_EFFECT_IMPLS
 
 static hsv_t CYCLE_OUT_IN_DUAL_math(hsv_t hsv, int16_t dx, int16_t dy, uint8_t time) {
+    extern bool g_custom_rgb_reverse;
     dx           = (k_rgb_matrix_center.x / 2) - abs8(dx);
     uint8_t dist = sqrt16(dx * dx + dy * dy);
-    hsv.h        = 3 * dist + time;
+    hsv.h        = 3 * dist + (g_custom_rgb_reverse ? -time : time);
     return hsv;
 }
 
