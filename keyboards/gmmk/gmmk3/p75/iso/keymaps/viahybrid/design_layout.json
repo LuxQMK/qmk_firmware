@@ -14,11 +14,6 @@
     ],
     "customKeycodes": [
       {
-        "name": "OpenRGB Mode",
-        "title": "Toggle OpenRGB Hybrid Mode",
-        "shortName": "ORGB"
-      },
-      {
         "name": "Reverse RGB",
         "title": "Reverse RGB Matrix Direction",
         "shortName": "RGB_REV"
