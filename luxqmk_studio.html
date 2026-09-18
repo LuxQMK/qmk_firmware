@@ -2292,12 +2292,13 @@ input:checked + .switch-slider:before {
               <label data-i18n="lblReactiveEffect">Reactive Effect</label>
               <select id="reactiveModeSelect" class="form-control">
                 <option value="0" data-i18n="optReactiveOff">Disabled</option>
-                <option value="1" data-i18n="optReactiveFade">Reactive Fade</option>
-                <option value="2" data-i18n="optReactiveSplash">Splash Ripple (Single Color)</option>
+                <option value="1" data-i18n="optReactiveFade">Reactive Fade (Simple)</option>
+                <option value="2" data-i18n="optReactiveSplash">Splash Ripple (Solid Color)</option>
                 <option value="3" data-i18n="optReactiveSplashRainbow">Splash Ripple (Rainbow)</option>
                 <option value="4" data-i18n="optReactiveCross">Reactive Cross (+)</option>
                 <option value="5" data-i18n="optReactiveNexus">Reactive Nexus (X)</option>
-                <option value="6" data-i18n="optReactiveHeatmap">Typing Heatmap</option>
+                <option value="6" data-i18n="optReactiveWide">Reactive Wide Wave</option>
+                <option value="7" data-i18n="optReactiveHeatmap">Typing Heatmap</option>
               </select>
             </div>
 
@@ -5912,6 +5913,7 @@ input:checked + .switch-slider:before {
       optReactiveSplashRainbow: "Splash Ripple (Rainbow)",
       optReactiveCross: "Reactive Cross (+)",
       optReactiveNexus: "Reactive Nexus (X)",
+      optReactiveWide: "Reactive Wide Wave",
       optReactiveHeatmap: "Typing Heatmap",
       lblReactiveColor: "Reactive Effect Color",
       lblReactiveColorHint: "Color of ripples and reactive flashes",
@@ -6236,6 +6238,7 @@ input:checked + .switch-slider:before {
       optReactiveSplashRainbow: "Fala Tęczowa (Rainbow Splash)",
       optReactiveCross: "Krzyż (Reactive Cross +)",
       optReactiveNexus: "Gwiazda (Reactive Nexus X)",
+      optReactiveWide: "Szeroka Fala (Wide Wave)",
       optReactiveHeatmap: "Heatmapa Pisania (Typing Heatmap)",
       lblReactiveColor: "Kolor Błysku Reaktywnego",
       lblReactiveColorHint: "Barwa fali i rozbłysków dla efektów jednokolorowych",
@@ -6480,13 +6483,15 @@ input:checked + .switch-slider:before {
     }
 
     translatePage() {
-      // 1. Standard text content
+      // 1. Standard text content & HTML formatting
       document.querySelectorAll("[data-i18n]").forEach((el) => {
         const key = el.dataset.i18n;
         const translation = this.t(key);
         if (translation) {
           if (el.tagName === "INPUT" && el.type === "placeholder") {
             el.placeholder = translation;
+          } else if (/<[a-z][\s\S]*>/i.test(translation)) {
+            el.innerHTML = translation;
           } else {
             el.textContent = translation;
           }
@@ -7449,22 +7454,10 @@ input:checked + .switch-slider:before {
     { id: 28, name: "Pixel Rain", isRainbow: true },
     { id: 29, name: "Pixel Flow", isRainbow: true },
     { id: 30, name: "Pixel Fractal", isRainbow: true },
-    { id: 31, name: "Typing Heatmap", isRainbow: false },
-    { id: 32, name: "Digital Rain", isRainbow: false },
-    { id: 33, name: "Solid Reactive Simple", isRainbow: false },
-    { id: 34, name: "Solid Reactive", isRainbow: false },
-    { id: 35, name: "Solid Reactive Wide", isRainbow: false },
-    { id: 36, name: "Solid Reactive Multi Wide", isRainbow: false },
-    { id: 37, name: "Solid Reactive Cross", isRainbow: false },
-    { id: 38, name: "Solid Reactive Multi Cross", isRainbow: false },
-    { id: 39, name: "Solid Reactive Nexus", isRainbow: false },
-    { id: 40, name: "Solid Reactive Multi Nexus", isRainbow: false },
-    { id: 41, name: "Splash", isRainbow: true },
-    { id: 42, name: "Multi Splash", isRainbow: true },
-    { id: 43, name: "Solid Splash", isRainbow: false },
-    { id: 44, name: "Solid Multi Splash", isRainbow: false },
-    { id: 45, name: "Lux Wave", isRainbow: true },
-    { id: 46, name: "Cycle Dynamic", isRainbow: true }
+    { id: 31, name: "Digital Rain", isRainbow: false },
+    { id: 32, name: "Riverflow", isRainbow: false },
+    { id: 33, name: "Lux Wave", isRainbow: true },
+    { id: 34, name: "Cycle Dynamic", isRainbow: true }
   ];
 
   const CODE_TO_KEY_ID = {
@@ -8111,7 +8104,7 @@ input:checked + .switch-slider:before {
           }
           break;
 
-        case 32: // DIGITAL_RAIN (Matrix Green stream)
+        case 31: // DIGITAL_RAIN (Matrix Green stream)
           {
             const stream = ((k.qmkX * 7 + Math.floor(now * 0.015 * spdFactor)) % 40);
             const dist = Math.abs((k.qmkY / 2) - stream);
@@ -8121,206 +8114,18 @@ input:checked + .switch-slider:before {
           }
           break;
 
-        // --- REAL REACTIVE ANIMATIONS (SOLID COLOR) ---
-        case 33: // SOLID_REACTIVE_SIMPLE
-        case 34: // SOLID_REACTIVE
+        case 32: // RIVERFLOW
           {
-            h = baseH; s = baseS;
-            const lastHit = this.lastHitPerKey.get(k.id);
-            if (!lastHit) {
-              v = Math.round(baseV * 0.05); // Idle keys are off
-            } else {
-              const elapsed = (now - lastHit.time) * 0.001 * spdFactor;
-              const fade = Math.max(0, 1.0 - elapsed * 1.2);
-              v = Math.round(baseV * (0.05 + 0.95 * fade));
-            }
+            const idx = rev ? (105 - (k.qmkX + k.qmkY) % 105) : (k.qmkX + k.qmkY) % 105;
+            const rTime = Math.sin(now * 0.003 * spdFactor + idx * 0.3);
+            h = baseH;
+            s = baseS;
+            v = Math.round(baseV * Math.abs(rTime));
           }
           break;
 
-        case 35: // SOLID_REACTIVE_WIDE (Single expanding splash)
-          {
-            h = baseH; s = baseS;
-            const recentHit = this.hits[this.hits.length - 1];
-            if (!recentHit) {
-              v = Math.round(baseV * 0.05);
-            } else {
-              const elapsed = (now - recentHit.time) * 0.001 * spdFactor;
-              const dx = k.qmkX - recentHit.x; const dy = k.qmkY - recentHit.y;
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              const effect = elapsed * 255 + dist * 5;
-              const val = Math.max(0, 255 - effect);
-              v = Math.round(baseV * (0.05 + 0.95 * (val / 255)));
-            }
-          }
-          break;
-
-        case 36: // SOLID_REACTIVE_MULTIWIDE (Multiple simultaneous splashes)
-          {
-            h = baseH; s = baseS;
-            let sumVal = 0;
-            for (let i = 0; i < this.hits.length; i++) {
-              const hit = this.hits[i];
-              const elapsed = (now - hit.time) * 0.001 * spdFactor;
-              if (elapsed > 1.2) continue;
-              const dx = k.qmkX - hit.x; const dy = k.qmkY - hit.y;
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              const effect = elapsed * 255 + dist * 5;
-              if (effect < 255) sumVal += (255 - effect);
-            }
-            v = Math.round(baseV * (0.05 + 0.95 * Math.min(1.0, sumVal / 255)));
-          }
-          break;
-
-        case 37: // SOLID_REACTIVE_CROSS (Single cross beam)
-          {
-            h = baseH; s = baseS;
-            const recentHit = this.hits[this.hits.length - 1];
-            if (!recentHit) {
-              v = Math.round(baseV * 0.05);
-            } else {
-              const elapsed = (now - recentHit.time) * 0.001 * spdFactor;
-              const dx = Math.abs(k.qmkX - recentHit.x); const dy = Math.abs(k.qmkY - recentHit.y);
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              const minD = Math.min(Math.min(255, dx * 16), Math.min(255, dy * 16));
-              const effect = elapsed * 255 + dist + minD;
-              const val = Math.max(0, 255 - effect);
-              v = Math.round(baseV * (0.05 + 0.95 * (val / 255)));
-            }
-          }
-          break;
-
-        case 38: // SOLID_REACTIVE_MULTICROSS
-          {
-            h = baseH; s = baseS;
-            let sumVal = 0;
-            for (let i = 0; i < this.hits.length; i++) {
-              const hit = this.hits[i];
-              const elapsed = (now - hit.time) * 0.001 * spdFactor;
-              if (elapsed > 1.2) continue;
-              const dx = Math.abs(k.qmkX - hit.x); const dy = Math.abs(k.qmkY - hit.y);
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              const minD = Math.min(Math.min(255, dx * 16), Math.min(255, dy * 16));
-              const effect = elapsed * 255 + dist + minD;
-              if (effect < 255) sumVal += (255 - effect);
-            }
-            v = Math.round(baseV * (0.05 + 0.95 * Math.min(1.0, sumVal / 255)));
-          }
-          break;
-
-        case 39: // SOLID_REACTIVE_NEXUS
-          {
-            const recentHit = this.hits[this.hits.length - 1];
-            if (!recentHit) {
-              h = baseH; s = baseS; v = Math.round(baseV * 0.05);
-            } else {
-              const elapsed = (now - recentHit.time) * 0.001 * spdFactor;
-              const dx = k.qmkX - recentHit.x; const dy = k.qmkY - recentHit.y;
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              let effect = (elapsed * 255) - dist;
-              if (effect > 255 || dist > 72 || (Math.abs(dx) > 8 && Math.abs(dy) > 8)) effect = 255;
-              const val = Math.max(0, 255 - effect);
-              h = (baseH + Math.round(dy / 4)) & 0xFF;
-              s = baseS;
-              v = Math.round(baseV * (0.05 + 0.95 * (val / 255)));
-            }
-          }
-          break;
-
-        case 40: // SOLID_REACTIVE_MULTINEXUS
-          {
-            let sumVal = 0; let effH = baseH;
-            for (let i = 0; i < this.hits.length; i++) {
-              const hit = this.hits[i];
-              const elapsed = (now - hit.time) * 0.001 * spdFactor;
-              if (elapsed > 1.2) continue;
-              const dx = k.qmkX - hit.x; const dy = k.qmkY - hit.y;
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              let effect = (elapsed * 255) - dist;
-              if (effect > 255 || dist > 72 || (Math.abs(dx) > 8 && Math.abs(dy) > 8)) effect = 255;
-              if (effect < 255) { sumVal += (255 - effect); effH = (baseH + Math.round(dy / 4)) & 0xFF; }
-            }
-            h = effH; s = baseS;
-            v = Math.round(baseV * (0.05 + 0.95 * Math.min(1.0, sumVal / 255)));
-          }
-          break;
-
-        case 41: // SPLASH (Rainbow expanding ring)
-          {
-            const recentHit = this.hits[this.hits.length - 1];
-            if (!recentHit) {
-              h = baseH; s = 255; v = Math.round(baseV * 0.05);
-            } else {
-              const elapsed = (now - recentHit.time) * 0.001 * spdFactor;
-              const dx = k.qmkX - recentHit.x; const dy = k.qmkY - recentHit.y;
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              const effect = Math.abs((elapsed * 180) - dist);
-              const intensity = Math.max(0, 1.0 - effect / 24) * Math.max(0, 1.0 - elapsed / 1.5);
-              h = (Math.round(dist * 2 + elapsed * 100)) & 0xFF;
-              s = 255;
-              v = Math.round(baseV * (0.05 + 0.95 * intensity));
-            }
-          }
-          break;
-
-        case 42: // MULTISPLASH (Multiple rainbow expanding rings)
-          {
-            let sumIntensity = 0; let rippleH = baseH;
-            for (let i = 0; i < this.hits.length; i++) {
-              const hit = this.hits[i];
-              const elapsed = (now - hit.time) * 0.001 * spdFactor;
-              if (elapsed > 1.5) continue;
-              const dx = k.qmkX - hit.x; const dy = k.qmkY - hit.y;
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              const effect = Math.abs((elapsed * 180) - dist);
-              if (effect < 24) {
-                const int = (1.0 - effect / 24) * (1.0 - elapsed / 1.5);
-                sumIntensity += int;
-                rippleH = (Math.round(dist * 2 + elapsed * 100)) & 0xFF;
-              }
-            }
-            h = rippleH; s = 255;
-            v = Math.round(baseV * (0.05 + 0.95 * Math.min(1.0, sumIntensity)));
-          }
-          break;
-
-        case 43: // SOLID_SPLASH (Expanding ring in user's solid color)
-          {
-            h = baseH; s = baseS;
-            const recentHit = this.hits[this.hits.length - 1];
-            if (!recentHit) {
-              v = Math.round(baseV * 0.05);
-            } else {
-              const elapsed = (now - recentHit.time) * 0.001 * spdFactor;
-              const dx = k.qmkX - recentHit.x; const dy = k.qmkY - recentHit.y;
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              const effect = Math.abs((elapsed * 180) - dist);
-              const intensity = Math.max(0, 1.0 - effect / 24) * Math.max(0, 1.0 - elapsed / 1.5);
-              v = Math.round(baseV * (0.05 + 0.95 * intensity));
-            }
-          }
-          break;
-
-        case 44: // SOLID_MULTISPLASH (Multiple expanding rings in user's solid color)
-          {
-            h = baseH; s = baseS;
-            let sumIntensity = 0;
-            for (let i = 0; i < this.hits.length; i++) {
-              const hit = this.hits[i];
-              const elapsed = (now - hit.time) * 0.001 * spdFactor;
-              if (elapsed > 1.5) continue;
-              const dx = k.qmkX - hit.x; const dy = k.qmkY - hit.y;
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              const effect = Math.abs((elapsed * 180) - dist);
-              if (effect < 24) {
-                sumIntensity += (1.0 - effect / 24) * (1.0 - elapsed / 1.5);
-              }
-            }
-            v = Math.round(baseV * (0.05 + 0.95 * Math.min(1.0, sumIntensity)));
-          }
-          break;
-
-        case 45: // LUXQMK_WAVE
-        case 46: // CYCLE_DYNAMIC
+        case 33: // LUXQMK_WAVE
+        case 34: // CYCLE_DYNAMIC
         default:
           {
             const w1 = Math.sin(now * 0.003 * spdFactor + (k.qmkX / 224) * 6.28 * (rev ? 1 : -1));
@@ -8585,7 +8390,26 @@ input:checked + .switch-slider:before {
                 break;
               }
 
-              case 6: { // REACTIVE_MODE_HEATMAP
+              case 6: { // REACTIVE_MODE_WIDE (Wide solid expanding wave)
+                let sumInt = 0;
+                for (let j = 0; j < this.hits.length; j++) {
+                  const hit = this.hits[j];
+                  if (!hit || !Number.isFinite(hit.time)) continue;
+                  const dx = k.qmkX - hit.x;
+                  const dy = k.qmkY - hit.y;
+                  const dist = Math.sqrt(dx * dx + dy * dy);
+                  const elapsedSec = (now - hit.time) / 1000;
+                  const tick = Math.min(255, Math.floor(elapsedSec * 60 * rSpdScale * 2.5));
+                  const eff = tick - dist;
+                  if (eff >= 0 && eff < 48 && tick < 255) {
+                    sumInt = Math.min(255, sumInt + Math.floor((48 - eff) * (255 - tick) / 48));
+                  }
+                }
+                reactiveIntensity = sumInt;
+                break;
+              }
+
+              case 7: { // REACTIVE_MODE_HEATMAP
                 const curHeat = this.keyHeat.get(k.id) || 0;
                 if (curHeat > 0) {
                   reactiveIntensity = Math.round(curHeat);
@@ -8686,7 +8510,7 @@ input:checked + .switch-slider:before {
         const dimVal = Math.round((this.state.custom.layerDimLevel / 255) * 100);
         badge.innerHTML = window.i18n ? window.i18n.t("badgeLayerActive", { layer: activeLyr, dim: dimVal }) : `🎨 Layer ${activeLyr} Active • Dimming: ${dimVal}%`;
       } else if (this.activeTab === "reactive") {
-        const rEffNames = ["Disabled", "Fade", "Splash Ripple", "Rainbow Splash", "Cross +", "Nexus X", "Typing Heatmap"];
+        const rEffNames = ["Disabled", "Fade", "Splash Ripple", "Rainbow Splash", "Cross +", "Nexus X", "Wide Wave", "Typing Heatmap"];
         const curRMode = this.state.custom.reactiveMode || 0;
         const modeLabel = rEffNames[curRMode] || 'Active';
         badge.innerHTML = this.state.custom.reactiveEnable
@@ -8956,7 +8780,7 @@ input:checked + .switch-slider:before {
 
       const reactiveColorGrp = document.getElementById("reactiveColorGroup");
       if (reactiveColorGrp) {
-        reactiveColorGrp.style.display = (this.state.custom.reactiveMode === 3 || this.state.custom.reactiveMode === 6) ? "none" : "block";
+        reactiveColorGrp.style.display = (this.state.custom.reactiveMode === 3 || this.state.custom.reactiveMode === 7) ? "none" : "block";
       }
 
       const sliderReactiveSpd = document.getElementById("reactiveSpeedSlider");
@@ -9163,7 +8987,7 @@ input:checked + .switch-slider:before {
         this.state.custom.reactiveMode = val;
         const colorGrp = document.getElementById("reactiveColorGroup");
         if (colorGrp) {
-          colorGrp.style.display = (val === 3 || val === 6) ? "none" : "block";
+          colorGrp.style.display = (val === 3 || val === 7) ? "none" : "block";
         }
         if (this.protocol && this.protocol.device) {
           await this.protocol.setCustomValue(C.CHANNELS.CUSTOM, C.CUSTOM_VAL.REACTIVE_MODE, val);
