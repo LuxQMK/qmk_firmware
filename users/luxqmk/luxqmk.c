@@ -461,17 +461,13 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
 #endif
 
 /**
- * Custom Dynamic Asymmetric Eager Debounce Engine
+ * Custom Dynamic Symmetric Defer Per-Key Debounce Engine (sym_defer_pk)
+ * Completely eliminates switch contact chatter and double-clicks by requiring
+ * stable contact state for g_debounce_time ms before actuating or releasing.
  */
-typedef struct {
-    bool    pressed : 1;
-    uint8_t time : 7;
-} luxqmk_debounce_counter_t;
-
-static luxqmk_debounce_counter_t s_debounce_counters[MATRIX_ROWS * MATRIX_COLS];
-static bool s_counters_need_update = false;
-static bool s_matrix_need_update   = false;
-static bool s_cooked_changed       = false;
+static uint8_t s_debounce_counters[MATRIX_ROWS * MATRIX_COLS];
+static bool    s_counters_need_update = false;
+static bool    s_cooked_changed       = false;
 
 void debounce_init(void) {
     memset(s_debounce_counters, 0, sizeof(s_debounce_counters));
@@ -479,25 +475,20 @@ void debounce_init(void) {
 
 static inline void luxqmk_update_debounce_counters(matrix_row_t raw[], matrix_row_t cooked[], uint8_t elapsed_time) {
     s_counters_need_update = false;
-    s_matrix_need_update   = false;
 
     for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
         uint16_t row_offset = row * MATRIX_COLS;
         for (uint8_t col = 0; col < MATRIX_COLS; col++) {
             uint16_t index = row_offset + col;
-            if (s_debounce_counters[index].time != 0) {
-                if (s_debounce_counters[index].time <= elapsed_time) {
-                    s_debounce_counters[index].time = 0;
-                    if (!s_debounce_counters[index].pressed) {
-                        // key-up: deferred release
-                        matrix_row_t col_mask = (MATRIX_ROW_SHIFTER << col);
-                        if (!(raw[row] & col_mask)) {
-                            cooked[row] &= ~col_mask;
-                            s_cooked_changed = true;
-                        }
-                    }
+            if (s_debounce_counters[index] != 0) {
+                if (s_debounce_counters[index] <= elapsed_time) {
+                    s_debounce_counters[index] = 0;
+                    matrix_row_t col_mask    = (MATRIX_ROW_SHIFTER << col);
+                    matrix_row_t cooked_next = (cooked[row] & ~col_mask) | (raw[row] & col_mask);
+                    s_cooked_changed |= cooked[row] ^ cooked_next;
+                    cooked[row] = cooked_next;
                 } else {
-                    s_debounce_counters[index].time -= elapsed_time;
+                    s_debounce_counters[index] -= elapsed_time;
                     s_counters_need_update = true;
                 }
             }
@@ -505,9 +496,7 @@ static inline void luxqmk_update_debounce_counters(matrix_row_t raw[], matrix_ro
     }
 }
 
-static inline void luxqmk_transfer_matrix_values(matrix_row_t raw[], matrix_row_t cooked[]) {
-    s_matrix_need_update = false;
-
+static inline void luxqmk_start_debounce_counters(matrix_row_t raw[], matrix_row_t cooked[]) {
     for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
         uint16_t     row_offset = row * MATRIX_COLS;
         matrix_row_t delta      = raw[row] ^ cooked[row];
@@ -517,25 +506,10 @@ static inline void luxqmk_transfer_matrix_values(matrix_row_t raw[], matrix_row_
             matrix_row_t col_mask = (MATRIX_ROW_SHIFTER << col);
 
             if (delta & col_mask) {
-                if (g_debounce_time == 0) {
-                    cooked[row] ^= col_mask;
-                    s_cooked_changed = true;
-                } else if (s_debounce_counters[index].time == 0) {
-                    s_debounce_counters[index].pressed = (raw[row] & col_mask) != 0;
-                    s_debounce_counters[index].time    = g_debounce_time;
-                    s_counters_need_update             = true;
-
-                    if (s_debounce_counters[index].pressed) {
-                        // key-down: EAGER instant actuation (0ms input lag)
-                        cooked[row] |= col_mask;
-                        s_cooked_changed = true;
-                    }
-                }
-            } else if (s_debounce_counters[index].time != 0) {
-                if (!s_debounce_counters[index].pressed) {
-                    // key-up defer canceled if raw is still pressed
-                    s_debounce_counters[index].time = 0;
-                }
+                s_debounce_counters[index] = g_debounce_time;
+                s_counters_need_update     = true;
+            } else {
+                s_debounce_counters[index] = 0;
             }
         }
     }
@@ -562,16 +536,16 @@ bool debounce(matrix_row_t raw[], matrix_row_t cooked[], bool changed) {
         updated_last = true;
 
         if (elapsed_time > 0) {
-            luxqmk_update_debounce_counters(raw, cooked, (uint8_t)MIN(elapsed_time, 127));
+            luxqmk_update_debounce_counters(raw, cooked, (uint8_t)MIN(elapsed_time, UINT8_MAX));
         }
     }
 
-    if (changed || s_matrix_need_update) {
+    if (changed) {
         if (!updated_last) {
             last_time = timer_read_fast();
         }
 
-        luxqmk_transfer_matrix_values(raw, cooked);
+        luxqmk_start_debounce_counters(raw, cooked);
     }
 
     return s_cooked_changed;
