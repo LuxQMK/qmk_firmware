@@ -399,9 +399,14 @@
               ]
             }
           ]
-        },
+        }
+      ]
+    },
+    {
+      "label": "Performance & Debounce",
+      "content": [
         {
-          "label": "Performance & Debounce",
+          "label": "Debounce & Scanning",
           "content": [
             {
               "label": "Debounce Algorithm / Engine",

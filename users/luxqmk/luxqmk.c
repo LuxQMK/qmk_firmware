@@ -219,6 +219,15 @@ void keyboard_post_init_user(void) {
  * Handle custom VIA / LuxQMK Studio WebHID protocol commands
  */
 #if defined(VIA_ENABLE)
+bool via_command_kb(uint8_t *data, uint8_t length) {
+    uint8_t command_id = data[0];
+    if (command_id == 0x0B) { // id_bootloader_jump
+        bootloader_jump();
+        return true;
+    }
+    return false;
+}
+
 void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
     uint8_t *command_id = &(data[0]);
     uint8_t channel_id  = data[1];
@@ -231,6 +240,12 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
         }
 
         switch (value_id) {
+            case USER_VAL_BOOTLOADER_JUMP:
+                if (*command_id == id_custom_set_value) {
+                    bootloader_jump();
+                }
+                return;
+
             case USER_VAL_RGB_REVERSE:
                 if (*command_id == id_custom_get_value) {
                     data[3] = g_custom_rgb_reverse ? 1 : 0;

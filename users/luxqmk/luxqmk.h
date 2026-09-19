@@ -122,6 +122,7 @@ enum reactive_blend_mode {
 #define USER_VAL_LUXQMK_VERSION          25
 #define USER_VAL_QMK_VERSION             26
 #define USER_VAL_DEBOUNCE_TIME           27
+#define USER_VAL_BOOTLOADER_JUMP         0xFE
 
 /**
  * Global configuration variables
