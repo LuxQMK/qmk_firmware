@@ -44,6 +44,9 @@ layer_color_t g_reactive_color = { 0, 0 };         // Default white
 uint8_t g_reactive_speed       = 128;
 uint8_t g_reactive_blend       = REACTIVE_BLEND_ADDITIVE; // 0 = Additive Glow, 1 = Override
 
+// Performance & Switch Debounce configuration (ms)
+uint8_t g_debounce_time        = 5; // Default 5ms
+
 /**
  * Save user custom configuration to persistent EEPROM storage
  */
@@ -77,6 +80,7 @@ void luxqmk_eeprom_save(void) {
     buf[29] = g_reactive_color.h;
     buf[30] = g_reactive_color.s;
     buf[31] = (g_reactive_speed & 0x7F) | ((g_reactive_blend & 0x01) << 7);
+    buf[32] = g_debounce_time;
 
     via_update_custom_config(buf, 0, sizeof(buf));
 #endif
@@ -111,6 +115,7 @@ void luxqmk_eeprom_load(void) {
     uint8_t r_h      = buf[29];
     uint8_t r_s      = buf[30];
     uint8_t r_spd    = buf[31];
+    uint8_t db       = buf[32];
 
     if (enable == 0xFF) {
         // Uninitialized EEPROM defaults
@@ -139,6 +144,7 @@ void luxqmk_eeprom_load(void) {
         g_reactive_color        = (layer_color_t){ 0, 0 };
         g_reactive_speed        = 128;
         g_reactive_blend        = REACTIVE_BLEND_ADDITIVE;
+        g_debounce_time         = 5;
         luxqmk_eeprom_save();
     } else {
         g_custom_rgb_reverse    = (rev != 0);
@@ -147,6 +153,7 @@ void luxqmk_eeprom_load(void) {
         g_layer_colors[1]       = (layer_color_t){ l1_h, l1_s };
         g_layer_colors[2]       = (layer_color_t){ l2_h, l2_s };
         g_layer_colors[3]       = (layer_color_t){ l3_h, l3_s };
+        g_debounce_time         = (db == 0xFF) ? 5 : (db > 30 ? 5 : db);
 
         if (logo_mode == 0xFF) {
             g_logo_mode           = LOGO_MODE_RGB;
@@ -435,6 +442,15 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                 }
                 return;
 
+            case USER_VAL_DEBOUNCE_TIME:
+                if (*command_id == id_custom_get_value) {
+                    data[3] = g_debounce_time;
+                } else if (*command_id == id_custom_set_value) {
+                    g_debounce_time = (data[3] > 30) ? 5 : data[3];
+                    luxqmk_eeprom_save();
+                }
+                return;
+
             default:
                 break;
         }
@@ -443,6 +459,123 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
     *command_id = id_unhandled;
 }
 #endif
+
+/**
+ * Custom Dynamic Asymmetric Eager Debounce Engine
+ */
+typedef struct {
+    bool    pressed : 1;
+    uint8_t time : 7;
+} luxqmk_debounce_counter_t;
+
+static luxqmk_debounce_counter_t s_debounce_counters[MATRIX_ROWS * MATRIX_COLS];
+static bool s_counters_need_update = false;
+static bool s_matrix_need_update   = false;
+static bool s_cooked_changed       = false;
+
+void debounce_init(void) {
+    memset(s_debounce_counters, 0, sizeof(s_debounce_counters));
+}
+
+static inline void luxqmk_update_debounce_counters(matrix_row_t raw[], matrix_row_t cooked[], uint8_t elapsed_time) {
+    s_counters_need_update = false;
+    s_matrix_need_update   = false;
+
+    for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
+        uint16_t row_offset = row * MATRIX_COLS;
+        for (uint8_t col = 0; col < MATRIX_COLS; col++) {
+            uint16_t index = row_offset + col;
+            if (s_debounce_counters[index].time != 0) {
+                if (s_debounce_counters[index].time <= elapsed_time) {
+                    s_debounce_counters[index].time = 0;
+                    if (!s_debounce_counters[index].pressed) {
+                        // key-up: deferred release
+                        matrix_row_t col_mask = (MATRIX_ROW_SHIFTER << col);
+                        if (!(raw[row] & col_mask)) {
+                            cooked[row] &= ~col_mask;
+                            s_cooked_changed = true;
+                        }
+                    }
+                } else {
+                    s_debounce_counters[index].time -= elapsed_time;
+                    s_counters_need_update = true;
+                }
+            }
+        }
+    }
+}
+
+static inline void luxqmk_transfer_matrix_values(matrix_row_t raw[], matrix_row_t cooked[]) {
+    s_matrix_need_update = false;
+
+    for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
+        uint16_t     row_offset = row * MATRIX_COLS;
+        matrix_row_t delta      = raw[row] ^ cooked[row];
+
+        for (uint8_t col = 0; col < MATRIX_COLS; col++) {
+            uint16_t     index    = row_offset + col;
+            matrix_row_t col_mask = (MATRIX_ROW_SHIFTER << col);
+
+            if (delta & col_mask) {
+                if (g_debounce_time == 0) {
+                    cooked[row] ^= col_mask;
+                    s_cooked_changed = true;
+                } else if (s_debounce_counters[index].time == 0) {
+                    s_debounce_counters[index].pressed = (raw[row] & col_mask) != 0;
+                    s_debounce_counters[index].time    = g_debounce_time;
+                    s_counters_need_update             = true;
+
+                    if (s_debounce_counters[index].pressed) {
+                        // key-down: EAGER instant actuation (0ms input lag)
+                        cooked[row] |= col_mask;
+                        s_cooked_changed = true;
+                    }
+                }
+            } else if (s_debounce_counters[index].time != 0) {
+                if (!s_debounce_counters[index].pressed) {
+                    // key-up defer canceled if raw is still pressed
+                    s_debounce_counters[index].time = 0;
+                }
+            }
+        }
+    }
+}
+
+bool debounce(matrix_row_t raw[], matrix_row_t cooked[], bool changed) {
+    if (g_debounce_time == 0) {
+        if (changed) {
+            memcpy(cooked, raw, sizeof(matrix_row_t) * MATRIX_ROWS);
+            return true;
+        }
+        return false;
+    }
+
+    static fast_timer_t last_time;
+    bool                updated_last = false;
+    s_cooked_changed                 = false;
+
+    if (s_counters_need_update) {
+        fast_timer_t now          = timer_read_fast();
+        fast_timer_t elapsed_time = TIMER_DIFF_FAST(now, last_time);
+
+        last_time    = now;
+        updated_last = true;
+
+        if (elapsed_time > 0) {
+            luxqmk_update_debounce_counters(raw, cooked, (uint8_t)MIN(elapsed_time, 127));
+        }
+    }
+
+    if (changed || s_matrix_need_update) {
+        if (!updated_last) {
+            last_time = timer_read_fast();
+        }
+
+        luxqmk_transfer_matrix_values(raw, cooked);
+    }
+
+    return s_cooked_changed;
+}
 
 /**
  * Optional key record processing hook for keymaps
@@ -457,12 +590,8 @@ bool process_record_user_custom(uint16_t keycode, keyrecord_t *record) {
  */
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
-        case ORGB:
-        case QK_USER_0:
-            return false;
-
         case RGB_REV:
-        case QK_USER_1:
+        case QK_USER_0:
             if (record->event.pressed) {
                 g_custom_rgb_reverse = !g_custom_rgb_reverse;
                 luxqmk_eeprom_save();

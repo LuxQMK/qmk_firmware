@@ -399,6 +399,42 @@
               ]
             }
           ]
+        },
+        {
+          "label": "Performance & Debounce",
+          "content": [
+            {
+              "label": "Debounce Filter Latency",
+              "type": "dropdown",
+              "options": [
+                [
+                  "0 ms (Esports / Eager)",
+                  0
+                ],
+                [
+                  "2 ms (Ultra Fast)",
+                  2
+                ],
+                [
+                  "5 ms (Balanced QMK)",
+                  5
+                ],
+                [
+                  "8 ms (Standard)",
+                  8
+                ],
+                [
+                  "16 ms (Safe / Glorious)",
+                  16
+                ]
+              ],
+              "content": [
+                "USER_VAL_DEBOUNCE_TIME",
+                1,
+                27
+              ]
+            }
+          ]
         }
       ]
     }
@@ -406,7 +442,7 @@
   "customKeycodes": [
     {
       "name": "Reverse RGB",
-      "title": "Reverse RGB Matrix Direction",
+      "title": "Reverse RGB Animation Direction",
       "shortName": "RGB_REV"
     }
   ],

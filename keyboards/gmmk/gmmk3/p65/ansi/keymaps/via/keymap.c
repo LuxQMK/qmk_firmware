@@ -39,13 +39,13 @@ enum custom_layers {
 };
 
 enum custom_keycodes {
-    ORGB = SAFE_RANGE,
+    RGB_REV = SAFE_RANGE,
     };
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record)
 {
     switch (keycode) {
-        case ORGB:
+        case RGB_REV:
         #ifdef VIA_OPENRGB_HYBRID
             if (record->event.pressed) {
                 is_orgb_mode = !is_orgb_mode;
@@ -76,7 +76,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     /* Function Layer */
     [_FL] = LAYOUT(
         KC_GRV,   KC_F1,    KC_F2,    KC_F3,    KC_F4,    KC_F5,    KC_F6,    KC_F7,    KC_F8,    KC_F9,    KC_F10,   KC_F11,   KC_F12,   KC_DEL,   _______,
-        _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  ORGB,     KC_PSCR,  KC_SCRL,  KC_PAUS,  KC_INS,
+        _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  RGB_REV,     KC_PSCR,  KC_SCRL,  KC_PAUS,  KC_INS,
         _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,            _______,  KC_PGDN,
         _______,            RM_SATD,  RM_SATU,  RM_SPDD,  RM_SPDU,  KC_MUTE,  KC_VOLD,  KC_VOLU,  KC_MPRV,  KC_MPLY,  KC_MNXT,  _______,  RM_VALU,  KC_HOME,
         _______,  GU_TOGG,  _______,                                _______,                      _______,  _______,            RM_PREV,  RM_VALD,  RM_NEXT
@@ -89,14 +89,24 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,            _______,  _______,
         _______,            _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,
         _______,  _______,  _______,                                _______,                      _______,  _______,            _______,  _______,  _______
+    ),
+
+    /* Layer 3 */
+    [3] = LAYOUT(
+        _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,
+        _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,
+        _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,            _______,  _______,
+        _______,            _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,
+        _______,  _______,  _______,                                _______,                      _______,  _______,            _______,  _______,  _______
     )
 };
 
 #if defined(ENCODER_MAP_ENABLE)
 const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
-    [_BL] = { ENCODER_CCW_CW(KC_VOLD, KC_VOLU)},
-    [_FL] = { ENCODER_CCW_CW(KC_VOLD, KC_VOLU)},
-    [_CL] = { ENCODER_CCW_CW(_______, _______)},
+    [0] = { ENCODER_CCW_CW(KC_VOLD, KC_VOLU) },
+    [1] = { ENCODER_CCW_CW(KC_VOLD, KC_VOLU) },
+    [2] = { ENCODER_CCW_CW(_______, _______) },
+    [3] = { ENCODER_CCW_CW(_______, _______) },
 };
 #endif // ENCODER_MAP_ENABLE
 

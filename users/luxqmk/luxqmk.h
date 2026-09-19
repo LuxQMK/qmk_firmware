@@ -27,9 +27,8 @@ enum custom_layers {
  * Custom keycode definitions
  */
 enum custom_keycodes {
-    ORGB = QK_KB_0,    // 0x7E00 -> CUSTOM(0) in VIA / LuxQMK Studio
-    RGB_REV = QK_KB_1, // 0x7E01 -> CUSTOM(1) in VIA / LuxQMK Studio
-    NEW_SAFE_RANGE = QK_KB_2
+    RGB_REV = QK_KB_0, // 0x7E00 -> CUSTOM(0) in VIA / LuxQMK Studio
+    NEW_SAFE_RANGE = QK_KB_1
 };
 
 typedef struct {
@@ -110,8 +109,8 @@ enum reactive_blend_mode {
  */
 #define LUXQMK_VERSION_MAJOR             0
 #define LUXQMK_VERSION_MINOR             1
-#define LUXQMK_VERSION_PATCH             0
-#define LUXQMK_VERSION_STRING            "0.1.0"
+#define LUXQMK_VERSION_PATCH             1
+#define LUXQMK_VERSION_STRING            "0.1.1"
 
 #define LUXQMK_CAP_REACTIVE_OVERLAY      (1 << 0)
 #define LUXQMK_CAP_DIRECTION_REVERSE     (1 << 1)
@@ -122,10 +121,12 @@ enum reactive_blend_mode {
 
 #define USER_VAL_LUXQMK_VERSION          25
 #define USER_VAL_QMK_VERSION             26
+#define USER_VAL_DEBOUNCE_TIME           27
 
 /**
  * Global configuration variables
  */
+extern uint8_t g_debounce_time;
 extern bool g_custom_rgb_reverse;
 extern bool g_layer_lighting_enable;
 extern uint8_t g_layer_dim_level;

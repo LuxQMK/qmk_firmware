@@ -26,6 +26,8 @@
 *.stackdump
 *.sym
 index.html
+luxqmk_studio.html
+gmmk_studio.html
 firmware_list.json
 
 # QMK-specific
