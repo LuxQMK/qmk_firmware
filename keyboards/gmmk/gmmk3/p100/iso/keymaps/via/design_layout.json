@@ -404,11 +404,34 @@
           "label": "Performance & Debounce",
           "content": [
             {
+              "label": "Debounce Algorithm / Engine",
+              "type": "dropdown",
+              "options": [
+                [
+                  "Symmetric Defer (QMK Default / Safe)",
+                  0
+                ],
+                [
+                  "Asymmetric Eager (0ms Press / Esports)",
+                  1
+                ],
+                [
+                  "Symmetric Eager (Ultra Fast)",
+                  2
+                ]
+              ],
+              "content": [
+                "USER_VAL_DEBOUNCE_TYPE",
+                1,
+                28
+              ]
+            },
+            {
               "label": "Debounce Filter Latency",
               "type": "dropdown",
               "options": [
                 [
-                  "0 ms (Esports / Eager)",
+                  "0 ms (Esports Pass-through)",
                   0
                 ],
                 [
@@ -416,7 +439,7 @@
                   2
                 ],
                 [
-                  "5 ms (Balanced QMK)",
+                  "5 ms (QMK Default / Balanced)",
                   5
                 ],
                 [
@@ -424,7 +447,7 @@
                   8
                 ],
                 [
-                  "16 ms (Safe / Glorious)",
+                  "16 ms (Safe)",
                   16
                 ]
               ],
