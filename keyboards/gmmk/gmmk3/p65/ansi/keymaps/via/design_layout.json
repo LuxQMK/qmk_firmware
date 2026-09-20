@@ -9,6 +9,58 @@
   "keycodes": [
     "qmk_rgb_matrix_keycodes"
   ],
+  "customKeycodes": [
+    {
+      "name": "Reverse RGB",
+      "title": "Reverse RGB Animation Direction",
+      "shortName": "RGB_REV"
+    },
+    {
+      "name": "Density +",
+      "title": "Increase Effect Spatial Density",
+      "shortName": "RGB_DEN+"
+    },
+    {
+      "name": "Density -",
+      "title": "Decrease Effect Spatial Density",
+      "shortName": "RGB_DEN-"
+    },
+    {
+      "name": "Density Step",
+      "title": "Cycle Density Step (0.5x - 2.0x)",
+      "shortName": "RGB_DENS"
+    },
+    {
+      "name": "Density Reset",
+      "title": "Reset Density to Baseline 1.0x",
+      "shortName": "RGB_DENR"
+    },
+    {
+      "name": "Gradient Step",
+      "title": "Cycle Active Gradient Preset",
+      "shortName": "RGB_GRAD"
+    },
+    {
+      "name": "Reactive Step",
+      "title": "Cycle Reactive Overlay Mode (Fade -> Heatmap -> Off)",
+      "shortName": "RGB_REACT"
+    },
+    {
+      "name": "React Speed +",
+      "title": "Increase Reactive Speed (Shorter Fade)",
+      "shortName": "RGB_RSPD+"
+    },
+    {
+      "name": "React Speed -",
+      "title": "Decrease Reactive Speed (Longer Fade)",
+      "shortName": "RGB_RSPD-"
+    },
+    {
+      "name": "React Speed Step",
+      "title": "Cycle Reactive Speed Step",
+      "shortName": "RGB_RSPDS"
+    }
+  ],
   "menus": [
     {
       "label": "Lighting",

@@ -4,7 +4,11 @@ RGB_MATRIX_EFFECT(RAINBOW_MOVING_CHEVRON)
 
 static hsv_t RAINBOW_MOVING_CHEVRON_math(hsv_t hsv, uint8_t i, uint8_t time) {
     extern bool g_custom_rgb_reverse;
-    hsv.h += abs8(g_led_config.point[i].y - k_rgb_matrix_center.y) + g_led_config.point[i].x + (g_custom_rgb_reverse ? time : -time);
+    extern uint8_t g_effect_density;
+    uint8_t dy = abs8(g_led_config.point[i].y - k_rgb_matrix_center.y);
+    uint8_t x  = g_led_config.point[i].x;
+    uint8_t spatial = (g_effect_density == 128) ? (dy + x) : (uint8_t)(((uint16_t)(dy + x) * g_effect_density) / 128);
+    hsv.h += spatial + (g_custom_rgb_reverse ? time : -time);
     return hsv;
 }
 

@@ -4,7 +4,9 @@ RGB_MATRIX_EFFECT(CYCLE_SPIRAL)
 
 static hsv_t CYCLE_SPIRAL_math(hsv_t hsv, int16_t dx, int16_t dy, uint8_t dist, uint8_t time) {
     extern bool g_custom_rgb_reverse;
-    hsv.h = dist + (g_custom_rgb_reverse ? time : -time) - atan2_8(dy, dx);
+    extern uint8_t g_effect_density;
+    uint8_t dist_scaled = (g_effect_density == 128) ? dist : (uint8_t)(((uint16_t)dist * g_effect_density) / 128);
+    hsv.h = dist_scaled + (g_custom_rgb_reverse ? time : -time) - atan2_8(dy, dx);
     return hsv;
 }
 

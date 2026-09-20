@@ -4,7 +4,10 @@ RGB_MATRIX_EFFECT(CYCLE_PINWHEEL)
 
 static hsv_t CYCLE_PINWHEEL_math(hsv_t hsv, int16_t dx, int16_t dy, uint8_t time) {
     extern bool g_custom_rgb_reverse;
-    hsv.h = atan2_8(dy, dx) + (g_custom_rgb_reverse ? -time : time);
+    extern uint8_t g_effect_density;
+    uint8_t angle = atan2_8(dy, dx);
+    uint8_t angle_scaled = (g_effect_density == 128) ? angle : (uint8_t)(((uint16_t)angle * g_effect_density) / 128);
+    hsv.h = angle_scaled + (g_custom_rgb_reverse ? -time : time);
     return hsv;
 }
 

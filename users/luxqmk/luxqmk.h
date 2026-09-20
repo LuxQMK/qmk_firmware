@@ -24,11 +24,20 @@ enum custom_layers {
 };
 
 /**
- * Custom keycode definitions
+ * Custom keycode definitions (contiguous mapping from QK_KB_0 / 0x7E00)
  */
 enum custom_keycodes {
-    RGB_REV = QK_KB_0, // 0x7E00 -> CUSTOM(0) in VIA / LuxQMK Studio
-    NEW_SAFE_RANGE = QK_KB_1
+    RGB_REV = QK_KB_0,          // 0x7E00 (32256): Toggle Reverse RGB Animation Direction
+    RGB_DEN_INC,                // 0x7E01 (32257): Effect Spatial Density +16 (max 255)
+    RGB_DEN_DEC,                // 0x7E02 (32258): Effect Spatial Density -16 (min 32)
+    RGB_DEN_STEP,               // 0x7E03 (32259): Cycle Density Step (64 -> 96 -> 128 -> 160 -> 192 -> 224 -> 255 -> 64)
+    RGB_DEN_RST,                // 0x7E04 (32260): Reset Density to default 1.0x baseline (128)
+    RGB_GRAD_STEP,              // 0x7E05 (32261): Cycle Active Gradient Preset (0..9 -> 0)
+    RGB_REACT_STEP,             // 0x7E06 (32262): Cycle Reactive Overlay Mode (Fade -> Heatmap -> Off -> Fade)
+    RGB_RSPD_INC,               // 0x7E07 (32263): Reactive Speed + (shorter fade trail / faster effect)
+    RGB_RSPD_DEC,               // 0x7E08 (32264): Reactive Speed - (longer fade trail / slower effect)
+    RGB_RSPD_STEP,              // 0x7E09 (32265): Cycle Reactive Speed Step (32 -> 64 -> 96 -> 127 -> 32)
+    NEW_SAFE_RANGE = QK_KB_10   // 0x7E0A (32266)
 };
 
 typedef struct {
@@ -74,6 +83,38 @@ enum reactive_blend_mode {
 };
 
 /**
+ * Multi-Stop Gradient System definitions
+ */
+#define LUXQMK_MAX_GRADIENT_STOPS 8
+#define LUXQMK_USER_GRADIENTS_COUNT 2
+
+typedef struct {
+    uint8_t pos; // Position along gradient ramp (0..255, 0% to 100%)
+    uint8_t r;   // Red component (0..255)
+    uint8_t g;   // Green component (0..255)
+    uint8_t b;   // Blue component (0..255)
+} gradient_stop_t;
+
+typedef struct {
+    uint8_t count;                                  // Active number of color stops (2..8)
+    gradient_stop_t stops[LUXQMK_MAX_GRADIENT_STOPS]; // Sorted color stops
+} user_gradient_t;
+
+enum gradient_presets {
+    GRADIENT_PRESET_RAINBOW = 0, // Classic full spectrum
+    GRADIENT_PRESET_CYBERPUNK,   // Cyan -> Hot Pink -> Neon Yellow
+    GRADIENT_PRESET_SYNTHWAVE,   // Deep Purple -> Magenta -> Orange -> Gold
+    GRADIENT_PRESET_SUNSET,      // Violet -> Crimson -> Sunset Gold
+    GRADIENT_PRESET_TOXIC_LIME,  // Acid Lime -> Toxic Yellow -> Neon Green
+    GRADIENT_PRESET_OCEAN,       // Deep Navy -> Cyan -> Aqua -> Sky Blue
+    GRADIENT_PRESET_FIRE_ICE,    // Ice Blue -> White -> Flame Orange -> Red
+    GRADIENT_PRESET_PASTEL,      // Pastel Lavender -> Mint -> Peach -> Pink
+    GRADIENT_PRESET_CUSTOM_1,    // User EEPROM custom multi-stop profile 1
+    GRADIENT_PRESET_CUSTOM_2,    // User EEPROM custom multi-stop profile 2
+    GRADIENT_PRESETS_TOTAL
+};
+
+/**
  * VIA Custom Channel & Value IDs for LuxQMK WebHID Protocol
  */
 #define USER_CUSTOM_CHANNEL              1
@@ -108,9 +149,9 @@ enum reactive_blend_mode {
  * LuxQMK Semantic Versioning & Capabilities
  */
 #define LUXQMK_VERSION_MAJOR             0
-#define LUXQMK_VERSION_MINOR             1
-#define LUXQMK_VERSION_PATCH             4
-#define LUXQMK_VERSION_STRING            "0.1.4"
+#define LUXQMK_VERSION_MINOR             2
+#define LUXQMK_VERSION_PATCH             0
+#define LUXQMK_VERSION_STRING            "0.2.0"
 
 #define LUXQMK_CAP_REACTIVE_OVERLAY      (1 << 0)
 #define LUXQMK_CAP_DIRECTION_REVERSE     (1 << 1)
@@ -119,12 +160,20 @@ enum reactive_blend_mode {
 #define LUXQMK_CAP_LAYER_LIGHTING        (1 << 4)
 #define LUXQMK_CAP_HEATMAP               (1 << 5)
 #define LUXQMK_CAP_DIRECT_LIGHTING       (1 << 6)
+#define LUXQMK_CAP_MULTI_GRADIENTS       (1 << 7)
 
 #define USER_VAL_LUXQMK_VERSION          25
 #define USER_VAL_QMK_VERSION             26
 #define USER_VAL_DEBOUNCE_TIME           27
 #define USER_VAL_DIRECT_LIGHTING_ENABLE  28
 #define USER_VAL_DIRECT_LIGHTING_BLOCK   29
+
+#define USER_VAL_GRADIENT_PRESET         33
+#define USER_VAL_GRADIENT_CUSTOM_COUNT   34
+#define USER_VAL_GRADIENT_CUSTOM_STOP    35
+#define USER_VAL_EFFECT_DENSITY          36
+#define USER_VAL_GRADIENT_SAVE_EEPROM    37
+
 #define USER_VAL_BOOTLOADER_JUMP         0xFE
 
 /**
@@ -148,6 +197,11 @@ extern layer_color_t g_reactive_color;
 extern uint8_t g_reactive_speed;
 extern uint8_t g_reactive_blend;
 
+extern uint8_t g_active_gradient;
+extern user_gradient_t g_user_gradients[LUXQMK_USER_GRADIENTS_COUNT];
+extern user_gradient_t g_eeprom_user_gradients[LUXQMK_USER_GRADIENTS_COUNT];
+extern uint8_t g_effect_density;
+
 extern bool g_direct_lighting_enable;
 extern uint32_t g_direct_lighting_timer;
 extern RGB g_direct_staging[144];
@@ -159,6 +213,8 @@ extern RGB g_direct_leds[144];
 void luxqmk_eeprom_save(void);
 void luxqmk_eeprom_load(void);
 bool process_record_user_custom(uint16_t keycode, keyrecord_t *record);
+
+RGB luxqmk_sample_gradient(uint8_t gradient_id, uint8_t phase);
 
 /**
  * Board-specific hardware module interface

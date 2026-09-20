@@ -4,7 +4,9 @@ RGB_MATRIX_EFFECT(CYCLE_LEFT_RIGHT)
 
 static hsv_t CYCLE_LEFT_RIGHT_math(hsv_t hsv, uint8_t i, uint8_t time) {
     extern bool g_custom_rgb_reverse;
-    hsv.h = g_led_config.point[i].x + (g_custom_rgb_reverse ? time : -time);
+    extern uint8_t g_effect_density;
+    uint8_t x = (g_effect_density == 128) ? g_led_config.point[i].x : (uint8_t)(((uint16_t)g_led_config.point[i].x * g_effect_density) / 128);
+    hsv.h = x + (g_custom_rgb_reverse ? time : -time);
     return hsv;
 }
 

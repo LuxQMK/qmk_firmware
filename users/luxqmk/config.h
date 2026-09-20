@@ -10,8 +10,8 @@
 // Enable custom user-defined RGB Matrix animations
 #define RGB_MATRIX_CUSTOM_USER
 
-// Allocate dedicated EEPROM storage space for VIA / LuxQMK Studio custom configuration (36 bytes)
-#define VIA_EEPROM_CUSTOM_CONFIG_SIZE 36
+// Allocate dedicated EEPROM storage space for VIA / LuxQMK Studio custom configuration (104 bytes)
+#define VIA_EEPROM_CUSTOM_CONFIG_SIZE 104
 
 // Enforce Full N-Key Rollover (NKRO) by default upon keyboard startup
 #define FORCE_NKRO
