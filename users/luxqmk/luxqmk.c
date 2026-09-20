@@ -50,6 +50,7 @@ uint8_t g_debounce_time        = 5; // Default 5ms
 // Direct Software Live Lighting Streaming (LuxQMK Studio Audio Visualizer / PC FX)
 bool g_direct_lighting_enable    = false;
 uint32_t g_direct_lighting_timer = 0;
+RGB g_direct_staging[144]        = {{0, 0, 0}};
 RGB g_direct_leds[144]           = {{0, 0, 0}};
 
 /**
@@ -477,22 +478,34 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                 } else if (*command_id == id_custom_set_value) {
                     g_direct_lighting_enable = (data[3] != 0);
                     g_direct_lighting_timer  = timer_read32();
+                    if (g_direct_lighting_enable) {
+                        memset(g_direct_staging, 0, sizeof(g_direct_staging));
+                        memset(g_direct_leds, 0, sizeof(g_direct_leds));
+#ifdef RGB_MATRIX_ENABLE
+                        rgb_matrix_set_color_all(0, 0, 0);
+#endif
+                    }
                 }
                 return;
 
             case USER_VAL_DIRECT_LIGHTING_BLOCK:
                 if (*command_id == id_custom_set_value) {
-                    uint8_t start_idx = data[3];
+                    uint8_t raw_idx   = data[3];
+                    uint8_t start_idx = raw_idx & 0x7F;
+                    bool is_flush     = (raw_idx & 0x80) != 0;
                     uint8_t count     = data[4];
                     g_direct_lighting_enable = true;
                     g_direct_lighting_timer  = timer_read32();
                     for (uint8_t i = 0; i < count; i++) {
                         uint8_t led_idx = start_idx + i;
-                        if (led_idx < DRIVER_LED_TOTAL && led_idx < 144) {
-                            g_direct_leds[led_idx].r = data[5 + (i * 3) + 0];
-                            g_direct_leds[led_idx].g = data[5 + (i * 3) + 1];
-                            g_direct_leds[led_idx].b = data[5 + (i * 3) + 2];
+                        if (led_idx < 144) {
+                            g_direct_staging[led_idx].r = data[5 + (i * 3) + 0];
+                            g_direct_staging[led_idx].g = data[5 + (i * 3) + 1];
+                            g_direct_staging[led_idx].b = data[5 + (i * 3) + 2];
                         }
+                    }
+                    if (is_flush || (start_idx + count >= DRIVER_LED_TOTAL)) {
+                        memcpy(g_direct_leds, g_direct_staging, sizeof(g_direct_leds));
                     }
                 }
                 return;
@@ -627,10 +640,33 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
  * RGB Matrix indicator rendering pipeline (Dual-Layer Reactive -> Layer Lighting -> Board Hardware Modules)
  */
 #ifdef RGB_MATRIX_ENABLE
+bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
+    // 0. Direct Software Live Lighting Stream Override (prevents QMK base animations from bleeding through)
+    if (g_direct_lighting_enable) {
+        if (timer_elapsed32(g_direct_lighting_timer) > 5000) {
+            // Watchdog timeout: automatically restore hardware animations if studio stops
+            g_direct_lighting_enable = false;
+        } else {
+            uint8_t logo_idx = board_get_logo_led_index();
+            for (uint8_t i = led_min; i < led_max; i++) {
+                if (i == logo_idx && g_logo_mode != LOGO_MODE_RGB) {
+                    continue;
+                }
+                if (i < DRIVER_LED_TOTAL && i < 144) {
+                    rgb_matrix_set_color(i, g_direct_leds[i].r, g_direct_leds[i].g, g_direct_leds[i].b);
+                }
+            }
+            board_indicators_render();
+            return false; // Suppress QMK base effects during software direct lighting
+        }
+    }
+    return true;
+}
+
 bool rgb_matrix_indicators_user(void) {
     // 0. Direct Software Live Lighting Stream (LuxQMK Studio Audio Visualizer / PC FX)
     if (g_direct_lighting_enable) {
-        if (timer_elapsed32(g_direct_lighting_timer) > 1500) {
+        if (timer_elapsed32(g_direct_lighting_timer) > 5000) {
             // Watchdog timeout: automatically restore hardware animations if studio stops
             g_direct_lighting_enable = false;
         } else {
@@ -640,11 +676,13 @@ bool rgb_matrix_indicators_user(void) {
                     // Let hardware logo lock indicator handle logo badge if configured
                     continue;
                 }
-                rgb_matrix_set_color(i, g_direct_leds[i].r, g_direct_leds[i].g, g_direct_leds[i].b);
+                if (i < 144) {
+                    rgb_matrix_set_color(i, g_direct_leds[i].r, g_direct_leds[i].g, g_direct_leds[i].b);
+                }
             }
             // Render hardware board-specific indicators (Caps/Num/Win Lock) on top
             board_indicators_render();
-            return true;
+            return false;
         }
     }
 

@@ -109,8 +109,8 @@ enum reactive_blend_mode {
  */
 #define LUXQMK_VERSION_MAJOR             0
 #define LUXQMK_VERSION_MINOR             1
-#define LUXQMK_VERSION_PATCH             2
-#define LUXQMK_VERSION_STRING            "0.1.2"
+#define LUXQMK_VERSION_PATCH             4
+#define LUXQMK_VERSION_STRING            "0.1.4"
 
 #define LUXQMK_CAP_REACTIVE_OVERLAY      (1 << 0)
 #define LUXQMK_CAP_DIRECTION_REVERSE     (1 << 1)
@@ -150,6 +150,7 @@ extern uint8_t g_reactive_blend;
 
 extern bool g_direct_lighting_enable;
 extern uint32_t g_direct_lighting_timer;
+extern RGB g_direct_staging[144];
 extern RGB g_direct_leds[144];
 
 /**
