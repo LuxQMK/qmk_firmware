@@ -109,8 +109,8 @@ enum reactive_blend_mode {
  */
 #define LUXQMK_VERSION_MAJOR             0
 #define LUXQMK_VERSION_MINOR             1
-#define LUXQMK_VERSION_PATCH             1
-#define LUXQMK_VERSION_STRING            "0.1.1"
+#define LUXQMK_VERSION_PATCH             2
+#define LUXQMK_VERSION_STRING            "0.1.2"
 
 #define LUXQMK_CAP_REACTIVE_OVERLAY      (1 << 0)
 #define LUXQMK_CAP_DIRECTION_REVERSE     (1 << 1)
@@ -118,10 +118,13 @@ enum reactive_blend_mode {
 #define LUXQMK_CAP_WIN_LOCK              (1 << 3)
 #define LUXQMK_CAP_LAYER_LIGHTING        (1 << 4)
 #define LUXQMK_CAP_HEATMAP               (1 << 5)
+#define LUXQMK_CAP_DIRECT_LIGHTING       (1 << 6)
 
 #define USER_VAL_LUXQMK_VERSION          25
 #define USER_VAL_QMK_VERSION             26
 #define USER_VAL_DEBOUNCE_TIME           27
+#define USER_VAL_DIRECT_LIGHTING_ENABLE  28
+#define USER_VAL_DIRECT_LIGHTING_BLOCK   29
 #define USER_VAL_BOOTLOADER_JUMP         0xFE
 
 /**
@@ -144,6 +147,10 @@ extern uint8_t g_reactive_mode;
 extern layer_color_t g_reactive_color;
 extern uint8_t g_reactive_speed;
 extern uint8_t g_reactive_blend;
+
+extern bool g_direct_lighting_enable;
+extern uint32_t g_direct_lighting_timer;
+extern RGB g_direct_leds[144];
 
 /**
  * LuxQMK core function declarations

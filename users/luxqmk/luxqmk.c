@@ -47,6 +47,11 @@ uint8_t g_reactive_blend       = REACTIVE_BLEND_ADDITIVE; // 0 = Additive Glow, 
 // Performance & Switch Debounce configuration (ms)
 uint8_t g_debounce_time        = 5; // Default 5ms
 
+// Direct Software Live Lighting Streaming (LuxQMK Studio Audio Visualizer / PC FX)
+bool g_direct_lighting_enable    = false;
+uint32_t g_direct_lighting_timer = 0;
+RGB g_direct_leds[144]           = {{0, 0, 0}};
+
 /**
  * Save user custom configuration to persistent EEPROM storage
  */
@@ -439,7 +444,7 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                     data[3] = LUXQMK_VERSION_MAJOR;
                     data[4] = LUXQMK_VERSION_MINOR;
                     data[5] = LUXQMK_VERSION_PATCH;
-                    data[6] = (uint8_t)(LUXQMK_CAP_REACTIVE_OVERLAY | LUXQMK_CAP_DIRECTION_REVERSE | LUXQMK_CAP_LOGO_LED | LUXQMK_CAP_WIN_LOCK | LUXQMK_CAP_LAYER_LIGHTING | LUXQMK_CAP_HEATMAP);
+                    data[6] = (uint8_t)(LUXQMK_CAP_REACTIVE_OVERLAY | LUXQMK_CAP_DIRECTION_REVERSE | LUXQMK_CAP_LOGO_LED | LUXQMK_CAP_WIN_LOCK | LUXQMK_CAP_LAYER_LIGHTING | LUXQMK_CAP_HEATMAP | LUXQMK_CAP_DIRECT_LIGHTING);
                 }
                 return;
 
@@ -463,6 +468,32 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                 } else if (*command_id == id_custom_set_value) {
                     g_debounce_time = (data[3] > 30) ? 5 : data[3];
                     luxqmk_eeprom_save();
+                }
+                return;
+
+            case USER_VAL_DIRECT_LIGHTING_ENABLE:
+                if (*command_id == id_custom_get_value) {
+                    data[3] = g_direct_lighting_enable ? 1 : 0;
+                } else if (*command_id == id_custom_set_value) {
+                    g_direct_lighting_enable = (data[3] != 0);
+                    g_direct_lighting_timer  = timer_read32();
+                }
+                return;
+
+            case USER_VAL_DIRECT_LIGHTING_BLOCK:
+                if (*command_id == id_custom_set_value) {
+                    uint8_t start_idx = data[3];
+                    uint8_t count     = data[4];
+                    g_direct_lighting_enable = true;
+                    g_direct_lighting_timer  = timer_read32();
+                    for (uint8_t i = 0; i < count; i++) {
+                        uint8_t led_idx = start_idx + i;
+                        if (led_idx < DRIVER_LED_TOTAL && led_idx < 144) {
+                            g_direct_leds[led_idx].r = data[5 + (i * 3) + 0];
+                            g_direct_leds[led_idx].g = data[5 + (i * 3) + 1];
+                            g_direct_leds[led_idx].b = data[5 + (i * 3) + 2];
+                        }
+                    }
                 }
                 return;
 
@@ -597,6 +628,26 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
  */
 #ifdef RGB_MATRIX_ENABLE
 bool rgb_matrix_indicators_user(void) {
+    // 0. Direct Software Live Lighting Stream (LuxQMK Studio Audio Visualizer / PC FX)
+    if (g_direct_lighting_enable) {
+        if (timer_elapsed32(g_direct_lighting_timer) > 1500) {
+            // Watchdog timeout: automatically restore hardware animations if studio stops
+            g_direct_lighting_enable = false;
+        } else {
+            uint8_t logo_idx = board_get_logo_led_index();
+            for (uint8_t i = 0; i < DRIVER_LED_TOTAL; i++) {
+                if (i == logo_idx && g_logo_mode != LOGO_MODE_RGB) {
+                    // Let hardware logo lock indicator handle logo badge if configured
+                    continue;
+                }
+                rgb_matrix_set_color(i, g_direct_leds[i].r, g_direct_leds[i].g, g_direct_leds[i].b);
+            }
+            // Render hardware board-specific indicators (Caps/Num/Win Lock) on top
+            board_indicators_render();
+            return true;
+        }
+    }
+
     // 1. Dual-Layer Reactive Lighting Overlay
     if (g_reactive_enable && g_reactive_mode != REACTIVE_MODE_OFF && g_last_hit_tracker.count > 0) {
         uint8_t val = rgb_matrix_get_val();
