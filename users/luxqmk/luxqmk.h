@@ -146,12 +146,18 @@ enum gradient_presets {
 #define USER_VAL_REACTIVE_BLEND          24
 
 /**
+ * Per-Key Custom RGB Lighting Profiles (Profile 1: FPS, Profile 2: MOBA, Profile 3: MMO/RPG)
+ */
+#define LUXQMK_PERKEY_PROFILES_COUNT     3
+#define LUXQMK_PERKEY_MAX_LEDS           144
+
+/**
  * LuxQMK Semantic Versioning & Capabilities
  */
 #define LUXQMK_VERSION_MAJOR             0
 #define LUXQMK_VERSION_MINOR             2
-#define LUXQMK_VERSION_PATCH             0
-#define LUXQMK_VERSION_STRING            "0.2.0"
+#define LUXQMK_VERSION_PATCH             1
+#define LUXQMK_VERSION_STRING            "0.2.1"
 
 #define LUXQMK_CAP_REACTIVE_OVERLAY      (1 << 0)
 #define LUXQMK_CAP_DIRECTION_REVERSE     (1 << 1)
@@ -161,6 +167,7 @@ enum gradient_presets {
 #define LUXQMK_CAP_HEATMAP               (1 << 5)
 #define LUXQMK_CAP_DIRECT_LIGHTING       (1 << 6)
 #define LUXQMK_CAP_MULTI_GRADIENTS       (1 << 7)
+#define LUXQMK_CAP_PERKEY_PROFILES       (1 << 8)
 
 #define USER_VAL_LUXQMK_VERSION          25
 #define USER_VAL_QMK_VERSION             26
@@ -173,6 +180,12 @@ enum gradient_presets {
 #define USER_VAL_GRADIENT_CUSTOM_STOP    35
 #define USER_VAL_EFFECT_DENSITY          36
 #define USER_VAL_GRADIENT_SAVE_EEPROM    37
+
+#define USER_VAL_PERKEY_PROFILE_GET_BLOCK  38
+#define USER_VAL_PERKEY_PROFILE_SET_BLOCK  39
+#define USER_VAL_PERKEY_PROFILE_SAVE_EEPROM 40
+#define USER_VAL_PERKEY_PROFILE_ACTIVE     41
+#define USER_VAL_RELOAD_EEPROM             42
 
 #define USER_VAL_BOOTLOADER_JUMP         0xFE
 
@@ -202,6 +215,10 @@ extern user_gradient_t g_user_gradients[LUXQMK_USER_GRADIENTS_COUNT];
 extern user_gradient_t g_eeprom_user_gradients[LUXQMK_USER_GRADIENTS_COUNT];
 extern uint8_t g_effect_density;
 
+extern uint8_t g_active_perkey_profile;
+extern RGB g_per_key_profiles[LUXQMK_PERKEY_PROFILES_COUNT][LUXQMK_PERKEY_MAX_LEDS];
+extern RGB g_eeprom_per_key_profiles[LUXQMK_PERKEY_PROFILES_COUNT][LUXQMK_PERKEY_MAX_LEDS];
+
 extern bool g_direct_lighting_enable;
 extern uint32_t g_direct_lighting_timer;
 extern RGB g_direct_staging[144];
@@ -212,6 +229,7 @@ extern RGB g_direct_leds[144];
  */
 void luxqmk_eeprom_save(void);
 void luxqmk_eeprom_load(void);
+void luxqmk_eeprom_reload(void);
 bool process_record_user_custom(uint16_t keycode, keyrecord_t *record);
 
 RGB luxqmk_sample_gradient(uint8_t gradient_id, uint8_t phase);

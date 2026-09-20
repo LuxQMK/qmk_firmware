@@ -129,4 +129,51 @@ static bool CUSTOM_GRADIENT_BREATHE(effect_params_t* params) {
     return CUSTOM_GRADIENT_BREATHE_run(params);
 }
 
+/**
+ * Custom Hardware Per-Key RGB Profiles (1: FPS, 2: MOBA, 3: MMO/RPG)
+ * Renders user-configured per-key color maps from persistent EEPROM/RAM
+ * Scaled by master hardware brightness rgb_matrix_config.hsv.v
+ */
+static inline bool luxqmk_render_per_key_profile(uint8_t prof_idx, effect_params_t* params) {
+    RGB_MATRIX_USE_LIMITS(led_min, led_max);
+    uint8_t val = rgb_matrix_config.hsv.v;
+    for (uint8_t i = led_min; i < led_max; i++) {
+        RGB_MATRIX_TEST_LED_FLAGS();
+        if (i < LUXQMK_PERKEY_MAX_LEDS) {
+            RGB c = g_per_key_profiles[prof_idx][i];
+            if (val < 255) {
+                c.r = scale8(c.r, val);
+                c.g = scale8(c.g, val);
+                c.b = scale8(c.b, val);
+            }
+            rgb_matrix_set_color(i, c.r, c.g, c.b);
+        }
+    }
+    return rgb_matrix_check_finished_leds(led_max);
+}
+
+static bool CUSTOM_PER_KEY_PROFILE_1_run(effect_params_t* params) {
+    return luxqmk_render_per_key_profile(0, params);
+}
+
+static bool CUSTOM_PER_KEY_PROFILE_1(effect_params_t* params) {
+    return CUSTOM_PER_KEY_PROFILE_1_run(params);
+}
+
+static bool CUSTOM_PER_KEY_PROFILE_2_run(effect_params_t* params) {
+    return luxqmk_render_per_key_profile(1, params);
+}
+
+static bool CUSTOM_PER_KEY_PROFILE_2(effect_params_t* params) {
+    return CUSTOM_PER_KEY_PROFILE_2_run(params);
+}
+
+static bool CUSTOM_PER_KEY_PROFILE_3_run(effect_params_t* params) {
+    return luxqmk_render_per_key_profile(2, params);
+}
+
+static bool CUSTOM_PER_KEY_PROFILE_3(effect_params_t* params) {
+    return CUSTOM_PER_KEY_PROFILE_3_run(params);
+}
+
 #endif // RGB_MATRIX_CUSTOM_EFFECT_IMPLS

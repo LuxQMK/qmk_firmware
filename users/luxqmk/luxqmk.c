@@ -77,6 +77,92 @@ user_gradient_t g_user_gradients[LUXQMK_USER_GRADIENTS_COUNT] = {
 };
 user_gradient_t g_eeprom_user_gradients[LUXQMK_USER_GRADIENTS_COUNT];
 
+// Per-Key Custom RGB Lighting Profiles State
+uint8_t g_active_perkey_profile = 0;
+RGB g_per_key_profiles[LUXQMK_PERKEY_PROFILES_COUNT][LUXQMK_PERKEY_MAX_LEDS] = {{{0, 0, 0}}};
+RGB g_eeprom_per_key_profiles[LUXQMK_PERKEY_PROFILES_COUNT][LUXQMK_PERKEY_MAX_LEDS] = {{{0, 0, 0}}};
+
+/**
+ * Initialize default gaming profiles for Profile 1 (FPS), Profile 2 (MOBA), Profile 3 (MMO/RPG)
+ * Resolves physical key assignments from matrix and active base keymap.
+ */
+void luxqmk_init_default_perkey_profiles(void) {
+    memset(g_per_key_profiles, 0, sizeof(g_per_key_profiles));
+    for (uint8_t r = 0; r < MATRIX_ROWS; r++) {
+        for (uint8_t c = 0; c < MATRIX_COLS; c++) {
+            uint8_t led = g_led_config.matrix_co[r][c];
+            if (led == NO_LED || led >= LUXQMK_PERKEY_MAX_LEDS) continue;
+
+#if defined(DYNAMIC_KEYMAP_ENABLE)
+            uint16_t kc = dynamic_keymap_get_keycode(0, r, c);
+#else
+            uint16_t kc = keymap_key_to_keycode(0, (keypos_t){ .row = r, .col = c });
+#endif
+            // Profile 0: FPS / Shooter Game Mode (CS2, Valorant, CoD, Apex)
+            if (kc == KC_W || kc == KC_A || kc == KC_S || kc == KC_D) {
+                g_per_key_profiles[0][led] = (RGB){ 0, 255, 255 }; // Neon Cyan (WASD)
+            } else if (kc == KC_SPC || kc == KC_LSFT || kc == KC_LCTL) {
+                g_per_key_profiles[0][led] = (RGB){ 255, 102, 0 }; // Flame Orange (Jump/Sprint/Crouch)
+            } else if (kc == KC_R || kc == KC_G || kc == KC_Q || kc == KC_E || kc == KC_F || kc == KC_TAB) {
+                g_per_key_profiles[0][led] = (RGB){ 255, 255, 0 }; // Electric Yellow (Interact/Abilities)
+            } else if (kc >= KC_1 && kc <= KC_5) {
+                g_per_key_profiles[0][led] = (RGB){ 255, 0, 50 };  // Hot Crimson (Weapon select)
+            } else if (kc == KC_ESC) {
+                g_per_key_profiles[0][led] = (RGB){ 255, 0, 0 };   // Pure Red
+            }
+
+            // Profile 1: MOBA / Battle Arena Mode (LoL, Dota 2)
+            if (kc == KC_Q || kc == KC_W || kc == KC_E || kc == KC_R) {
+                g_per_key_profiles[1][led] = (RGB){ 0, 229, 255 }; // Bright Cyan (Abilities / Ultimate)
+            } else if (kc == KC_D || kc == KC_F) {
+                g_per_key_profiles[1][led] = (RGB){ 255, 215, 0 }; // Radiant Gold (Summoner Spells)
+            } else if (kc >= KC_1 && kc <= KC_7) {
+                g_per_key_profiles[1][led] = (RGB){ 255, 0, 128 }; // Hot Pink (Active items / Wards)
+            } else if (kc == KC_B || kc == KC_P) {
+                g_per_key_profiles[1][led] = (RGB){ 155, 81, 224 }; // Purple (Recall / Shop)
+            } else if (kc == KC_TAB || kc == KC_SPC || kc == KC_ESC) {
+                g_per_key_profiles[1][led] = (RGB){ 255, 255, 255 }; // White
+            }
+
+            // Profile 2: MMO / RPG / Strategy Mode (WoW, Diablo, PoE)
+            if ((kc >= KC_1 && kc <= KC_0) || kc == KC_MINS || kc == KC_EQL) {
+                g_per_key_profiles[2][led] = (RGB){ 255, 50, 0 };  // Flame Red (Action bar)
+            } else if (kc == KC_Q || kc == KC_W || kc == KC_E || kc == KC_R || kc == KC_T || kc == KC_Y ||
+                       kc == KC_F || kc == KC_G || kc == KC_Z || kc == KC_X || kc == KC_C || kc == KC_V) {
+                g_per_key_profiles[2][led] = (RGB){ 0, 255, 136 }; // Emerald/Lime (Expanded hotkeys)
+            } else if (kc == KC_LSFT || kc == KC_LCTL || kc == KC_LALT) {
+                g_per_key_profiles[2][led] = (RGB){ 180, 0, 255 }; // Deep Violet (Combo modifiers)
+            } else if (kc == KC_M || kc == KC_I || kc == KC_C || kc == KC_P || kc == KC_ESC || kc == KC_SPC) {
+                g_per_key_profiles[2][led] = (RGB){ 255, 204, 0 }; // Gold (Map / Inventory / Stats)
+            } else if (kc == KC_UP || kc == KC_DOWN || kc == KC_LEFT || kc == KC_RGHT) {
+                g_per_key_profiles[2][led] = (RGB){ 0, 191, 255 }; // Azure Blue (Navigation)
+            }
+        }
+    }
+
+    // Default Sidelights & Logo LED values for all 3 profiles
+    uint8_t logo_idx = board_get_logo_led_index();
+    for (uint8_t i = 0; i < DRIVER_LED_TOTAL && i < LUXQMK_PERKEY_MAX_LEDS; i++) {
+        bool is_matrix_key = false;
+        for (uint8_t r = 0; r < MATRIX_ROWS; r++) {
+            for (uint8_t c = 0; c < MATRIX_COLS; c++) {
+                if (g_led_config.matrix_co[r][c] == i) {
+                    is_matrix_key = true;
+                    break;
+                }
+            }
+            if (is_matrix_key) break;
+        }
+        if (!is_matrix_key || i == logo_idx) {
+            g_per_key_profiles[0][i] = (RGB){ 0, 255, 255 }; // Cyan
+            g_per_key_profiles[1][i] = (RGB){ 255, 215, 0 }; // Gold
+            g_per_key_profiles[2][i] = (RGB){ 0, 255, 136 }; // Emerald
+        }
+    }
+
+    memcpy(g_eeprom_per_key_profiles, g_per_key_profiles, sizeof(g_per_key_profiles));
+}
+
 /**
  * Built-in Gradient Stop Tables (stored in Flash ROM)
  * Equal interval distribution (0..255) for smooth seamless circular animations
@@ -277,61 +363,65 @@ RGB luxqmk_sample_gradient(uint8_t gradient_id, uint8_t phase) {
  */
 void luxqmk_eeprom_save(void) {
 #if defined(VIA_ENABLE) && defined(VIA_EEPROM_CUSTOM_CONFIG_SIZE)
-    uint8_t buf[VIA_EEPROM_CUSTOM_CONFIG_SIZE];
-    memset(buf, 0, sizeof(buf));
+    uint8_t header[104];
+    memset(header, 0, sizeof(header));
 
-    buf[0] = g_custom_rgb_reverse ? 1 : 0;
-    buf[1] = g_layer_lighting_enable ? 1 : 0;
-    buf[2] = g_layer_dim_level;
-    buf[3] = g_layer_colors[1].h;
-    buf[4] = g_layer_colors[1].s;
-    buf[5] = g_layer_colors[2].h;
-    buf[6] = g_layer_colors[2].s;
-    buf[7] = g_layer_colors[3].h;
-    buf[8] = g_layer_colors[3].s;
+    header[0] = g_custom_rgb_reverse ? 1 : 0;
+    header[1] = g_layer_lighting_enable ? 1 : 0;
+    header[2] = g_layer_dim_level;
+    header[3] = g_layer_colors[1].h;
+    header[4] = g_layer_colors[1].s;
+    header[5] = g_layer_colors[2].h;
+    header[6] = g_layer_colors[2].s;
+    header[7] = g_layer_colors[3].h;
+    header[8] = g_layer_colors[3].s;
 
-    buf[9] = g_logo_mode;
+    header[9] = g_logo_mode;
     for (uint8_t i = 1; i < 8; i++) {
-        buf[10 + ((i - 1) * 2)] = g_logo_lock_colors[i].h;
-        buf[11 + ((i - 1) * 2)] = g_logo_lock_colors[i].s;
+        header[10 + ((i - 1) * 2)] = g_logo_lock_colors[i].h;
+        header[11 + ((i - 1) * 2)] = g_logo_lock_colors[i].s;
     }
 
-    buf[24] = g_win_lock_mode;
-    buf[25] = g_win_lock_color.h;
-    buf[26] = g_win_lock_color.s;
+    header[24] = g_win_lock_mode;
+    header[25] = g_win_lock_color.h;
+    header[26] = g_win_lock_color.s;
 
-    buf[27] = g_reactive_enable ? 1 : 0;
-    buf[28] = g_reactive_mode;
-    buf[29] = g_reactive_color.h;
-    buf[30] = g_reactive_color.s;
-    buf[31] = (g_reactive_speed & 0x7F) | ((g_reactive_blend & 0x01) << 7);
-    buf[32] = g_debounce_time;
+    header[27] = g_reactive_enable ? 1 : 0;
+    header[28] = g_reactive_mode;
+    header[29] = g_reactive_color.h;
+    header[30] = g_reactive_color.s;
+    header[31] = (g_reactive_speed & 0x7F) | ((g_reactive_blend & 0x01) << 7);
+    header[32] = g_debounce_time;
 
     // Multi-Stop Gradient Persistence (Committed EEPROM Profiles)
-    buf[33] = g_active_gradient;
+    header[33] = g_active_gradient;
     // Profile 0
-    buf[34] = g_eeprom_user_gradients[0].count;
+    header[34] = g_eeprom_user_gradients[0].count;
     for (uint8_t s = 0; s < LUXQMK_MAX_GRADIENT_STOPS; s++) {
         uint8_t base = 35 + (s * 4);
-        buf[base + 0] = g_eeprom_user_gradients[0].stops[s].pos;
-        buf[base + 1] = g_eeprom_user_gradients[0].stops[s].r;
-        buf[base + 2] = g_eeprom_user_gradients[0].stops[s].g;
-        buf[base + 3] = g_eeprom_user_gradients[0].stops[s].b;
+        header[base + 0] = g_eeprom_user_gradients[0].stops[s].pos;
+        header[base + 1] = g_eeprom_user_gradients[0].stops[s].r;
+        header[base + 2] = g_eeprom_user_gradients[0].stops[s].g;
+        header[base + 3] = g_eeprom_user_gradients[0].stops[s].b;
     }
     // Profile 1
-    buf[67] = g_eeprom_user_gradients[1].count;
+    header[67] = g_eeprom_user_gradients[1].count;
     for (uint8_t s = 0; s < LUXQMK_MAX_GRADIENT_STOPS; s++) {
         uint8_t base = 68 + (s * 4);
-        buf[base + 0] = g_eeprom_user_gradients[1].stops[s].pos;
-        buf[base + 1] = g_eeprom_user_gradients[1].stops[s].r;
-        buf[base + 2] = g_eeprom_user_gradients[1].stops[s].g;
-        buf[base + 3] = g_eeprom_user_gradients[1].stops[s].b;
+        header[base + 0] = g_eeprom_user_gradients[1].stops[s].pos;
+        header[base + 1] = g_eeprom_user_gradients[1].stops[s].r;
+        header[base + 2] = g_eeprom_user_gradients[1].stops[s].g;
+        header[base + 3] = g_eeprom_user_gradients[1].stops[s].b;
     }
 
     // Effect Spatial Density (0..255, 128 = 1.0x)
-    buf[100] = g_effect_density;
+    header[100] = g_effect_density;
 
-    via_update_custom_config(buf, 0, sizeof(buf));
+    // Active Per-Key Profile ID (0..2)
+    header[101] = g_active_perkey_profile;
+
+    via_update_custom_config(header, 0, sizeof(header));
+    via_update_custom_config(g_eeprom_per_key_profiles, 104, sizeof(g_eeprom_per_key_profiles));
 #endif
 }
 
@@ -340,33 +430,33 @@ void luxqmk_eeprom_save(void) {
  */
 void luxqmk_eeprom_load(void) {
 #if defined(VIA_ENABLE) && defined(VIA_EEPROM_CUSTOM_CONFIG_SIZE)
-    uint8_t buf[VIA_EEPROM_CUSTOM_CONFIG_SIZE];
-    via_read_custom_config(buf, 0, sizeof(buf));
+    uint8_t header[104];
+    via_read_custom_config(header, 0, sizeof(header));
 
-    uint8_t rev    = buf[0];
-    uint8_t enable = buf[1];
-    uint8_t dim    = buf[2];
-    uint8_t l1_h   = buf[3];
-    uint8_t l1_s   = buf[4];
-    uint8_t l2_h   = buf[5];
-    uint8_t l2_s   = buf[6];
-    uint8_t l3_h   = buf[7];
-    uint8_t l3_s   = buf[8];
+    uint8_t rev    = header[0];
+    uint8_t enable = header[1];
+    uint8_t dim    = header[2];
+    uint8_t l1_h   = header[3];
+    uint8_t l1_s   = header[4];
+    uint8_t l2_h   = header[5];
+    uint8_t l2_s   = header[6];
+    uint8_t l3_h   = header[7];
+    uint8_t l3_s   = header[8];
 
-    uint8_t logo_mode = buf[9];
+    uint8_t logo_mode = header[9];
 
-    uint8_t win_lock_mode = buf[24];
-    uint8_t win_lock_h    = buf[25];
-    uint8_t win_lock_s    = buf[26];
+    uint8_t win_lock_mode = header[24];
+    uint8_t win_lock_h    = header[25];
+    uint8_t win_lock_s    = header[26];
 
-    uint8_t r_enable = buf[27];
-    uint8_t r_mode   = buf[28];
-    uint8_t r_h      = buf[29];
-    uint8_t r_s      = buf[30];
-    uint8_t r_spd    = buf[31];
-    uint8_t db       = buf[32];
+    uint8_t r_enable = header[27];
+    uint8_t r_mode   = header[28];
+    uint8_t r_h      = header[29];
+    uint8_t r_s      = header[30];
+    uint8_t r_spd    = header[31];
+    uint8_t db       = header[32];
 
-    uint8_t grad_preset = buf[33];
+    uint8_t grad_preset = header[33];
 
     if (enable == 0xFF) {
         // Uninitialized EEPROM defaults
@@ -399,6 +489,8 @@ void luxqmk_eeprom_load(void) {
 
         g_active_gradient       = GRADIENT_PRESET_RAINBOW;
         g_effect_density        = 128;
+        g_active_perkey_profile = 0;
+        luxqmk_init_default_perkey_profiles();
         luxqmk_eeprom_save();
     } else {
         g_custom_rgb_reverse    = (rev != 0);
@@ -407,7 +499,7 @@ void luxqmk_eeprom_load(void) {
         g_layer_colors[1]       = (layer_color_t){ l1_h, l1_s };
         g_layer_colors[2]       = (layer_color_t){ l2_h, l2_s };
         g_layer_colors[3]       = (layer_color_t){ l3_h, l3_s };
-        g_debounce_time         = (db == 0xFF) ? 5 : (db > 30 ? 5 : db);
+        g_debounce_time         = (db == 0xFF || db > 30) ? 5 : db;
 
         if (logo_mode == 0xFF) {
             g_logo_mode           = LOGO_MODE_RGB;
@@ -423,8 +515,8 @@ void luxqmk_eeprom_load(void) {
         } else {
             g_logo_mode = logo_mode;
             for (uint8_t i = 1; i < 8; i++) {
-                g_logo_lock_colors[i].h = buf[10 + ((i - 1) * 2)];
-                g_logo_lock_colors[i].s = buf[11 + ((i - 1) * 2)];
+                g_logo_lock_colors[i].h = header[10 + ((i - 1) * 2)];
+                g_logo_lock_colors[i].s = header[11 + ((i - 1) * 2)];
             }
         }
 
@@ -458,35 +550,42 @@ void luxqmk_eeprom_load(void) {
         }
 
         // Profile 0
-        uint8_t p0_cnt = buf[34];
+        uint8_t p0_cnt = header[34];
         if (p0_cnt >= 2 && p0_cnt <= LUXQMK_MAX_GRADIENT_STOPS) {
             g_user_gradients[0].count = p0_cnt;
             for (uint8_t s = 0; s < LUXQMK_MAX_GRADIENT_STOPS; s++) {
                 uint8_t base = 35 + (s * 4);
-                g_user_gradients[0].stops[s].pos = buf[base + 0];
-                g_user_gradients[0].stops[s].r   = buf[base + 1];
-                g_user_gradients[0].stops[s].g   = buf[base + 2];
-                g_user_gradients[0].stops[s].b   = buf[base + 3];
+                g_user_gradients[0].stops[s].pos = header[base + 0];
+                g_user_gradients[0].stops[s].r   = header[base + 1];
+                g_user_gradients[0].stops[s].g   = header[base + 2];
+                g_user_gradients[0].stops[s].b   = header[base + 3];
             }
         }
         // Profile 1
-        uint8_t p1_cnt = buf[67];
+        uint8_t p1_cnt = header[67];
         if (p1_cnt >= 2 && p1_cnt <= LUXQMK_MAX_GRADIENT_STOPS) {
             g_user_gradients[1].count = p1_cnt;
             for (uint8_t s = 0; s < LUXQMK_MAX_GRADIENT_STOPS; s++) {
                 uint8_t base = 68 + (s * 4);
-                g_user_gradients[1].stops[s].pos = buf[base + 0];
-                g_user_gradients[1].stops[s].r   = buf[base + 1];
-                g_user_gradients[1].stops[s].g   = buf[base + 2];
-                g_user_gradients[1].stops[s].b   = buf[base + 3];
+                g_user_gradients[1].stops[s].pos = header[base + 0];
+                g_user_gradients[1].stops[s].r   = header[base + 1];
+                g_user_gradients[1].stops[s].g   = header[base + 2];
+                g_user_gradients[1].stops[s].b   = header[base + 3];
             }
         }
 
         g_eeprom_user_gradients[0] = g_user_gradients[0];
         g_eeprom_user_gradients[1] = g_user_gradients[1];
 
-        uint8_t density = buf[100];
+        uint8_t density = header[100];
         g_effect_density = (density == 0xFF || density == 0) ? 128 : density;
+
+        // Per-Key Custom RGB Lighting Profiles Deserialization
+        uint8_t active_prof = header[101];
+        g_active_perkey_profile = (active_prof < LUXQMK_PERKEY_PROFILES_COUNT) ? active_prof : 0;
+
+        via_read_custom_config(g_per_key_profiles, 104, sizeof(g_per_key_profiles));
+        memcpy(g_eeprom_per_key_profiles, g_per_key_profiles, sizeof(g_per_key_profiles));
     }
 #endif
 }
@@ -502,6 +601,24 @@ void keyboard_post_init_user(void) {
         keymap_config.nkro = 1;
         eeconfig_update_keymap(&keymap_config);
     }
+#endif
+}
+
+/**
+ * Reload EEPROM configuration into RAM and re-apply RGB matrix settings live
+ */
+void luxqmk_eeprom_reload(void) {
+    luxqmk_eeprom_load();
+#ifdef RGB_MATRIX_ENABLE
+    eeconfig_read_rgb_matrix(&rgb_matrix_config);
+    if (rgb_matrix_config.enable) {
+        rgb_matrix_enable_noeeprom();
+        rgb_matrix_mode_noeeprom(rgb_matrix_config.mode);
+    } else {
+        rgb_matrix_disable_noeeprom();
+    }
+    rgb_matrix_sethsv_noeeprom(rgb_matrix_config.hsv.h, rgb_matrix_config.hsv.s, rgb_matrix_config.hsv.v);
+    rgb_matrix_set_speed_noeeprom(rgb_matrix_config.speed);
 #endif
 }
 
@@ -528,6 +645,10 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
             luxqmk_eeprom_save();
             return;
         }
+        if (*command_id == 0x0A) { // id_custom_load / discard RAM changes
+            luxqmk_eeprom_reload();
+            return;
+        }
 
         switch (value_id) {
             case USER_VAL_BOOTLOADER_JUMP:
@@ -541,7 +662,6 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                     data[3] = g_custom_rgb_reverse ? 1 : 0;
                 } else if (*command_id == id_custom_set_value) {
                     g_custom_rgb_reverse = (data[3] != 0);
-                    luxqmk_eeprom_save();
                 }
                 return;
 
@@ -550,7 +670,6 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                     data[3] = g_layer_lighting_enable ? 1 : 0;
                 } else if (*command_id == id_custom_set_value) {
                     g_layer_lighting_enable = (data[3] != 0);
-                    luxqmk_eeprom_save();
                 }
                 return;
 
@@ -559,7 +678,6 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                     data[3] = g_layer_dim_level;
                 } else if (*command_id == id_custom_set_value) {
                     g_layer_dim_level = data[3];
-                    luxqmk_eeprom_save();
                 }
                 return;
 
@@ -570,7 +688,6 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                 } else if (*command_id == id_custom_set_value) {
                     g_layer_colors[1].h = data[3];
                     g_layer_colors[1].s = data[4];
-                    luxqmk_eeprom_save();
                 }
                 return;
 
@@ -581,7 +698,6 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                 } else if (*command_id == id_custom_set_value) {
                     g_layer_colors[2].h = data[3];
                     g_layer_colors[2].s = data[4];
-                    luxqmk_eeprom_save();
                 }
                 return;
 
@@ -592,7 +708,6 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                 } else if (*command_id == id_custom_set_value) {
                     g_layer_colors[3].h = data[3];
                     g_layer_colors[3].s = data[4];
-                    luxqmk_eeprom_save();
                 }
                 return;
 
@@ -601,7 +716,6 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                     data[3] = g_logo_mode;
                 } else if (*command_id == id_custom_set_value) {
                     g_logo_mode = data[3];
-                    luxqmk_eeprom_save();
                 }
                 return;
 
@@ -628,7 +742,6 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                 } else if (*command_id == id_custom_set_value) {
                     g_logo_lock_colors[lock_idx].h = data[3];
                     g_logo_lock_colors[lock_idx].s = data[4];
-                    luxqmk_eeprom_save();
                 }
                 return;
             }
@@ -653,7 +766,6 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                     data[3] = g_win_lock_mode;
                 } else if (*command_id == id_custom_set_value) {
                     g_win_lock_mode = data[3];
-                    luxqmk_eeprom_save();
                 }
                 return;
 
@@ -664,7 +776,6 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                 } else if (*command_id == id_custom_set_value) {
                     g_win_lock_color.h = data[3];
                     g_win_lock_color.s = data[4];
-                    luxqmk_eeprom_save();
                 }
                 return;
 
@@ -682,7 +793,6 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                     data[3] = g_reactive_enable ? 1 : 0;
                 } else if (*command_id == id_custom_set_value) {
                     g_reactive_enable = (data[3] != 0);
-                    luxqmk_eeprom_save();
                 }
                 return;
 
@@ -691,7 +801,6 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                     data[3] = g_reactive_mode;
                 } else if (*command_id == id_custom_set_value) {
                     g_reactive_mode = data[3];
-                    luxqmk_eeprom_save();
                 }
                 return;
 
@@ -702,7 +811,6 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                 } else if (*command_id == id_custom_set_value) {
                     g_reactive_color.h = data[3];
                     g_reactive_color.s = data[4];
-                    luxqmk_eeprom_save();
                 }
                 return;
 
@@ -711,7 +819,6 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                     data[3] = g_reactive_speed;
                 } else if (*command_id == id_custom_set_value) {
                     g_reactive_speed = data[3];
-                    luxqmk_eeprom_save();
                 }
                 return;
 
@@ -720,7 +827,6 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                     data[3] = g_reactive_blend;
                 } else if (*command_id == id_custom_set_value) {
                     g_reactive_blend = data[3];
-                    luxqmk_eeprom_save();
                 }
                 return;
 
@@ -731,7 +837,7 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                     data[5] = LUXQMK_VERSION_PATCH;
                     uint8_t caps = 0;
 #ifdef RGB_MATRIX_ENABLE
-                    caps |= (LUXQMK_CAP_REACTIVE_OVERLAY | LUXQMK_CAP_DIRECTION_REVERSE | LUXQMK_CAP_LAYER_LIGHTING | LUXQMK_CAP_HEATMAP | LUXQMK_CAP_DIRECT_LIGHTING | LUXQMK_CAP_MULTI_GRADIENTS);
+                    caps |= (LUXQMK_CAP_REACTIVE_OVERLAY | LUXQMK_CAP_DIRECTION_REVERSE | LUXQMK_CAP_LAYER_LIGHTING | LUXQMK_CAP_HEATMAP | LUXQMK_CAP_DIRECT_LIGHTING | LUXQMK_CAP_MULTI_GRADIENTS | LUXQMK_CAP_PERKEY_PROFILES);
                     if (board_get_logo_led_index() != 255) {
                         caps |= LUXQMK_CAP_LOGO_LED;
                     }
@@ -762,7 +868,6 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                     data[3] = g_debounce_time;
                 } else if (*command_id == id_custom_set_value) {
                     g_debounce_time = (data[3] > 30) ? 5 : data[3];
-                    luxqmk_eeprom_save();
                 }
                 return;
 
@@ -789,17 +894,17 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
 
             case USER_VAL_GRADIENT_CUSTOM_STOP: {
                 uint8_t prof = (data[3] >= LUXQMK_USER_GRADIENTS_COUNT) ? 0 : data[3];
-                uint8_t stop_idx = (data[4] >= LUXQMK_MAX_GRADIENT_STOPS) ? 0 : data[4];
+                uint8_t stop = (data[4] >= LUXQMK_MAX_GRADIENT_STOPS) ? 0 : data[4];
                 if (*command_id == id_custom_get_value) {
-                    data[5] = g_user_gradients[prof].stops[stop_idx].pos;
-                    data[6] = g_user_gradients[prof].stops[stop_idx].r;
-                    data[7] = g_user_gradients[prof].stops[stop_idx].g;
-                    data[8] = g_user_gradients[prof].stops[stop_idx].b;
+                    data[5] = g_user_gradients[prof].stops[stop].pos;
+                    data[6] = g_user_gradients[prof].stops[stop].r;
+                    data[7] = g_user_gradients[prof].stops[stop].g;
+                    data[8] = g_user_gradients[prof].stops[stop].b;
                 } else if (*command_id == id_custom_set_value) {
-                    g_user_gradients[prof].stops[stop_idx].pos = data[5];
-                    g_user_gradients[prof].stops[stop_idx].r   = data[6];
-                    g_user_gradients[prof].stops[stop_idx].g   = data[7];
-                    g_user_gradients[prof].stops[stop_idx].b   = data[8];
+                    g_user_gradients[prof].stops[stop].pos = data[5];
+                    g_user_gradients[prof].stops[stop].r   = data[6];
+                    g_user_gradients[prof].stops[stop].g   = data[7];
+                    g_user_gradients[prof].stops[stop].b   = data[8];
                 }
                 return;
             }
@@ -818,7 +923,6 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                     data[3] = g_effect_density;
                 } else if (*command_id == id_custom_set_value) {
                     g_effect_density = (data[3] == 0) ? 128 : data[3];
-                    luxqmk_eeprom_save();
                 }
                 return;
 
@@ -859,6 +963,73 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                     }
                 }
                 return;
+
+            case USER_VAL_PERKEY_PROFILE_GET_BLOCK: {
+                uint8_t prof = (data[3] >= LUXQMK_PERKEY_PROFILES_COUNT) ? 0 : data[3];
+                uint8_t start_idx = data[4];
+                uint8_t count = data[5];
+                if (count > 8) count = 8;
+                for (uint8_t i = 0; i < count; i++) {
+                    uint8_t led_idx = start_idx + i;
+                    if (led_idx < LUXQMK_PERKEY_MAX_LEDS) {
+                        data[6 + (i * 3) + 0] = g_per_key_profiles[prof][led_idx].r;
+                        data[6 + (i * 3) + 1] = g_per_key_profiles[prof][led_idx].g;
+                        data[6 + (i * 3) + 2] = g_per_key_profiles[prof][led_idx].b;
+                    } else {
+                        data[6 + (i * 3) + 0] = 0;
+                        data[6 + (i * 3) + 1] = 0;
+                        data[6 + (i * 3) + 2] = 0;
+                    }
+                }
+                return;
+            }
+
+            case USER_VAL_PERKEY_PROFILE_SET_BLOCK: {
+                if (*command_id == id_custom_set_value) {
+                    uint8_t prof = (data[3] >= LUXQMK_PERKEY_PROFILES_COUNT) ? 0 : data[3];
+                    uint8_t start_idx = data[4];
+                    uint8_t count = data[5];
+                    if (count > 8) count = 8;
+                    for (uint8_t i = 0; i < count; i++) {
+                        uint8_t led_idx = start_idx + i;
+                        if (led_idx < LUXQMK_PERKEY_MAX_LEDS) {
+                            g_per_key_profiles[prof][led_idx].r = data[6 + (i * 3) + 0];
+                            g_per_key_profiles[prof][led_idx].g = data[6 + (i * 3) + 1];
+                            g_per_key_profiles[prof][led_idx].b = data[6 + (i * 3) + 2];
+                        }
+                    }
+                }
+                return;
+            }
+
+            case USER_VAL_PERKEY_PROFILE_SAVE_EEPROM: {
+                if (*command_id == id_custom_set_value) {
+                    uint8_t prof = data[3];
+                    if (prof < LUXQMK_PERKEY_PROFILES_COUNT) {
+                        memcpy(g_eeprom_per_key_profiles[prof], g_per_key_profiles[prof], sizeof(g_per_key_profiles[prof]));
+                    } else {
+                        memcpy(g_eeprom_per_key_profiles, g_per_key_profiles, sizeof(g_per_key_profiles));
+                    }
+                    luxqmk_eeprom_save();
+                }
+                return;
+            }
+
+            case USER_VAL_PERKEY_PROFILE_ACTIVE: {
+                if (*command_id == id_custom_get_value) {
+                    data[3] = g_active_perkey_profile;
+                } else if (*command_id == id_custom_set_value) {
+                    g_active_perkey_profile = (data[3] < LUXQMK_PERKEY_PROFILES_COUNT) ? data[3] : 0;
+                }
+                return;
+            }
+
+            case USER_VAL_RELOAD_EEPROM: {
+                if (*command_id == id_custom_set_value) {
+                    luxqmk_eeprom_reload();
+                }
+                return;
+            }
 
             default:
                 break;
