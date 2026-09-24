@@ -1477,7 +1477,6 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
                 ug_count++;
             }
         }
-        uint8_t half_count = (ug_count > 0) ? (ug_count / 2) : 1;
 
         for (uint8_t i = led_min; i < led_max; i++) {
             if (i == logo_idx) {
@@ -1489,37 +1488,8 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
                 uint8_t opt_step = 0;
                 bool is_hidden = false;
 
-                if (i < ug_first + half_count) {
-                    // LEFT STRIP: Visible optical window is segments 1..8 (7 steps, center at 4.5)
-                    uint8_t k_left = i - ug_first; // 0..9
-                    if (k_left < 1 || k_left > 8) {
-                        is_hidden = true;
-                    }
-                    int16_t norm_left = (int16_t)k_left - 1; // 0 at segment 1, 7 at segment 8
-                    if (norm_left < 0) norm_left = 0;
-                    if (norm_left > 7) norm_left = 7;
-                    opt_step = (uint8_t)norm_left;
-                    y_scaled = (uint8_t)(((uint32_t)norm_left * 255 * density) / (7 * 128));
-
-                    uint8_t dist_sym = (uint8_t)abs((int16_t)(2 * k_left) - 9); // distance from center (4.5)
-                    if (dist_sym > 7) dist_sym = 7;
-                    dist_scaled = (uint8_t)(((uint32_t)dist_sym * 255 * density) / (7 * 128));
-                } else {
-                    // RIGHT STRIP: Visible optical window is segments 2..9 (7 steps, center at 5.5)
-                    uint8_t k_right = (ug_first + ug_count - 1) - i; // 0..9
-                    if (k_right < 2 || k_right > 9) {
-                        is_hidden = true;
-                    }
-                    int16_t norm_right = (int16_t)k_right - 2; // 0 at segment 2, 7 at segment 9
-                    if (norm_right < 0) norm_right = 0;
-                    if (norm_right > 7) norm_right = 7;
-                    opt_step = (uint8_t)norm_right;
-                    y_scaled = (uint8_t)(((uint32_t)norm_right * 255 * density) / (7 * 128));
-
-                    uint8_t dist_sym = (uint8_t)abs((int16_t)(2 * k_right) - 11); // distance from center (5.5)
-                    if (dist_sym > 7) dist_sym = 7;
-                    dist_scaled = (uint8_t)(((uint32_t)dist_sym * 255 * density) / (7 * 128));
-                }
+                board_calc_sidelight_coords(i, ug_first, ug_count, density,
+                                            &y_scaled, &dist_scaled, &opt_step, &is_hidden);
 
                 switch (g_sidelight_mode) {
                     case SIDELIGHT_MODE_SOLID_COLOR: {
