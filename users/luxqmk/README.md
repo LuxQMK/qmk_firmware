@@ -52,6 +52,9 @@ qmk compile -kb gmmk/gmmk3/p75/ansi -km via
 # GMMK 3 65% ANSI via
 qmk compile -kb gmmk/gmmk3/p65/ansi -km via
 
-# GMMK 2 96% ANSI default
-qmk compile -kb gmmk/gmmk2/p96/ansi -km default
+# GMMK 2 96% ANSI via
+qmk compile -kb gmmk/gmmk2/p96/ansi -km via
+
+# GMMK 2 65% ANSI via
+qmk compile -kb gmmk/gmmk2/p65/ansi -km via
 ```

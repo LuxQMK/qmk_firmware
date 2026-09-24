@@ -6,13 +6,13 @@ A keyboard made and sold by Glorious LLC. Equipped with the WestBerry G7 ARM Cor
 * Hardware Supported: GMMK V2
 * Hardware Availability: [GloriousPCGaming.com](https://www.pcgamingrace.com)
 
-Make example for this keyboard (after setting up your build environment):
+Compile example for this keyboard (using QMK CLI):
 
-    make gmmk/gmmk2/p96/iso:default
+    qmk compile -kb gmmk/gmmk2/p96/iso -km via
 
 Flashing example for this keyboard:
 
-    make gmmk/gmmk2/p96/iso:default:flash
+    qmk flash -kb gmmk/gmmk2/p96/iso -km via
 
 To reset the board into bootloader mode, do one of the following:
 
