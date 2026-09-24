@@ -1,10 +1,18 @@
-# Quantum Mechanical Keyboard Firmware
+# Quantum Mechanical Keyboard Firmware (LuxQMK Edition)
 
-[![Current Version](https://img.shields.io/github/tag/qmk/qmk_firmware.svg)](https://github.com/qmk/qmk_firmware/tags)
+[![LuxQMK Version](https://img.shields.io/badge/LuxQMK-v0.3.0-8a2be2.svg?style=flat)](https://github.com/LuxQMK/qmk_firmware/releases/tag/luxqmk-v0.3.0)
+[![LuxQMK Studio](https://img.shields.io/badge/Companion%20App-LuxQMK%20Studio%20v1.3.0-00b4d8.svg?style=flat)](https://github.com/LuxQMK/luxqmk_studio)
+[![Current QMK Version](https://img.shields.io/github/tag/qmk/qmk_firmware.svg)](https://github.com/qmk/qmk_firmware/tags)
 [![Discord](https://img.shields.io/discord/440868230475677696.svg)](https://discord.gg/qmk)
 [![Docs Status](https://img.shields.io/badge/docs-ready-orange.svg)](https://docs.qmk.fm)
 [![GitHub contributors](https://img.shields.io/github/contributors/qmk/qmk_firmware.svg)](https://github.com/qmk/qmk_firmware/pulse/monthly)
 [![GitHub forks](https://img.shields.io/github/forks/qmk/qmk_firmware.svg?style=social&label=Fork)](https://github.com/qmk/qmk_firmware/)
+
+> ⚡ **LuxQMK Firmware Extension**: This fork powers the [LuxQMK Ecosystem](https://github.com/LuxQMK), featuring a high-performance userspace engine ([`users/luxqmk/`](users/luxqmk/README.md)), dual-layer reactive RGB matrix lighting, CIE1931 perceptual curves, multi-stop gradient shaders, atomic direct WebHID streaming double-buffering, and modular hardware HAL for GMMK 3 (100%/75%/65%), GMMK 2 (96%/65%), and universal VIA boards.
+> 
+> 🎛️ **Companion App**: [LuxQMK Studio](https://github.com/LuxQMK/luxqmk_studio) — Real-time WebHID & Desktop layout, RGB & audio visualizer suite.
+
+---
 
 This is a keyboard firmware based on the [tmk\_keyboard firmware](https://github.com/tmk/tmk_keyboard) with some useful features for Atmel AVR and ARM controllers, and more specifically, the [OLKB product line](https://olkb.com), the [ErgoDox EZ](https://ergodox-ez.com) keyboard, and the Clueboard product line.
 
