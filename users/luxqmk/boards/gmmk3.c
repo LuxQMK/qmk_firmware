@@ -43,7 +43,7 @@ void gmmk3_board_indicators_render(void) {
                 g_logo_lock_colors[lock_state].s,
                 val
             };
-            RGB col = hsv_to_rgb_nocie(hsv);
+            RGB col = hsv_to_rgb(hsv);
             rgb_matrix_set_color(logo_idx, col.r, col.g, col.b);
         } else if (g_logo_mode == LOGO_MODE_INDICATOR_OFF_IDLE) {
             rgb_matrix_set_color(logo_idx, 0, 0, 0);
@@ -65,7 +65,7 @@ void gmmk3_board_indicators_render(void) {
                 g_win_lock_color.s,
                 val
             };
-            RGB col = hsv_to_rgb_nocie(hsv);
+            RGB col = hsv_to_rgb(hsv);
             rgb_matrix_set_color(win_idx, col.r, col.g, col.b);
         }
     }

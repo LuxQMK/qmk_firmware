@@ -82,6 +82,15 @@ uint8_t g_active_perkey_profile = 0;
 RGB g_per_key_profiles[LUXQMK_PERKEY_PROFILES_COUNT][LUXQMK_PERKEY_MAX_LEDS] = {{{0, 0, 0}}};
 RGB g_eeprom_per_key_profiles[LUXQMK_PERKEY_PROFILES_COUNT][LUXQMK_PERKEY_MAX_LEDS] = {{{0, 0, 0}}};
 
+// Sidelight / Underglow Custom Separate Effect State
+bool g_sidelight_custom_enable  = false;
+uint8_t g_sidelight_mode        = SIDELIGHT_MODE_FOLLOW_MAIN;
+layer_color_t g_sidelight_color = { 0, 255 }; // Default red/custom
+uint8_t g_sidelight_speed       = 128;
+uint8_t g_sidelight_gradient    = GRADIENT_PRESET_RAINBOW;
+bool g_sidelight_reverse        = false;
+uint8_t g_sidelight_density     = 128;
+
 /**
  * Initialize default gaming profiles for Profile 1 (FPS), Profile 2 (MOBA), Profile 3 (MMO/RPG)
  * Resolves physical key assignments from matrix and active base keymap.
@@ -363,7 +372,7 @@ RGB luxqmk_sample_gradient(uint8_t gradient_id, uint8_t phase) {
  */
 void luxqmk_eeprom_save(void) {
 #if defined(VIA_ENABLE) && defined(VIA_EEPROM_CUSTOM_CONFIG_SIZE)
-    uint8_t header[104];
+    uint8_t header[112];
     memset(header, 0, sizeof(header));
 
     header[0] = g_custom_rgb_reverse ? 1 : 0;
@@ -420,8 +429,18 @@ void luxqmk_eeprom_save(void) {
     // Active Per-Key Profile ID (0..2)
     header[101] = g_active_perkey_profile;
 
+    // Dedicated Independent Sidelights Persistence
+    header[102] = g_sidelight_custom_enable ? 1 : 0;
+    header[103] = g_sidelight_mode;
+    header[104] = g_sidelight_color.h;
+    header[105] = g_sidelight_color.s;
+    header[106] = g_sidelight_speed;
+    header[107] = g_sidelight_gradient;
+    header[108] = g_sidelight_reverse ? 1 : 0;
+    header[109] = g_sidelight_density;
+
     via_update_custom_config(header, 0, sizeof(header));
-    via_update_custom_config(g_eeprom_per_key_profiles, 104, sizeof(g_eeprom_per_key_profiles));
+    via_update_custom_config(g_eeprom_per_key_profiles, 112, sizeof(g_eeprom_per_key_profiles));
 #endif
 }
 
@@ -430,7 +449,7 @@ void luxqmk_eeprom_save(void) {
  */
 void luxqmk_eeprom_load(void) {
 #if defined(VIA_ENABLE) && defined(VIA_EEPROM_CUSTOM_CONFIG_SIZE)
-    uint8_t header[104];
+    uint8_t header[112];
     via_read_custom_config(header, 0, sizeof(header));
 
     uint8_t rev    = header[0];
@@ -457,6 +476,15 @@ void luxqmk_eeprom_load(void) {
     uint8_t db       = header[32];
 
     uint8_t grad_preset = header[33];
+
+    uint8_t side_enable = header[102];
+    uint8_t side_mode   = header[103];
+    uint8_t side_h      = header[104];
+    uint8_t side_s      = header[105];
+    uint8_t side_spd    = header[106];
+    uint8_t side_grad   = header[107];
+    uint8_t side_rev    = header[108];
+    uint8_t side_dens   = header[109];
 
     if (enable == 0xFF) {
         // Uninitialized EEPROM defaults
@@ -490,6 +518,15 @@ void luxqmk_eeprom_load(void) {
         g_active_gradient       = GRADIENT_PRESET_RAINBOW;
         g_effect_density        = 128;
         g_active_perkey_profile = 0;
+
+        g_sidelight_custom_enable = false;
+        g_sidelight_mode          = SIDELIGHT_MODE_FOLLOW_MAIN;
+        g_sidelight_color         = (layer_color_t){ 0, 255 };
+        g_sidelight_speed         = 128;
+        g_sidelight_gradient      = GRADIENT_PRESET_RAINBOW;
+        g_sidelight_reverse       = false;
+        g_sidelight_density       = 128;
+
         luxqmk_init_default_perkey_profiles();
         luxqmk_eeprom_save();
     } else {
@@ -580,11 +617,30 @@ void luxqmk_eeprom_load(void) {
         uint8_t density = header[100];
         g_effect_density = (density == 0xFF || density == 0) ? 128 : density;
 
+        // Dedicated Independent Sidelights Deserialization
+        if (side_enable == 0xFF) {
+            g_sidelight_custom_enable = false;
+            g_sidelight_mode          = SIDELIGHT_MODE_FOLLOW_MAIN;
+            g_sidelight_color         = (layer_color_t){ 0, 255 };
+            g_sidelight_speed         = 128;
+            g_sidelight_gradient      = GRADIENT_PRESET_RAINBOW;
+            g_sidelight_reverse       = false;
+            g_sidelight_density       = 128;
+        } else {
+            g_sidelight_custom_enable = (side_enable != 0);
+            g_sidelight_mode          = (side_mode < SIDELIGHT_MODES_TOTAL) ? side_mode : SIDELIGHT_MODE_FOLLOW_MAIN;
+            g_sidelight_color         = (layer_color_t){ side_h, side_s };
+            g_sidelight_speed         = (side_spd == 0xFF) ? 128 : side_spd;
+            g_sidelight_gradient      = (side_grad < GRADIENT_PRESETS_TOTAL) ? side_grad : GRADIENT_PRESET_RAINBOW;
+            g_sidelight_reverse       = (side_rev != 0);
+            g_sidelight_density       = (side_dens == 0xFF || side_dens == 0) ? 128 : side_dens;
+        }
+
         // Per-Key Custom RGB Lighting Profiles Deserialization
         uint8_t active_prof = header[101];
         g_active_perkey_profile = (active_prof < LUXQMK_PERKEY_PROFILES_COUNT) ? active_prof : 0;
 
-        via_read_custom_config(g_per_key_profiles, 104, sizeof(g_per_key_profiles));
+        via_read_custom_config(g_per_key_profiles, 112, sizeof(g_per_key_profiles));
         memcpy(g_eeprom_per_key_profiles, g_per_key_profiles, sizeof(g_per_key_profiles));
     }
 #endif
@@ -835,7 +891,7 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                     data[3] = LUXQMK_VERSION_MAJOR;
                     data[4] = LUXQMK_VERSION_MINOR;
                     data[5] = LUXQMK_VERSION_PATCH;
-                    uint8_t caps = 0;
+                    uint16_t caps = 0;
 #ifdef RGB_MATRIX_ENABLE
                     caps |= (LUXQMK_CAP_REACTIVE_OVERLAY | LUXQMK_CAP_DIRECTION_REVERSE | LUXQMK_CAP_LAYER_LIGHTING | LUXQMK_CAP_HEATMAP | LUXQMK_CAP_DIRECT_LIGHTING | LUXQMK_CAP_MULTI_GRADIENTS | LUXQMK_CAP_PERKEY_PROFILES);
                     if (board_get_logo_led_index() != 255) {
@@ -844,8 +900,12 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                     if (board_get_win_led_index() != 255) {
                         caps |= LUXQMK_CAP_WIN_LOCK;
                     }
+                    if (board_has_sidelights()) {
+                        caps |= LUXQMK_CAP_SIDELIGHTS;
+                    }
 #endif
-                    data[6] = caps;
+                    data[6] = (uint8_t)(caps & 0xFF);
+                    data[7] = (uint8_t)((caps >> 8) & 0xFF);
                 }
                 return;
 
@@ -1023,6 +1083,64 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                 }
                 return;
             }
+
+            case USER_VAL_SIDELIGHT_ENABLE:
+                if (*command_id == id_custom_get_value) {
+                    data[3] = g_sidelight_custom_enable ? 1 : 0;
+                } else if (*command_id == id_custom_set_value) {
+                    g_sidelight_custom_enable = (data[3] != 0);
+                }
+                return;
+
+            case USER_VAL_SIDELIGHT_MODE:
+                if (*command_id == id_custom_get_value) {
+                    data[3] = g_sidelight_mode;
+                } else if (*command_id == id_custom_set_value) {
+                    g_sidelight_mode = (data[3] < SIDELIGHT_MODES_TOTAL) ? data[3] : SIDELIGHT_MODE_FOLLOW_MAIN;
+                }
+                return;
+
+            case USER_VAL_SIDELIGHT_COLOR:
+                if (*command_id == id_custom_get_value) {
+                    data[3] = g_sidelight_color.h;
+                    data[4] = g_sidelight_color.s;
+                } else if (*command_id == id_custom_set_value) {
+                    g_sidelight_color.h = data[3];
+                    g_sidelight_color.s = data[4];
+                }
+                return;
+
+            case USER_VAL_SIDELIGHT_SPEED:
+                if (*command_id == id_custom_get_value) {
+                    data[3] = g_sidelight_speed;
+                } else if (*command_id == id_custom_set_value) {
+                    g_sidelight_speed = data[3];
+                }
+                return;
+
+            case USER_VAL_SIDELIGHT_GRADIENT:
+                if (*command_id == id_custom_get_value) {
+                    data[3] = g_sidelight_gradient;
+                } else if (*command_id == id_custom_set_value) {
+                    g_sidelight_gradient = (data[3] < GRADIENT_PRESETS_TOTAL) ? data[3] : GRADIENT_PRESET_RAINBOW;
+                }
+                return;
+
+            case USER_VAL_SIDELIGHT_REVERSE:
+                if (*command_id == id_custom_get_value) {
+                    data[3] = g_sidelight_reverse ? 1 : 0;
+                } else if (*command_id == id_custom_set_value) {
+                    g_sidelight_reverse = (data[3] != 0);
+                }
+                return;
+
+            case USER_VAL_SIDELIGHT_DENSITY:
+                if (*command_id == id_custom_get_value) {
+                    data[3] = g_sidelight_density;
+                } else if (*command_id == id_custom_set_value) {
+                    g_sidelight_density = (data[3] == 0) ? 128 : data[3];
+                }
+                return;
 
             case USER_VAL_RELOAD_EEPROM: {
                 if (*command_id == id_custom_set_value) {
@@ -1342,7 +1460,198 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
     }
 #endif
 
-    // 2. Always ensure board-specific hardware indicators (Logo badge, Win Lock) are rendered
+    // 2. Dedicated Independent Sidelights Rendering (for boards with underglow strips)
+    if (g_sidelight_custom_enable && g_sidelight_mode != SIDELIGHT_MODE_FOLLOW_MAIN) {
+        uint8_t logo_idx = board_get_logo_led_index();
+        uint8_t speed_scaled = qadd8(g_sidelight_speed / 4, 1);
+        uint8_t time = scale16by8(g_rgb_timer, speed_scaled);
+        uint8_t val = rgb_matrix_config.hsv.v;
+        uint8_t density = g_sidelight_density ? g_sidelight_density : 128;
+
+        // Determine underglow range and strip boundaries
+        uint8_t ug_first = 255;
+        uint8_t ug_count = 0;
+        for (uint8_t k = 0; k < DRIVER_LED_TOTAL; k++) {
+            if (k != logo_idx && HAS_FLAGS(g_led_config.flags[k], LED_FLAG_UNDERGLOW)) {
+                if (ug_first == 255) ug_first = k;
+                ug_count++;
+            }
+        }
+        uint8_t half_count = (ug_count > 0) ? (ug_count / 2) : 1;
+
+        for (uint8_t i = led_min; i < led_max; i++) {
+            if (i == logo_idx) {
+                continue;
+            }
+            if (i < DRIVER_LED_TOTAL && HAS_FLAGS(g_led_config.flags[i], LED_FLAG_UNDERGLOW)) {
+                uint8_t y_scaled = 0;
+                uint8_t dist_scaled = 0;
+                uint8_t opt_step = 0;
+                bool is_hidden = false;
+
+                if (i < ug_first + half_count) {
+                    // LEFT STRIP: Visible optical window is segments 1..8 (7 steps, center at 4.5)
+                    uint8_t k_left = i - ug_first; // 0..9
+                    if (k_left < 1 || k_left > 8) {
+                        is_hidden = true;
+                    }
+                    int16_t norm_left = (int16_t)k_left - 1; // 0 at segment 1, 7 at segment 8
+                    if (norm_left < 0) norm_left = 0;
+                    if (norm_left > 7) norm_left = 7;
+                    opt_step = (uint8_t)norm_left;
+                    y_scaled = (uint8_t)(((uint32_t)norm_left * 255 * density) / (7 * 128));
+
+                    uint8_t dist_sym = (uint8_t)abs((int16_t)(2 * k_left) - 9); // distance from center (4.5)
+                    if (dist_sym > 7) dist_sym = 7;
+                    dist_scaled = (uint8_t)(((uint32_t)dist_sym * 255 * density) / (7 * 128));
+                } else {
+                    // RIGHT STRIP: Visible optical window is segments 2..9 (7 steps, center at 5.5)
+                    uint8_t k_right = (ug_first + ug_count - 1) - i; // 0..9
+                    if (k_right < 2 || k_right > 9) {
+                        is_hidden = true;
+                    }
+                    int16_t norm_right = (int16_t)k_right - 2; // 0 at segment 2, 7 at segment 9
+                    if (norm_right < 0) norm_right = 0;
+                    if (norm_right > 7) norm_right = 7;
+                    opt_step = (uint8_t)norm_right;
+                    y_scaled = (uint8_t)(((uint32_t)norm_right * 255 * density) / (7 * 128));
+
+                    uint8_t dist_sym = (uint8_t)abs((int16_t)(2 * k_right) - 11); // distance from center (5.5)
+                    if (dist_sym > 7) dist_sym = 7;
+                    dist_scaled = (uint8_t)(((uint32_t)dist_sym * 255 * density) / (7 * 128));
+                }
+
+                switch (g_sidelight_mode) {
+                    case SIDELIGHT_MODE_SOLID_COLOR: {
+                        HSV hsv = { g_sidelight_color.h, g_sidelight_color.s, val };
+                        RGB rgb = hsv_to_rgb(hsv);
+                        rgb_matrix_set_color(i, rgb.r, rgb.g, rgb.b);
+                        break;
+                    }
+
+                    case SIDELIGHT_MODE_BREATHING: {
+                        uint8_t breath_val = scale8(abs8(sin8(time)), val);
+                        HSV hsv = { g_sidelight_color.h, g_sidelight_color.s, breath_val };
+                        RGB rgb = hsv_to_rgb(hsv);
+                        rgb_matrix_set_color(i, rgb.r, rgb.g, rgb.b);
+                        break;
+                    }
+
+                    case SIDELIGHT_MODE_CYCLE_RAINBOW: {
+                        uint8_t phase = g_sidelight_reverse ? (255 - time) : time;
+                        HSV hsv = { phase, 255, val };
+                        RGB rgb = hsv_to_rgb(hsv);
+                        rgb_matrix_set_color(i, rgb.r, rgb.g, rgb.b);
+                        break;
+                    }
+
+                    case SIDELIGHT_MODE_RAINBOW_WAVE: {
+                        // Normal: Top to Bottom, Reverse: Bottom to Top
+                        uint8_t phase = time + (g_sidelight_reverse ? y_scaled : (uint8_t)(256 - y_scaled)) + g_sidelight_color.h;
+                        HSV hsv = { phase, 255, val };
+                        RGB rgb = hsv_to_rgb(hsv);
+                        rgb_matrix_set_color(i, rgb.r, rgb.g, rgb.b);
+                        break;
+                    }
+
+                    case SIDELIGHT_MODE_RAINBOW_CENTER_WAVE: {
+                        // Normal: Center Outward, Reverse: Outward into Center
+                        uint8_t phase = time + (g_sidelight_reverse ? dist_scaled : (uint8_t)(256 - dist_scaled)) + g_sidelight_color.h;
+                        HSV hsv = { phase, 255, val };
+                        RGB rgb = hsv_to_rgb(hsv);
+                        rgb_matrix_set_color(i, rgb.r, rgb.g, rgb.b);
+                        break;
+                    }
+
+                    case SIDELIGHT_MODE_GRADIENT_WAVE: {
+                        // Normal: Top to Bottom, Reverse: Bottom to Top
+                        uint8_t phase = time + (g_sidelight_reverse ? y_scaled : (uint8_t)(256 - y_scaled));
+                        RGB rgb = luxqmk_sample_gradient(g_sidelight_gradient, phase);
+                        rgb_matrix_set_color(i, rgb.r, rgb.g, rgb.b);
+                        break;
+                    }
+
+                    case SIDELIGHT_MODE_GRADIENT_CENTER_WAVE: {
+                        // Normal: Center Outward, Reverse: Outward into Center
+                        uint8_t phase = time + (g_sidelight_reverse ? dist_scaled : (uint8_t)(256 - dist_scaled));
+                        RGB rgb = luxqmk_sample_gradient(g_sidelight_gradient, phase);
+                        rgb_matrix_set_color(i, rgb.r, rgb.g, rgb.b);
+                        break;
+                    }
+
+                    case SIDELIGHT_MODE_GRADIENT_CYCLE: {
+                        uint8_t phase = g_sidelight_reverse ? (255 - time) : time;
+                        RGB rgb = luxqmk_sample_gradient(g_sidelight_gradient, phase);
+                        rgb_matrix_set_color(i, rgb.r, rgb.g, rgb.b);
+                        break;
+                    }
+
+                    case SIDELIGHT_MODE_GRADIENT_BREATHE: {
+                        uint8_t breath_pulse = scale8(abs8(sin8(time)), val);
+                        uint8_t t_grad = scale16by8(g_rgb_timer, qadd8(g_sidelight_speed / 16, 1));
+                        RGB rgb = luxqmk_sample_gradient(g_sidelight_gradient, t_grad);
+                        rgb_matrix_set_color(i, scale8(rgb.r, breath_pulse), scale8(rgb.g, breath_pulse), scale8(rgb.b, breath_pulse));
+                        break;
+                    }
+
+                    case SIDELIGHT_MODE_SINGLE_WAVE: {
+                        uint8_t wave = sin8(time + (g_sidelight_reverse ? y_scaled : (uint8_t)(256 - y_scaled)));
+                        uint8_t wave_val = scale8(wave, val);
+                        HSV hsv = { g_sidelight_color.h, g_sidelight_color.s, wave_val };
+                        RGB rgb = hsv_to_rgb(hsv);
+                        rgb_matrix_set_color(i, rgb.r, rgb.g, rgb.b);
+                        break;
+                    }
+
+                    case SIDELIGHT_MODE_DIAGNOSTIC: {
+                        // Calibrated optical window diagnostic pattern:
+                        // Step 0: Pure Red (Visible TOP on both Left & Right)
+                        // Step 1: Orange
+                        // Step 2: Yellow
+                        // Step 3 & 4: Pure Green (Visible CENTER on both Left & Right)
+                        // Step 5: Cyan
+                        // Step 6: Magenta
+                        // Step 7: Pure Blue (Visible BOTTOM on both Left & Right)
+                        // Any LEDs hidden outside the diffuser window are kept dark.
+                        if (is_hidden) {
+                            rgb_matrix_set_color(i, 0, 0, 0);
+                            break;
+                        }
+                        static const RGB PROGMEM diag_colors[8] = {
+                            { 255, 0,   0   }, // 0: Red (Visible Top on BOTH strips)
+                            { 255, 128, 0   }, // 1: Orange
+                            { 255, 255, 0   }, // 2: Yellow
+                            { 0,   255, 0   }, // 3: Pure Green (Visible Center 1)
+                            { 0,   255, 0   }, // 4: Pure Green (Visible Center 2)
+                            { 0,   255, 255 }, // 5: Cyan
+                            { 255, 0,   255 }, // 6: Magenta
+                            { 0,   0,   255 }  // 7: Pure Blue (Visible Bottom on BOTH strips)
+                        };
+                        uint8_t c_idx = (opt_step < 8) ? opt_step : 7;
+                        RGB col;
+                        memcpy_P(&col, &diag_colors[c_idx], sizeof(RGB));
+                        if (val < 255) {
+                            col.r = scale8(col.r, val);
+                            col.g = scale8(col.g, val);
+                            col.b = scale8(col.b, val);
+                        }
+                        rgb_matrix_set_color(i, col.r, col.g, col.b);
+                        break;
+                    }
+
+                    case SIDELIGHT_MODE_OFF: {
+                        rgb_matrix_set_color(i, 0, 0, 0);
+                        break;
+                    }
+
+                    default:
+                        break;
+                }
+            }
+        }
+    }
+
+    // 3. Always ensure board-specific hardware indicators (Logo badge, Win Lock) are rendered
     board_indicators_render();
 
     return true;
@@ -1518,7 +1827,7 @@ bool rgb_matrix_indicators_user(void) {
             if (reactive_intensity > 0) {
                 uint8_t scaled_val = scale8((uint8_t)reactive_intensity, val);
                 HSV r_hsv = { reactive_hue, reactive_sat, scaled_val };
-                RGB r_rgb = hsv_to_rgb_nocie(r_hsv);
+                RGB r_rgb = hsv_to_rgb(r_hsv);
 
                 uint8_t bg_r, bg_g, bg_b;
                 aw20216s_get_color(i, &bg_r, &bg_g, &bg_b);
@@ -1556,7 +1865,7 @@ bool rgb_matrix_indicators_user(void) {
                 val = 255;
             }
             HSV hsv = { hue, sat, val };
-            RGB active_rgb = hsv_to_rgb_nocie(hsv);
+            RGB active_rgb = hsv_to_rgb(hsv);
 
             for (uint8_t r = 0; r < MATRIX_ROWS; r++) {
                 for (uint8_t c = 0; c < MATRIX_COLS; c++) {
@@ -1596,4 +1905,16 @@ bool rgb_matrix_indicators_user(void) {
 
     return true;
 }
+
+bool board_has_sidelights(void) {
+#ifdef RGB_MATRIX_ENABLE
+    for (uint8_t i = 0; i < DRIVER_LED_TOTAL; i++) {
+        if (HAS_FLAGS(g_led_config.flags[i], LED_FLAG_UNDERGLOW)) {
+            return true;
+        }
+    }
 #endif
+    return false;
+}
+#endif
+

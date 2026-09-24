@@ -146,6 +146,26 @@ enum gradient_presets {
 #define USER_VAL_REACTIVE_BLEND          24
 
 /**
+ * Sidelight / Underglow strip custom effect modes
+ */
+enum sidelight_effect_mode {
+    SIDELIGHT_MODE_FOLLOW_MAIN = 0,
+    SIDELIGHT_MODE_SOLID_COLOR,
+    SIDELIGHT_MODE_BREATHING,
+    SIDELIGHT_MODE_CYCLE_RAINBOW,
+    SIDELIGHT_MODE_RAINBOW_WAVE,
+    SIDELIGHT_MODE_RAINBOW_CENTER_WAVE,
+    SIDELIGHT_MODE_GRADIENT_WAVE,
+    SIDELIGHT_MODE_GRADIENT_CENTER_WAVE,
+    SIDELIGHT_MODE_GRADIENT_CYCLE,
+    SIDELIGHT_MODE_GRADIENT_BREATHE,
+    SIDELIGHT_MODE_SINGLE_WAVE,
+    SIDELIGHT_MODE_DIAGNOSTIC,
+    SIDELIGHT_MODE_OFF,
+    SIDELIGHT_MODES_TOTAL
+};
+
+/**
  * Per-Key Custom RGB Lighting Profiles (Profile 1: FPS, Profile 2: MOBA, Profile 3: MMO/RPG)
  */
 #define LUXQMK_PERKEY_PROFILES_COUNT     3
@@ -155,9 +175,9 @@ enum gradient_presets {
  * LuxQMK Semantic Versioning & Capabilities
  */
 #define LUXQMK_VERSION_MAJOR             0
-#define LUXQMK_VERSION_MINOR             2
-#define LUXQMK_VERSION_PATCH             1
-#define LUXQMK_VERSION_STRING            "0.2.1"
+#define LUXQMK_VERSION_MINOR             3
+#define LUXQMK_VERSION_PATCH             0
+#define LUXQMK_VERSION_STRING            "0.3.0"
 
 #define LUXQMK_CAP_REACTIVE_OVERLAY      (1 << 0)
 #define LUXQMK_CAP_DIRECTION_REVERSE     (1 << 1)
@@ -167,7 +187,8 @@ enum gradient_presets {
 #define LUXQMK_CAP_HEATMAP               (1 << 5)
 #define LUXQMK_CAP_DIRECT_LIGHTING       (1 << 6)
 #define LUXQMK_CAP_MULTI_GRADIENTS       (1 << 7)
-#define LUXQMK_CAP_PERKEY_PROFILES       (1 << 8)
+#define LUXQMK_CAP_SIDELIGHTS            (1 << 8)
+#define LUXQMK_CAP_PERKEY_PROFILES       (1 << 9)
 
 #define USER_VAL_LUXQMK_VERSION          25
 #define USER_VAL_QMK_VERSION             26
@@ -186,6 +207,14 @@ enum gradient_presets {
 #define USER_VAL_PERKEY_PROFILE_SAVE_EEPROM 40
 #define USER_VAL_PERKEY_PROFILE_ACTIVE     41
 #define USER_VAL_RELOAD_EEPROM             42
+
+#define USER_VAL_SIDELIGHT_ENABLE        43
+#define USER_VAL_SIDELIGHT_MODE          44
+#define USER_VAL_SIDELIGHT_COLOR         45
+#define USER_VAL_SIDELIGHT_SPEED         46
+#define USER_VAL_SIDELIGHT_GRADIENT      47
+#define USER_VAL_SIDELIGHT_REVERSE       48
+#define USER_VAL_SIDELIGHT_DENSITY       49
 
 #define USER_VAL_BOOTLOADER_JUMP         0xFE
 
@@ -224,6 +253,14 @@ extern uint32_t g_direct_lighting_timer;
 extern RGB g_direct_staging[144];
 extern RGB g_direct_leds[144];
 
+extern bool g_sidelight_custom_enable;
+extern uint8_t g_sidelight_mode;
+extern layer_color_t g_sidelight_color;
+extern uint8_t g_sidelight_speed;
+extern uint8_t g_sidelight_gradient;
+extern bool g_sidelight_reverse;
+extern uint8_t g_sidelight_density;
+
 /**
  * LuxQMK core function declarations
  */
@@ -241,3 +278,5 @@ void board_init(void);
 void board_indicators_render(void);
 uint8_t board_get_logo_led_index(void);
 uint8_t board_get_win_led_index(void);
+bool board_has_sidelights(void);
+

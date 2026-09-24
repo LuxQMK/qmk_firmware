@@ -35,7 +35,7 @@ void gmmk2_board_indicators_render(void) {
                 g_win_lock_color.s,
                 val
             };
-            RGB col = hsv_to_rgb_nocie(hsv);
+            RGB col = hsv_to_rgb(hsv);
             rgb_matrix_set_color(win_idx, col.r, col.g, col.b);
         }
     }
