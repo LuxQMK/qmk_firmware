@@ -343,15 +343,41 @@ def generate_redirect_assets(output_dir):
     Generates Cloudflare Pages _redirects, _headers, and an index.html with meta-refresh
     and JS redirection pointing directly to the main LuxQMK website (https://luxqmk.click/).
     """
-    # 1. Cloudflare Pages _redirects (Edge-level 302 redirect for root)
+    # 1. Cloudflare Pages _redirects (Edge-level 302 redirects for Studio installers & main portal)
+    redirect_rules = (
+        "# Root redirect to official portal\n"
+        "/ https://luxqmk.click/ 302\n\n"
+        "# LuxQMK Studio Installers CDN (redirects to GitHub Releases)\n"
+        "/studio/latest/* https://github.com/LuxQMK/luxqmk_studio/releases/latest/download/:splat 302\n"
+        "/studio/:tag/* https://github.com/LuxQMK/luxqmk_studio/releases/download/:tag/:splat 302\n"
+        "/app/studio/latest/* https://github.com/LuxQMK/luxqmk_studio/releases/latest/download/:splat 302\n"
+        "/app/studio/:tag/* https://github.com/LuxQMK/luxqmk_studio/releases/download/:tag/:splat 302\n\n"
+        "# LuxQMK Firmware Releases fallback\n"
+        "/firmware/releases/:tag/* https://github.com/LuxQMK/qmk_firmware/releases/download/:tag/:splat 302\n"
+    )
+
     redirects_file = os.path.join(output_dir, "_redirects")
     with open(redirects_file, "w", encoding="utf-8") as f:
-        f.write("/ https://luxqmk.click/ 302\n")
+        f.write(redirect_rules)
 
     # 2. Cloudflare Pages _headers for CORS
+    headers_content = (
+        "/*\n"
+        "  Access-Control-Allow-Origin: *\n"
+        "  Access-Control-Allow-Methods: GET, HEAD, OPTIONS\n"
+        "  Access-Control-Allow-Headers: *\n"
+    )
     headers_file = os.path.join(output_dir, "_headers")
     with open(headers_file, "w", encoding="utf-8") as f:
-        f.write("/*\n  Access-Control-Allow-Origin: *\n  Access-Control-Allow-Methods: GET, HEAD, OPTIONS\n  Access-Control-Allow-Headers: *\n")
+        f.write(headers_content)
+
+    # If output_dir is a subfolder like dist/firmware, also write _redirects and _headers to root dist
+    if os.path.basename(os.path.normpath(output_dir)).lower() == "firmware":
+        root_dist = os.path.dirname(os.path.normpath(output_dir))
+        with open(os.path.join(root_dist, "_redirects"), "w", encoding="utf-8") as f:
+            f.write(redirect_rules)
+        with open(os.path.join(root_dist, "_headers"), "w", encoding="utf-8") as f:
+            f.write(headers_content)
 
     # 3. Fallback index.html with immediate client redirect
     out_file = os.path.join(output_dir, "index.html")
