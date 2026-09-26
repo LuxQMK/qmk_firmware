@@ -35,82 +35,73 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # 1. Compilation Job
+  # 1. Dynamic Target Matrix Generator
+  # ---------------------------------------------------------------------------
+  prepare-matrix:
+    name: Prepare Build Targets
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Calculate Target Scope Matrix
+        id: set-matrix
+        run: |
+          SCOPE="${{ inputs.target_scope }}"
+          
+          GMMK3='[
+            {"kb":"gmmk/gmmk3/p100/ansi","km":"via","name":"gmmk3-100-ansi"},
+            {"kb":"gmmk/gmmk3/p75/ansi","km":"via","name":"gmmk3-75-ansi"},
+            {"kb":"gmmk/gmmk3/p65/ansi","km":"via","name":"gmmk3-65-ansi"},
+            {"kb":"gmmk/gmmk3/p100/iso","km":"via","name":"gmmk3-100-iso"},
+            {"kb":"gmmk/gmmk3/p75/iso","km":"via","name":"gmmk3-75-iso"},
+            {"kb":"gmmk/gmmk3/p65/iso","km":"via","name":"gmmk3-65-iso"}
+          ]'
+          
+          GMMK2='[
+            {"kb":"gmmk/gmmk2/p96/ansi","km":"via","name":"gmmk2-96-ansi"},
+            {"kb":"gmmk/gmmk2/p96/iso","km":"via","name":"gmmk2-96-iso"},
+            {"kb":"gmmk/gmmk2/p65/ansi","km":"via","name":"gmmk2-65-ansi"},
+            {"kb":"gmmk/gmmk2/p65/iso","km":"via","name":"gmmk2-65-iso"}
+          ]'
+          
+          if [ "$SCOPE" = "gmmk3_only" ]; then
+            TARGETS="$GMMK3"
+          elif [ "$SCOPE" = "gmmk2_only" ]; then
+            TARGETS="$GMMK2"
+          else
+            TARGETS=$(jq -c -s '.[0] + .[1]' <(echo "$GMMK3") <(echo "$GMMK2"))
+          fi
+          
+          echo "matrix={\"include\":$TARGETS}" >> "$GITHUB_OUTPUT"
+
+  # ---------------------------------------------------------------------------
+  # 2. Compilation Job
   # ---------------------------------------------------------------------------
   build-firmware:
     name: Compile Firmware Targets
+    needs: [prepare-matrix]
     runs-on: ubuntu-latest
     container: ghcr.io/qmk/qmk_cli:latest
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          # GMMK 3 Series (ANSI)
-          - kb: gmmk/gmmk3/p100/ansi
-            km: via
-            group: gmmk3
-            name: gmmk3-100-ansi
-          - kb: gmmk/gmmk3/p75/ansi
-            km: via
-            group: gmmk3
-            name: gmmk3-75-ansi
-          - kb: gmmk/gmmk3/p65/ansi
-            km: via
-            group: gmmk3
-            name: gmmk3-65-ansi
-
-          # GMMK 3 Series (ISO)
-          - kb: gmmk/gmmk3/p100/iso
-            km: via
-            group: gmmk3
-            name: gmmk3-100-iso
-          - kb: gmmk/gmmk3/p75/iso
-            km: via
-            group: gmmk3
-            name: gmmk3-75-iso
-          - kb: gmmk/gmmk3/p65/iso
-            km: via
-            group: gmmk3
-            name: gmmk3-65-iso
-
-          # GMMK 2 Series (ANSI & ISO)
-          - kb: gmmk/gmmk2/p96/ansi
-            km: via
-            group: gmmk2
-            name: gmmk2-96-ansi
-          - kb: gmmk/gmmk2/p96/iso
-            km: via
-            group: gmmk2
-            name: gmmk2-96-iso
-          - kb: gmmk/gmmk2/p65/ansi
-            km: via
-            group: gmmk2
-            name: gmmk2-65-ansi
-          - kb: gmmk/gmmk2/p65/iso
-            km: via
-            group: gmmk2
-            name: gmmk2-65-iso
+      matrix: ${{ fromJSON(needs.prepare-matrix.outputs.matrix) }}
 
     steps:
       - name: Checkout Repository
-        if: ${{ inputs.target_scope == 'tier1_all' || inputs.target_scope == 'all_via' || (inputs.target_scope == 'gmmk3_only' && matrix.group == 'gmmk3') || (inputs.target_scope == 'gmmk2_only' && matrix.group == 'gmmk2') }}
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
       - name: Compile LuxQMK Firmware
-        if: ${{ inputs.target_scope == 'tier1_all' || inputs.target_scope == 'all_via' || (inputs.target_scope == 'gmmk3_only' && matrix.group == 'gmmk3') || (inputs.target_scope == 'gmmk2_only' && matrix.group == 'gmmk2') }}
         run: |
           qmk compile -kb ${{ matrix.kb }} -km ${{ matrix.km }} -e USER_NAME=luxqmk || qmk compile -kb ${{ matrix.kb }} -km ${{ matrix.km }}
 
       - name: Collect Binary
-        if: ${{ inputs.target_scope == 'tier1_all' || inputs.target_scope == 'all_via' || (inputs.target_scope == 'gmmk3_only' && matrix.group == 'gmmk3') || (inputs.target_scope == 'gmmk2_only' && matrix.group == 'gmmk2') }}
         run: |
           mkdir -p artifacts
           find .build -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} artifacts/ \;
 
       - name: Upload Binary Artifact
-        if: ${{ inputs.target_scope == 'tier1_all' || inputs.target_scope == 'all_via' || (inputs.target_scope == 'gmmk3_only' && matrix.group == 'gmmk3') || (inputs.target_scope == 'gmmk2_only' && matrix.group == 'gmmk2') }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.name }}
