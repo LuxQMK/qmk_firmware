@@ -291,8 +291,43 @@ def generate_catalog(artifacts_dir, output_dir, tag_version, repo_slug, base_url
 
     print(f"[+] Successfully generated catalog.json with {len(entries)} keyboards at {catalog_json_path}")
 
+    # Generate studio/version.json manifest
+    generate_studio_manifest(output_dir, tag_version)
+
     # Generate Cloudflare Pages redirect assets and index.html fallback
     generate_redirect_assets(output_dir)
+
+def generate_studio_manifest(output_dir, release_tag):
+    """
+    Generates studio/version.json manifest for LuxQMK Studio OTA update detection.
+    """
+    clean_version = release_tag.lstrip("v")
+    studio_dir = os.path.join(output_dir, "studio")
+    os.makedirs(studio_dir, exist_ok=True)
+
+    studio_data = {
+        "version": clean_version,
+        "release_tag": release_tag,
+        "release_name": f"LuxQMK Studio {release_tag}",
+        "release_date": datetime.now(timezone.utc).isoformat(),
+        "min_compatible_firmware": clean_version,
+        "changelog": [],
+        "downloads": {
+            "windows_installer": f"https://files.luxqmk.click/studio/{release_tag}/LuxQMK-Studio-Setup-{clean_version}.exe",
+            "web_app": "https://studio.luxqmk.click"
+        }
+    }
+
+    studio_version_path = os.path.join(studio_dir, "version.json")
+    with open(studio_version_path, "w", encoding="utf-8") as f:
+        json.dump(studio_data, f, indent=2)
+
+    # Also create latest.json alias
+    latest_path = os.path.join(studio_dir, "latest.json")
+    with open(latest_path, "w", encoding="utf-8") as f:
+        json.dump(studio_data, f, indent=2)
+
+    print(f"[+] Generated studio update manifest at {studio_version_path}")
 
 def generate_redirect_assets(output_dir):
     """

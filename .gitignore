@@ -26,6 +26,7 @@
 *.stackdump
 *.sym
 firmware_list.json
+catalog_build/
 
 # QMK-specific
 api_data/v1
