@@ -202,8 +202,9 @@ def generate_catalog(artifacts_dir, output_dir, tag_version, repo_slug, base_url
         base_url = base_url.rstrip("/")
 
     entries = []
+    candidates = {}
 
-    # Find all compiled binaries in artifacts directory
+    # Find all compiled binaries in artifacts directory and group by base model stem
     for root, _, files in os.walk(artifacts_dir):
         for file in files:
             if not file.endswith((".bin", ".hex", ".uf2")):
@@ -211,50 +212,64 @@ def generate_catalog(artifacts_dir, output_dir, tag_version, repo_slug, base_url
             
             filepath = os.path.join(root, file)
             stem = os.path.splitext(file)[0]
-            sha256_hash = calculate_sha256(filepath)
-            file_size = os.path.getsize(filepath)
+            if stem not in candidates:
+                candidates[stem] = []
+            candidates[stem].append((file, filepath))
 
-            # Metadata matching
-            meta = KNOWN_BOARDS.get(stem, {})
-            kb_name = meta.get("name")
-            vid = meta.get("vendor_id")
-            pid = meta.get("product_id")
-            mcu = meta.get("mcu", "ARM Cortex / AVR")
-            flasher = meta.get("flasher", "dfu-util" if file.endswith((".bin", ".hex")) else "uf2")
-            layout = meta.get("layout", "Universal")
-            tier = meta.get("tier", "luxqmk_generic")
-            features = meta.get("features", ["nkro", "debounce", "rgb_matrix", "reactive_layers"])
+    # For each keyboard model, pick canonical format (.bin for ARM > .uf2 for RP2040 > .hex for AVR)
+    for stem, file_list in candidates.items():
+        # Prefer .bin over .uf2 over .hex
+        file_list.sort(key=lambda x: (
+            0 if x[0].endswith(".bin") else (
+                1 if x[0].endswith(".uf2") else 2
+            )
+        ))
+        file, filepath = file_list[0]
 
-            if not kb_name:
-                # Fallback lookup from info.json
-                info = find_info_json(stem)
-                kb_name = info.get("keyboard_name", stem.replace("_", " ").title())
-                if "usb" in info:
-                    vid = info["usb"].get("vid", vid)
-                    pid = info["usb"].get("pid", pid)
-                if "processor" in info:
-                    mcu = info.get("processor", mcu)
+        sha256_hash = calculate_sha256(filepath)
+        file_size = os.path.getsize(filepath)
 
-            entry = {
-                "id": stem,
-                "name": kb_name,
-                "filename": file,
-                "version": tag_version.lstrip("v"),
-                "release_tag": tag_version,
-                "vendor_id": vid,
-                "product_id": pid,
-                "mcu": mcu,
-                "flasher": flasher,
-                "layout": layout,
-                "tier": tier,
-                "features": features,
-                "file_size_bytes": file_size,
-                "sha256": sha256_hash,
-                "download_url": f"{base_url}/{file}",
-                "latest_url": f"https://files.luxqmk.click/firmware/latest/{file}",
-                "studio_url": f"https://luxqmk.click/#firmware?model={stem}"
-            }
-            entries.append(entry)
+        # Metadata matching
+        meta = KNOWN_BOARDS.get(stem, {})
+        kb_name = meta.get("name")
+        vid = meta.get("vendor_id")
+        pid = meta.get("product_id")
+        mcu = meta.get("mcu", "ARM Cortex / AVR")
+        flasher = meta.get("flasher", "wb32-dfu-updater_cli" if "WB32" in mcu else ("dfu-util" if file.endswith((".bin", ".hex")) else "uf2"))
+        layout = meta.get("layout", "Universal")
+        tier = meta.get("tier", "luxqmk_generic")
+        features = meta.get("features", ["nkro", "debounce", "rgb_matrix", "reactive_layers"])
+
+        if not kb_name:
+            # Fallback lookup from info.json
+            info = find_info_json(stem)
+            kb_name = info.get("keyboard_name", stem.replace("_", " ").title())
+            if "usb" in info:
+                vid = info["usb"].get("vid", vid)
+                pid = info["usb"].get("pid", pid)
+            if "processor" in info:
+                mcu = info.get("processor", mcu)
+
+        entry = {
+            "id": stem,
+            "name": kb_name,
+            "filename": file,
+            "version": tag_version.lstrip("v"),
+            "release_tag": tag_version,
+            "vendor_id": vid,
+            "product_id": pid,
+            "mcu": mcu,
+            "flasher": flasher,
+            "layout": layout,
+            "tier": tier,
+            "features": features,
+            "file_size_bytes": file_size,
+            "sha256": sha256_hash,
+            "download_url": f"{base_url}/{file}",
+            "latest_url": f"https://files.luxqmk.click/firmware/latest/{file}",
+            "studio_url": f"https://luxqmk.click/#firmware?model={stem}"
+        }
+        entries.append(entry)
 
     # Sort entries: LuxQMK Enhanced first, then alphabetical
     entries.sort(key=lambda x: (0 if x["tier"] == "luxqmk_enhanced" else 1, x["name"]))
