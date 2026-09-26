@@ -65,9 +65,9 @@ jobs:
           ]'
           
           if [ "$SCOPE" = "gmmk3_only" ]; then
-            TARGETS="$GMMK3"
+            TARGETS=$(echo "$GMMK3" | jq -c .)
           elif [ "$SCOPE" = "gmmk2_only" ]; then
-            TARGETS="$GMMK2"
+            TARGETS=$(echo "$GMMK2" | jq -c .)
           else
             TARGETS=$(jq -c -s '.[0] + .[1]' <(echo "$GMMK3") <(echo "$GMMK2"))
           fi
