@@ -3,107 +3,197 @@ name: Build LuxQMK Firmware
 on:
   workflow_dispatch:
     inputs:
-      publish_release:
-        description: 'Publish as official GitHub Release?'
+      target_scope:
+        description: 'Target Keyboards to Build'
+        required: true
+        type: choice
+        options:
+          - 'tier1_all'       # GMMK 3 (100/75/65 ANSI & ISO) + GMMK 2 (96/65 ANSI & ISO)
+          - 'gmmk3_only'      # GMMK 3 Series only
+          - 'gmmk2_only'      # GMMK 2 Series only
+          - 'all_via'         # Mass compile all QMK VIA-compatible keyboards
+        default: 'tier1_all'
+      firmware_tag:
+        description: 'Firmware Version Tag (e.g. v0.4.0)'
+        required: true
+        default: 'v0.4.0'
+      deploy_cloudflare_pages:
+        description: 'Deploy to Cloudflare Pages (firmware.luxqmk.click / fw.luxqmk.click)?'
+        required: true
+        type: boolean
+        default: true
+      deploy_gh_pages:
+        description: 'Deploy backup to GitHub Pages?'
         required: true
         type: boolean
         default: false
-      release_tag:
-        description: 'Release Tag Version (e.g. v0.3.1)'
-        required: false
-        default: 'v0.3.1'
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
-  build-luxqmk-core:
-    name: Build Core Keyboards
+  # ---------------------------------------------------------------------------
+  # 1. Compilation Job
+  # ---------------------------------------------------------------------------
+  build-firmware:
+    name: Compile Firmware Targets
     runs-on: ubuntu-latest
     container: ghcr.io/qmk/qmk_cli:latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          # GMMK 3 Series (100%, 75%, 65% ANSI)
+          # GMMK 3 Series (ANSI)
           - kb: gmmk/gmmk3/p100/ansi
             km: via
-            output: gmmk_gmmk3_p100_ansi_via.bin
+            group: gmmk3
             name: gmmk3-100-ansi
           - kb: gmmk/gmmk3/p75/ansi
             km: via
-            output: gmmk_gmmk3_p75_ansi_via.bin
+            group: gmmk3
             name: gmmk3-75-ansi
           - kb: gmmk/gmmk3/p65/ansi
             km: via
-            output: gmmk_gmmk3_p65_ansi_via.bin
+            group: gmmk3
             name: gmmk3-65-ansi
 
-          # GMMK 2 Series (96%, 65% ANSI)
+          # GMMK 3 Series (ISO)
+          - kb: gmmk/gmmk3/p100/iso
+            km: via
+            group: gmmk3
+            name: gmmk3-100-iso
+          - kb: gmmk/gmmk3/p75/iso
+            km: via
+            group: gmmk3
+            name: gmmk3-75-iso
+          - kb: gmmk/gmmk3/p65/iso
+            km: via
+            group: gmmk3
+            name: gmmk3-65-iso
+
+          # GMMK 2 Series (ANSI & ISO)
           - kb: gmmk/gmmk2/p96/ansi
             km: via
-            output: gmmk_gmmk2_p96_ansi_via.bin
+            group: gmmk2
             name: gmmk2-96-ansi
+          - kb: gmmk/gmmk2/p96/iso
+            km: via
+            group: gmmk2
+            name: gmmk2-96-iso
           - kb: gmmk/gmmk2/p65/ansi
             km: via
-            output: gmmk_gmmk2_p65_ansi_via.bin
+            group: gmmk2
             name: gmmk2-65-ansi
+          - kb: gmmk/gmmk2/p65/iso
+            km: via
+            group: gmmk2
+            name: gmmk2-65-iso
 
     steps:
+      - name: Filter Target Scope
+        id: filter
+        run: |
+          SCOPE="${{ github.event.inputs.target_scope }}"
+          GROUP="${{ matrix.group }}"
+          if [ "$SCOPE" = "tier1_all" ] || [ "$SCOPE" = "all_via" ] || [ "$SCOPE" = "${GROUP}_only" ]; then
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout Repository
+        if: steps.filter.outputs.should_build == 'true'
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
       - name: Compile LuxQMK Firmware
+        if: steps.filter.outputs.should_build == 'true'
         run: |
           qmk compile -kb ${{ matrix.kb }} -km ${{ matrix.km }} -e USER_NAME=luxqmk || qmk compile -kb ${{ matrix.kb }} -km ${{ matrix.km }}
 
       - name: Collect Binary
+        if: steps.filter.outputs.should_build == 'true'
         run: |
           mkdir -p artifacts
           find .build -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} artifacts/ \;
 
       - name: Upload Binary Artifact
+        if: steps.filter.outputs.should_build == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.name }}
           path: artifacts/*
-          if-no-files-found: warn
+          if-no-files-found: ignore
 
-  package-artifacts:
-    name: Package All Firmware Binaries
-    needs: [build-luxqmk-core]
+  # ---------------------------------------------------------------------------
+  # 2. Package Catalog, Generate Portal & Distribute
+  # ---------------------------------------------------------------------------
+  package-catalog:
+    name: Generate Catalog & Deploy to Cloudflare Pages
+    needs: [build-firmware]
     runs-on: ubuntu-latest
     steps:
-      - name: Download All Artifacts
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download All Compiled Binaries
         uses: actions/download-artifact@v4
         with:
           path: all_binaries/
           merge-multiple: true
 
-      - name: Flatten Downloaded Binaries
-        run: |
-          mkdir -p release_files
-          find all_binaries -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} release_files/ \;
-          ls -la release_files/
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
 
-      - name: Upload Combined Firmware Package
+      - name: Build Catalog & Portal Distribution
+        run: |
+          TAG="${{ github.event.inputs.firmware_tag }}"
+          mkdir -p dist/binaries/${TAG}
+          find all_binaries -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} dist/binaries/${TAG}/ \;
+          
+          # Also copy latest binaries to root binaries folder for stable links
+          mkdir -p dist/binaries/latest
+          cp -r dist/binaries/${TAG}/* dist/binaries/latest/
+          
+          # Run Catalog Generator
+          python3 util/generate_catalog.py \
+            --artifacts-dir dist/binaries/${TAG} \
+            --output-dir dist \
+            --tag ${TAG} \
+            --repo ${{ github.repository }} \
+            --base-url "https://fw.luxqmk.click/binaries/${TAG}"
+
+          ls -la dist/
+
+      - name: Upload Complete Distribution Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: luxqmk-firmware-binaries
-          path: release_files/*
+          name: luxqmk-firmware-portal-${{ github.event.inputs.firmware_tag }}
+          path: dist/
 
-      - name: Publish GitHub Release (Only if explicitly enabled)
-        uses: softprops/action-gh-release@v2
-        if: ${{ github.event.inputs.publish_release == 'true' }}
+      # -----------------------------------------------------------------------
+      # Cloudflare Pages Direct Deployment (firmware.luxqmk.click)
+      # -----------------------------------------------------------------------
+      - name: Deploy to Cloudflare Pages
+        if: ${{ github.event.inputs.deploy_cloudflare_pages == 'true' }}
+        uses: cloudflare/wrangler-action@v3
         with:
-          tag_name: ${{ github.event.inputs.release_tag }}
-          name: "LuxQMK Firmware ${{ github.event.inputs.release_tag }}"
-          draft: false
-          prerelease: false
-          generate_release_notes: true
-          files: |
-            release_files/*
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=luxqmk-firmware --branch=main
 
-
+      # -----------------------------------------------------------------------
+      # GitHub Pages Deployment (Optional Fallback)
+      # -----------------------------------------------------------------------
+      - name: Deploy to GitHub Pages (Fallback)
+        if: ${{ github.event.inputs.deploy_gh_pages == 'true' }}
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          cname: firmware.luxqmk.click
