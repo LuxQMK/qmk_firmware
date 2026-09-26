@@ -2,6 +2,7 @@
 """
 LuxQMK Firmware Catalog Generator & Asset Manager
 Generates `catalog.json` with metadata, SHA-256 checksums, and download endpoints for `files.luxqmk.click/firmware`.
+Also creates Cloudflare Pages `_redirects`, `_headers`, and fallback `index.html` pointing to `luxqmk.click`.
 """
 
 import os
@@ -251,7 +252,7 @@ def generate_catalog(artifacts_dir, output_dir, tag_version, repo_slug, base_url
                 "sha256": sha256_hash,
                 "download_url": f"{base_url}/{file}",
                 "latest_url": f"https://files.luxqmk.click/firmware/latest/{file}",
-                "studio_url": f"https://luxqmk.click/?firmware={base_url}/{file}&model={stem}"
+                "studio_url": f"https://luxqmk.click/#firmware?model={stem}"
             }
             entries.append(entry)
 
@@ -275,521 +276,104 @@ def generate_catalog(artifacts_dir, output_dir, tag_version, repo_slug, base_url
 
     print(f"[+] Successfully generated catalog.json with {len(entries)} keyboards at {catalog_json_path}")
 
-    # Generate standalone web portal (index.html) as fallback browser UI
-    generate_portal_html(entries, tag_version, output_dir)
+    # Generate Cloudflare Pages redirect assets and index.html fallback
+    generate_redirect_assets(output_dir)
 
-def generate_portal_html(entries, tag, output_dir):
+def generate_redirect_assets(output_dir):
+    """
+    Generates Cloudflare Pages _redirects, _headers, and an index.html with meta-refresh
+    and JS redirection pointing to the main LuxQMK website (https://luxqmk.click/#firmware).
+    """
+    # 1. Cloudflare Pages _redirects (Edge-level 302 redirect for root)
+    redirects_file = os.path.join(output_dir, "_redirects")
+    with open(redirects_file, "w", encoding="utf-8") as f:
+        f.write("/ https://luxqmk.click/#firmware 302\n")
+
+    # 2. Cloudflare Pages _headers for CORS
+    headers_file = os.path.join(output_dir, "_headers")
+    with open(headers_file, "w", encoding="utf-8") as f:
+        f.write("/*\n  Access-Control-Allow-Origin: *\n  Access-Control-Allow-Methods: GET, HEAD, OPTIONS\n  Access-Control-Allow-Headers: *\n")
+
+    # 3. Fallback index.html with immediate client redirect
     out_file = os.path.join(output_dir, "index.html")
-    keyboards_json = json.dumps(entries)
-
-    html_content = f"""<!DOCTYPE html>
+    html_content = """<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LuxQMK Firmware Files & Catalog — files.luxqmk.click</title>
-  <meta name="description" content="Official high-performance QMK & VIA firmware downloads for LuxQMK-powered keyboards. Featuring Full NKRO, hardware debounce engines, and 60 FPS RGB streaming.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <meta http-equiv="refresh" content="0; url=https://luxqmk.click/#firmware">
+  <link rel="canonical" href="https://luxqmk.click/#firmware">
+  <title>LuxQMK Firmware Files</title>
+  <script>window.location.replace("https://luxqmk.click/#firmware");</script>
   <style>
-    :root {{
-      --bg-dark: #08080c;
-      --card-bg: #10111a;
-      --card-border: #1e2030;
-      --accent-cyan: #00f2fe;
-      --accent-purple: #bd00ff;
-      --text-main: #f1f5f9;
-      --text-muted: #94a3b8;
-      --badge-bg: rgba(0, 242, 254, 0.1);
-      --badge-border: rgba(0, 242, 254, 0.3);
-    }}
-    * {{
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    }}
-    body {{
-      background-color: var(--bg-dark);
-      color: var(--text-main);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      background-image: 
-        radial-gradient(circle at 15% 15%, rgba(189, 0, 255, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 85% 85%, rgba(0, 242, 254, 0.08) 0%, transparent 40%);
-      background-attachment: fixed;
-    }}
-    header {{
-      border-bottom: 1px solid var(--card-border);
-      background: rgba(16, 17, 26, 0.85);
-      backdrop-filter: blur(12px);
-      position: sticky;
-      top: 0;
-      z-index: 50;
-    }}
-    .header-inner {{
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 1rem 2rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-    }}
-    .brand {{
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      text-decoration: none;
-      color: var(--text-main);
-    }}
-    .brand-logo {{
-      width: 36px;
-      height: 36px;
-      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
-      border-radius: 10px;
+    :root {
+      --bg: #08080c;
+      --card: #10111a;
+      --border: #1e2030;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --cyan: #00f2fe;
+      --purple: #bd00ff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 800;
-      font-size: 1.2rem;
-      color: #000;
-      box-shadow: 0 0 20px rgba(0, 242, 254, 0.4);
-    }}
-    .brand h1 {{
-      font-size: 1.25rem;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-    }}
-    .brand-badge {{
-      background: var(--badge-bg);
-      border: 1px solid var(--badge-border);
-      color: var(--accent-cyan);
-      font-size: 0.75rem;
-      font-weight: 600;
-      padding: 0.2rem 0.5rem;
-      border-radius: 20px;
-      margin-left: 0.5rem;
-    }}
-    .nav-links {{
-      display: flex;
-      align-items: center;
-      gap: 0.85rem;
-    }}
-    .nav-btn {{
-      padding: 0.55rem 1.1rem;
-      border-radius: 8px;
-      font-size: 0.875rem;
-      font-weight: 600;
-      text-decoration: none;
-      transition: all 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-    }}
-    .nav-btn-secondary {{
-      background: rgba(255, 255, 255, 0.05);
-      color: var(--text-muted);
-      border: 1px solid var(--card-border);
-    }}
-    .nav-btn-secondary:hover {{
-      color: var(--text-main);
-      background: rgba(255, 255, 255, 0.1);
-    }}
-    .nav-btn-primary {{
-      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
-      color: #000;
-      font-weight: 700;
-      box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
-    }}
-    .nav-btn-primary:hover {{
-      box-shadow: 0 0 25px rgba(189, 0, 255, 0.5);
-      transform: translateY(-1px);
-    }}
-    main {{
-      flex: 1;
-      max-width: 1400px;
-      width: 100%;
-      margin: 0 auto;
-      padding: 2.5rem 2rem;
-    }}
-    .hero {{
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem;
       text-align: center;
-      margin-bottom: 3rem;
-    }}
-    .hero h2 {{
-      font-size: 2.5rem;
-      font-weight: 800;
-      letter-spacing: -1px;
-      margin-bottom: 0.8rem;
-      background: linear-gradient(135deg, #fff 40%, var(--accent-cyan));
+      max-width: 480px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 0.75rem;
+      background: linear-gradient(135deg, var(--cyan) 0%, var(--purple) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-    }}
-    .hero p {{
-      color: var(--text-muted);
-      max-width: 650px;
-      margin: 0 auto 2rem;
-      line-height: 1.6;
-      font-size: 1.05rem;
-    }}
-    .search-container {{
-      max-width: 680px;
-      margin: 0 auto 1.5rem;
-      position: relative;
-    }}
-    .search-input {{
-      width: 100%;
-      padding: 1rem 1.25rem 1rem 3.2rem;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      color: var(--text-main);
-      font-size: 1rem;
-      outline: none;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-      transition: all 0.2s ease;
-    }}
-    .search-input:focus {{
-      border-color: var(--accent-cyan);
-      box-shadow: 0 0 20px rgba(0, 242, 254, 0.25);
-    }}
-    .search-icon {{
-      position: absolute;
-      left: 1.2rem;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-muted);
-      pointer-events: none;
-    }}
-    .filter-pills {{
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-bottom: 2.5rem;
-    }}
-    .pill {{
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid var(--card-border);
-      padding: 0.45rem 1rem;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }}
-    .pill:hover, .pill.active {{
-      background: rgba(0, 242, 254, 0.15);
-      border-color: var(--accent-cyan);
-      color: var(--accent-cyan);
-    }}
-    .grid-container {{
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 1.5rem;
-    }}
-    .kb-card {{
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 14px;
-      padding: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      transition: all 0.2s ease;
-      position: relative;
-      overflow: hidden;
-    }}
-    .kb-card:hover {{
-      transform: translateY(-4px);
-      border-color: rgba(0, 242, 254, 0.4);
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 242, 254, 0.1);
-    }}
-    .kb-card-header {{
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      margin-bottom: 1rem;
-    }}
-    .kb-card-title {{
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: var(--text-main);
-      line-height: 1.3;
-    }}
-    .badge-tier {{
-      font-size: 0.7rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      padding: 0.2rem 0.5rem;
-      border-radius: 6px;
-      white-space: nowrap;
-    }}
-    .tier-enhanced {{
-      background: rgba(189, 0, 255, 0.15);
-      border: 1px solid rgba(189, 0, 255, 0.4);
-      color: #e084fc;
-    }}
-    .tier-generic {{
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: var(--text-muted);
-    }}
-    .specs-grid {{
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.6rem;
-      margin-bottom: 1.25rem;
-      font-size: 0.8rem;
-    }}
-    .spec-item {{
-      display: flex;
-      flex-direction: column;
-      background: rgba(0, 0, 0, 0.25);
-      padding: 0.5rem 0.65rem;
-      border-radius: 6px;
-      border: 1px solid rgba(255, 255, 255, 0.03);
-    }}
-    .spec-item span:first-child {{
-      color: var(--text-muted);
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      margin-bottom: 0.15rem;
-    }}
-    .spec-item span:last-child {{
-      color: var(--text-main);
-      font-weight: 600;
-      font-family: 'JetBrains Mono', monospace;
-    }}
-    .feature-tags {{
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.35rem;
-      margin-bottom: 1.5rem;
-    }}
-    .feature-tag {{
-      background: rgba(0, 242, 254, 0.06);
-      border: 1px solid rgba(0, 242, 254, 0.2);
-      color: var(--accent-cyan);
-      font-size: 0.7rem;
-      padding: 0.15rem 0.45rem;
-      border-radius: 4px;
-      text-transform: uppercase;
-      font-weight: 600;
-    }}
-    .card-actions {{
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 0.5rem;
-      margin-top: auto;
-    }}
-    .btn-download {{
-      background: linear-gradient(135deg, rgba(0, 242, 254, 0.15), rgba(189, 0, 255, 0.15));
-      border: 1px solid rgba(0, 242, 254, 0.4);
-      color: var(--text-main);
-      font-weight: 700;
-      font-size: 0.85rem;
-      padding: 0.6rem 1rem;
-      border-radius: 8px;
-      text-decoration: none;
-      display: flex;
+    }
+    p {
+      color: var(--muted);
+      margin-bottom: 1.75rem;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+    a.btn {
+      display: inline-flex;
       align-items: center;
-      justify-content: center;
-      gap: 0.45rem;
-      transition: all 0.15s ease;
-    }}
-    .btn-download:hover {{
-      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
-      color: #000;
-      box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
-    }}
-    .btn-studio {{
-      background: rgba(189, 0, 255, 0.1);
-      border: 1px solid rgba(189, 0, 255, 0.3);
-      color: #e084fc;
+      gap: 0.5rem;
+      background: linear-gradient(135deg, var(--cyan) 0%, var(--purple) 100%);
+      color: #08080c;
+      font-weight: 700;
+      padding: 0.75rem 1.5rem;
+      border-radius: 9999px;
       text-decoration: none;
-      font-weight: 600;
-      font-size: 0.85rem;
-      padding: 0.6rem 0.8rem;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.35rem;
-      transition: all 0.15s ease;
-    }}
-    .btn-studio:hover {{
-      background: rgba(189, 0, 255, 0.25);
-      box-shadow: 0 0 14px rgba(189, 0, 255, 0.4);
-    }}
-    footer {{
-      margin-top: auto;
-      border-top: 1px solid var(--card-border);
-      padding: 2rem;
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 0.85rem;
-    }}
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    a.btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 20px rgba(0, 242, 254, 0.4);
+    }
   </style>
 </head>
 <body>
-
-  <header>
-    <div class="header-inner">
-      <a href="https://files.luxqmk.click" class="brand">
-        <div class="brand-logo">L</div>
-        <div>
-          <h1>LuxQMK Files & Assets</h1>
-        </div>
-        <span class="brand-badge">{tag}</span>
-      </a>
-
-      <div class="nav-links">
-        <a href="catalog.json" class="nav-btn nav-btn-secondary" target="_blank">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-          catalog.json
-        </a>
-        <a href="https://luxqmk.click" class="nav-btn nav-btn-primary" target="_blank">
-          Open LuxQMK Studio
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
-        </a>
-      </div>
-    </div>
-  </header>
-
-  <main>
-    <section class="hero">
-      <h2>LuxQMK Firmware & Asset CDN</h2>
-      <p>High-speed global binary downloads for LuxQMK-powered keyboards and applications. Serving <code>files.luxqmk.click</code>.</p>
-
-      <div class="search-container">
-        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        <input type="text" id="searchInput" class="search-input" placeholder="Search by model, brand, MCU, or layout (e.g. GMMK 3, Keychron, WB32, 75%)...">
-      </div>
-
-      <div class="filter-pills">
-        <button class="pill active" data-filter="all">All Keyboards</button>
-        <button class="pill" data-filter="gmmk">Glorious (GMMK)</button>
-        <button class="pill" data-filter="keychron">Keychron</button>
-        <button class="pill" data-filter="100%">100% Full</button>
-        <button class="pill" data-filter="75%">75%</button>
-        <button class="pill" data-filter="65%">65%</button>
-        <button class="pill" data-filter="wb32">WB32 MCU</button>
-        <button class="pill" data-filter="stm32">STM32 MCU</button>
-      </div>
-    </section>
-
-    <section class="grid-container" id="keyboardsGrid">
-      <!-- Injected by JavaScript -->
-    </section>
-  </main>
-
-  <footer>
-    <p>Powered by <strong>LuxQMK</strong> &bull; <a href="https://files.luxqmk.click/firmware/catalog.json" style="color: var(--accent-cyan); text-decoration: none;">files.luxqmk.click</a> &bull; Open Source GNU GPLv3 &bull; <a href="https://github.com/LuxQMK/qmk_firmware" style="color: var(--accent-purple); text-decoration: none;">GitHub Repository</a></p>
-  </footer>
-
-  <script>
-    const keyboards = {keyboards_json};
-    const grid = document.getElementById('keyboardsGrid');
-    const searchInput = document.getElementById('searchInput');
-    const pills = document.querySelectorAll('.pill');
-
-    let currentFilter = 'all';
-
-    function renderKeyboards(items) {{
-      if (items.length === 0) {{
-        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 4rem; color: var(--text-muted);">No keyboards found matching your search.</div>';
-        return;
-      }}
-
-      grid.innerHTML = items.map(kb => `
-        <div class="kb-card">
-          <div>
-            <div class="kb-card-header">
-              <h3 class="kb-card-title">${{kb.name}}</h3>
-              <span class="badge-tier ${{kb.tier === 'luxqmk_enhanced' ? 'tier-enhanced' : 'tier-generic'}}">
-                ${{kb.tier === 'luxqmk_enhanced' ? 'LuxQMK Enhanced' : 'Universal'}}
-              </span>
-            </div>
-
-            <div class="specs-grid">
-              <div class="spec-item">
-                <span>Microcontroller</span>
-                <span>${{kb.mcu}}</span>
-              </div>
-              <div class="spec-item">
-                <span>Layout / Form</span>
-                <span>${{kb.layout}}</span>
-              </div>
-              <div class="spec-item">
-                <span>USB VID / PID</span>
-                <span>${{kb.vendor_id || 'VIA'}} : ${{kb.product_id || 'HID'}}</span>
-              </div>
-              <div class="spec-item">
-                <span>Flasher Tool</span>
-                <span>${{kb.flasher}}</span>
-              </div>
-            </div>
-
-            <div class="feature-tags">
-              ${{kb.features.map(f => `<span class="feature-tag">${{f.replace('_', ' ')}}</span>`).join('')}}
-            </div>
-          </div>
-
-          <div class="card-actions">
-            <a href="${{kb.download_url}}" class="btn-download" download>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              Download .bin
-            </a>
-            <a href="https://luxqmk.click" target="_blank" class="btn-studio" title="Open in LuxQMK Studio">
-              Studio
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-            </a>
-          </div>
-        </div>
-      `).join('');
-    }}
-
-    function filterAndRender() {{
-      const query = searchInput.value.toLowerCase().trim();
-      const filtered = keyboards.filter(kb => {{
-        const matchesQuery = !query || 
-          kb.name.toLowerCase().includes(query) || 
-          kb.id.toLowerCase().includes(query) || 
-          kb.mcu.toLowerCase().includes(query) || 
-          kb.layout.toLowerCase().includes(query);
-
-        let matchesPill = true;
-        if (currentFilter === 'gmmk') matchesPill = kb.id.includes('gmmk');
-        else if (currentFilter === 'keychron') matchesPill = kb.id.includes('keychron');
-        else if (currentFilter === '100%') matchesPill = kb.layout.includes('100%');
-        else if (currentFilter === '75%') matchesPill = kb.layout.includes('75%');
-        else if (currentFilter === '65%') matchesPill = kb.layout.includes('65%');
-        else if (currentFilter === 'wb32') matchesPill = kb.mcu.toLowerCase().includes('wb32');
-        else if (currentFilter === 'stm32') matchesPill = kb.mcu.toLowerCase().includes('stm32');
-
-        return matchesQuery && matchesPill;
-      }});
-
-      renderKeyboards(filtered);
-    }}
-
-    searchInput.addEventListener('input', filterAndRender);
-
-    pills.forEach(pill => {{
-      pill.addEventListener('click', () => {{
-        pills.forEach(p => p.classList.remove('active'));
-        pill.classList.add('active');
-        currentFilter = pill.getAttribute('data-filter');
-        filterAndRender();
-      }});
-    }});
-
-    renderKeyboards(keyboards);
-  </script>
+  <div class="card">
+    <h1>Redirecting to LuxQMK Portal</h1>
+    <p>For firmware downloads, WebHID flasher, and keymap customization, visit our main website.</p>
+    <a class="btn" href="https://luxqmk.click/#firmware">
+      Go to luxqmk.click &rarr;
+    </a>
+  </div>
 </body>
 </html>
 """
