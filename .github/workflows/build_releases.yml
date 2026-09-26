@@ -48,23 +48,6 @@ jobs:
             output: gmmk_gmmk2_p65_ansi_via.bin
             name: gmmk2-65-ansi
 
-          # Keychron & Universal
-          - kb: keychron/q1/ansi_stm32l432
-            km: via
-            output: keychron_q1_ansi_via.bin
-            name: keychron-q1-ansi
-          - kb: keychron/q2/ansi_stm32l432
-            km: via
-            output: keychron_q2_ansi_via.bin
-            name: keychron-q2-ansi
-          - kb: keychron/q3/ansi_stm32l432
-            km: via
-            output: keychron_q3_ansi_via.bin
-            name: keychron-q3-ansi
-          - kb: dz60
-            km: via
-            output: dz60_via.hex
-            name: dz60-via
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
