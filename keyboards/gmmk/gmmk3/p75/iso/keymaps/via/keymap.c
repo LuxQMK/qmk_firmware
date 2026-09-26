@@ -1,55 +1,6 @@
 #include <stdint.h>
 #include QMK_KEYBOARD_H
-
-/*
- * ┌───┐┌───┬───┬───┬───┐┌───┬───┬───┬───┐┌───┬───┬───┬───┐    ┌───┐
- * │Esc││F1 │F2 │F3 │F4 ││F5 │F6 │F7 │F8 ││F9 │F10│F11│F12│    │Mut│
- * └───┘└───┴───┴───┴───┘└───┴───┴───┴───┘└───┴───┴───┴───┘    └───┘
- * ┌───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───────┬───┐
- * │ ` │ 1 │ 2 │ 3 │ 4 │ 5 │ 6 │ 7 │ 8 │ 9 │ 0 │ - │ = │ Backsp│Del│
- * ├───┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─────┼───┤
- * │ Tab │ Q │ W │ E │ R │ T │ Y │ U │ I │ O │ P │ [ │ ] │     │PgU│
- * ├─────┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┐ Ent├───┤
- * │ Caps │ A │ S │ D │ F │ G │ H │ J │ K │ L │ ; │ ' │ # │    │PgD│
- * ├────┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴───┴┬───┼───┤
- * │Shft│ \ │ Z │ X │ C │ V │ B │ N │ M │ , │ . │ / │Shift │ ↑ │End│
- * ├────┼───┴┬──┴─┬─┴───┴───┴───┴───┴───┴──┬┴───┼───┴┬─┬───┼───┼───┤
- * │Ctrl│Gui │Alt │         Space          │Alt │ Fn │ │ ← │ ↓ │ → │
- * └────┴────┴────┴────────────────────────┴────┴────┘ └───┴───┴───┘
- */
-
-// Each layer gets a name for readability, which is then used in the keymap matrix below.
-// The underscores don't mean anything - you can have a layer called STUFF or any other name.
-enum custom_layers {
-    _BL,   // Base Layer
-    _FL,   // Function Layer
-    _CL,   // Custom Layer
-};
-
-enum custom_keycodes {
-    RGB_REV = SAFE_RANGE,
-    };
-
-bool process_record_user(uint16_t keycode, keyrecord_t *record)
-{
-    switch (keycode) {
-        case RGB_REV:
-        #ifdef VIA_OPENRGB_HYBRID
-            if (record->event.pressed) {
-                is_orgb_mode = !is_orgb_mode;
-            #ifdef RGB_MATRIX_ENABLE
-            if (is_orgb_mode) {
-					rgb_matrix_set_color_all(0,255,0);
-				} else {
-					rgb_matrix_set_color_all(0,0,255);
-				}
-            #endif
-            }
-        #endif
-        default:
-            return true; // Process all other keycodes normally
-    }
-}
+#include "luxqmk.h"
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     /* Base Layer (Default Layer) */
@@ -101,5 +52,3 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
     [3] = { ENCODER_CCW_CW(_______, _______) },
 };
 #endif // ENCODER_MAP_ENABLE
-
-

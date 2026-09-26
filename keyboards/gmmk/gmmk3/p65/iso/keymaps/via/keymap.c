@@ -1,52 +1,6 @@
 #include <stdint.h>
 #include QMK_KEYBOARD_H
-
-/*
-* ┌───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───────┬───┐
-* │Esc│ 1 │ 2 │ 3 │ 4 │ 5 │ 6 │ 7 │ 8 │ 9 │ 0 │ - │ = │Backsp │Mut│
-* ├───┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─────┼───┘
-* │ Tab │ Q │ W │ E │ R │ T │ Y │ U │ I │ O │ P │ [ │ ] │     │
-* ├─────┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┐ Ent├───┐
-* │ Caps │ A │ S │ D │ F │ G │ H │ J │ K │ L │ ; │ ' │ # │    │PgU│
-* ├────┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴───┴┬───┼───┤
-* │Shft│ \ │ Z │ X │ C │ V │ B │ N │ M │ , │ . │ / │Shift │ ↑ │PgD│
-* ├────┴┬──┴┬──┴──┬┴───┴───┴───┴───┴───┴───┴──┬┴───┴┬─┬───┼───┼───┤
-* │Ctrl │Gui│ Alt │                           │ Fn  │ │ ← │ ↓ │ → │
-* └─────┴───┴─────┴───────────────────────────┴─────┘ └───┴───┴───┘
-*/
-
-// Each layer gets a name for readability, which is then used in the keymap matrix below.
-// The underscores don't mean anything - you can have a layer called STUFF or any other name.
-enum custom_layers {
-    _BL,    // Base Layer
-    _FL,    // Function Layer
-    _CL     // Custom Layer
-};
-
-enum custom_keycodes {
-    RGB_REV = SAFE_RANGE,
-    };
-
-bool process_record_user(uint16_t keycode, keyrecord_t *record)
-{
-    switch (keycode) {
-        case RGB_REV:
-        #ifdef VIA_OPENRGB_HYBRID
-            if (record->event.pressed) {
-                is_orgb_mode = !is_orgb_mode;
-            #ifdef RGB_MATRIX_ENABLE
-            if (is_orgb_mode) {
-					rgb_matrix_set_color_all(0,255,0);
-				} else {
-					rgb_matrix_set_color_all(0,0,255);
-				}
-            #endif
-            }
-        #endif
-        default:
-            return true; // Process all other keycodes normally
-    }
-}
+#include "luxqmk.h"
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     /* Base Layer (Default Layer) */
@@ -61,7 +15,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     /* Function Layer */
     [_FL] = LAYOUT(
         KC_GRV,   KC_F1,    KC_F2,    KC_F3,    KC_F4,    KC_F5,    KC_F6,    KC_F7,    KC_F8,    KC_F9,    KC_F10,   KC_F11,   KC_F12,   KC_DEL,   _______,
-        _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  RGB_REV,     _______,  _______,  _______,
+        _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  RGB_REV,  _______,  _______,  _______,
         _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  KC_END,
         _______,  _______,  RM_SATD,  RM_SATU,  RM_SPDD,  RM_SPDU,  KC_MUTE,  KC_VOLD,  KC_VOLU,  KC_MPRV,  KC_MPLY,  KC_MNXT,  _______,  RM_VALU,  KC_HOME,
         _______,  GU_TOGG,  _______,                                _______,                      _______,  _______,            RM_PREV,  RM_VALD,  RM_NEXT
@@ -94,5 +48,3 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
     [3] = { ENCODER_CCW_CW(_______, _______) },
 };
 #endif // ENCODER_MAP_ENABLE
-
-
