@@ -1,0 +1,156 @@
+name: Build & Publish LuxQMK Firmware Catalog
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'luxqmk-v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release Tag Version (e.g. v0.3.1)'
+        required: true
+        default: 'v0.3.1'
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-luxqmk-core:
+    name: Build Core Keyboards
+    runs-on: ubuntu-latest
+    container: ghcr.io/qmk/qmk_cli:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # GMMK 3 Series (100%, 75%, 65% ANSI)
+          - kb: gmmk/gmmk3/p100/ansi
+            km: via
+            output: gmmk_gmmk3_p100_ansi_via.bin
+            name: gmmk3-100-ansi
+          - kb: gmmk/gmmk3/p75/ansi
+            km: via
+            output: gmmk_gmmk3_p75_ansi_via.bin
+            name: gmmk3-75-ansi
+          - kb: gmmk/gmmk3/p65/ansi
+            km: via
+            output: gmmk_gmmk3_p65_ansi_via.bin
+            name: gmmk3-65-ansi
+
+          # GMMK 2 Series (96%, 65% ANSI)
+          - kb: gmmk/gmmk2/p96/ansi
+            km: via
+            output: gmmk_gmmk2_p96_ansi_via.bin
+            name: gmmk2-96-ansi
+          - kb: gmmk/gmmk2/p65/ansi
+            km: via
+            output: gmmk_gmmk2_p65_ansi_via.bin
+            name: gmmk2-65-ansi
+
+          # Keychron & Universal
+          - kb: keychron/q1/ansi_stm32l432
+            km: via
+            output: keychron_q1_ansi_via.bin
+            name: keychron-q1-ansi
+          - kb: keychron/q2/ansi_stm32l432
+            km: via
+            output: keychron_q2_ansi_via.bin
+            name: keychron-q2-ansi
+          - kb: keychron/q3/ansi_stm32l432
+            km: via
+            output: keychron_q3_ansi_via.bin
+            name: keychron-q3-ansi
+          - kb: dz60
+            km: via
+            output: dz60_via.hex
+            name: dz60-via
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Compile LuxQMK Firmware
+        run: |
+          qmk compile -kb ${{ matrix.kb }} -km ${{ matrix.km }} -e USER_NAME=luxqmk || qmk compile -kb ${{ matrix.kb }} -km ${{ matrix.km }}
+
+      - name: Collect Binary
+        run: |
+          mkdir -p artifacts
+          find .build -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} artifacts/ \;
+
+      - name: Upload Binary Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: artifacts/*
+          if-no-files-found: warn
+
+  publish-catalog:
+    name: Generate Catalog & Publish Release
+    needs: [build-luxqmk-core]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all_binaries/
+          merge-multiple: true
+
+      - name: Flatten Downloaded Binaries
+        run: |
+          mkdir -p release_files
+          find all_binaries -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} release_files/ \;
+          ls -la release_files/
+
+      - name: Set Release Tag
+        id: vars
+        run: |
+          if [ -n "${{ github.event.inputs.release_tag }}" ]; then
+            echo "tag=${{ github.event.inputs.release_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate catalog.json & Web Portal
+        run: |
+          python util/generate_catalog.py \
+            --artifacts-dir release_files \
+            --output-dir catalog_public \
+            --tag ${{ steps.vars.outputs.tag }} \
+            --repo ${{ github.repository }}
+
+      - name: Add CNAME for browse.luxqmk.click
+        run: |
+          echo "browse.luxqmk.click" > catalog_public/CNAME
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.release_tag != ''
+        with:
+          tag_name: ${{ steps.vars.outputs.tag }}
+          name: "LuxQMK Firmware ${{ steps.vars.outputs.tag }}"
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            release_files/*
+            catalog_public/catalog.json
+
+      - name: Deploy Portal to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./catalog_public
+          cname: browse.luxqmk.click
