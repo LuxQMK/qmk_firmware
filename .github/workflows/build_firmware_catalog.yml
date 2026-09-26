@@ -92,36 +92,25 @@ jobs:
             name: gmmk2-65-iso
 
     steps:
-      - name: Filter Target Scope
-        id: filter
-        run: |
-          SCOPE="${{ github.event.inputs.target_scope }}"
-          GROUP="${{ matrix.group }}"
-          if [ "$SCOPE" = "tier1_all" ] || [ "$SCOPE" = "all_via" ] || [ "$SCOPE" = "${GROUP}_only" ]; then
-            echo "should_build=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "should_build=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Checkout Repository
-        if: steps.filter.outputs.should_build == 'true'
+        if: ${{ inputs.target_scope == 'tier1_all' || inputs.target_scope == 'all_via' || (inputs.target_scope == 'gmmk3_only' && matrix.group == 'gmmk3') || (inputs.target_scope == 'gmmk2_only' && matrix.group == 'gmmk2') }}
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
       - name: Compile LuxQMK Firmware
-        if: steps.filter.outputs.should_build == 'true'
+        if: ${{ inputs.target_scope == 'tier1_all' || inputs.target_scope == 'all_via' || (inputs.target_scope == 'gmmk3_only' && matrix.group == 'gmmk3') || (inputs.target_scope == 'gmmk2_only' && matrix.group == 'gmmk2') }}
         run: |
           qmk compile -kb ${{ matrix.kb }} -km ${{ matrix.km }} -e USER_NAME=luxqmk || qmk compile -kb ${{ matrix.kb }} -km ${{ matrix.km }}
 
       - name: Collect Binary
-        if: steps.filter.outputs.should_build == 'true'
+        if: ${{ inputs.target_scope == 'tier1_all' || inputs.target_scope == 'all_via' || (inputs.target_scope == 'gmmk3_only' && matrix.group == 'gmmk3') || (inputs.target_scope == 'gmmk2_only' && matrix.group == 'gmmk2') }}
         run: |
           mkdir -p artifacts
           find .build -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} artifacts/ \;
 
       - name: Upload Binary Artifact
-        if: steps.filter.outputs.should_build == 'true'
+        if: ${{ inputs.target_scope == 'tier1_all' || inputs.target_scope == 'all_via' || (inputs.target_scope == 'gmmk3_only' && matrix.group == 'gmmk3') || (inputs.target_scope == 'gmmk2_only' && matrix.group == 'gmmk2') }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.name }}
