@@ -1,4 +1,4 @@
-name: Build & Publish LuxQMK Firmware Catalog
+name: Build & Publish LuxQMK Firmware
 
 on:
   push:
@@ -14,8 +14,6 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 jobs:
   build-luxqmk-core:
@@ -89,19 +87,11 @@ jobs:
           path: artifacts/*
           if-no-files-found: warn
 
-  publish-catalog:
-    name: Generate Catalog & Publish Release
+  publish-release:
+    name: Publish GitHub Release
     needs: [build-luxqmk-core]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
       - name: Download All Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -123,18 +113,6 @@ jobs:
             echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Generate catalog.json & Web Portal
-        run: |
-          python util/generate_catalog.py \
-            --artifacts-dir release_files \
-            --output-dir catalog_public \
-            --tag ${{ steps.vars.outputs.tag }} \
-            --repo ${{ github.repository }}
-
-      - name: Add CNAME for browse.luxqmk.click
-        run: |
-          echo "browse.luxqmk.click" > catalog_public/CNAME
-
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.release_tag != ''
@@ -146,11 +124,4 @@ jobs:
           generate_release_notes: true
           files: |
             release_files/*
-            catalog_public/catalog.json
 
-      - name: Deploy Portal to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./catalog_public
-          cname: browse.luxqmk.click
