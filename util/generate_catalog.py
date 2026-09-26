@@ -297,12 +297,12 @@ def generate_catalog(artifacts_dir, output_dir, tag_version, repo_slug, base_url
 def generate_redirect_assets(output_dir):
     """
     Generates Cloudflare Pages _redirects, _headers, and an index.html with meta-refresh
-    and JS redirection pointing to the main LuxQMK website (https://luxqmk.click/#firmware).
+    and JS redirection pointing directly to the main LuxQMK website (https://luxqmk.click/).
     """
     # 1. Cloudflare Pages _redirects (Edge-level 302 redirect for root)
     redirects_file = os.path.join(output_dir, "_redirects")
     with open(redirects_file, "w", encoding="utf-8") as f:
-        f.write("/ https://luxqmk.click/#firmware 302\n")
+        f.write("/ https://luxqmk.click/ 302\n")
 
     # 2. Cloudflare Pages _headers for CORS
     headers_file = os.path.join(output_dir, "_headers")
@@ -316,10 +316,10 @@ def generate_redirect_assets(output_dir):
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="refresh" content="0; url=https://luxqmk.click/#firmware">
-  <link rel="canonical" href="https://luxqmk.click/#firmware">
+  <meta http-equiv="refresh" content="0; url=https://luxqmk.click/">
+  <link rel="canonical" href="https://luxqmk.click/">
   <title>LuxQMK Firmware Files</title>
-  <script>window.location.replace("https://luxqmk.click/#firmware");</script>
+  <script>window.location.replace("https://luxqmk.click/");</script>
   <style>
     :root {
       --bg: #08080c;
@@ -385,7 +385,7 @@ def generate_redirect_assets(output_dir):
   <div class="card">
     <h1>Redirecting to LuxQMK Portal</h1>
     <p>For firmware downloads, WebHID flasher, and keymap customization, visit our main website.</p>
-    <a class="btn" href="https://luxqmk.click/#firmware">
+    <a class="btn" href="https://luxqmk.click/">
       Go to luxqmk.click &rarr;
     </a>
   </div>
