@@ -327,6 +327,15 @@ def generate_studio_manifest(output_dir, release_tag):
     with open(latest_path, "w", encoding="utf-8") as f:
         json.dump(studio_data, f, indent=2)
 
+    # If output_dir is a subfolder like dist/firmware, also write to dist/studio
+    if os.path.basename(os.path.normpath(output_dir)).lower() == "firmware":
+        parent_studio_dir = os.path.join(os.path.dirname(os.path.normpath(output_dir)), "studio")
+        os.makedirs(parent_studio_dir, exist_ok=True)
+        with open(os.path.join(parent_studio_dir, "version.json"), "w", encoding="utf-8") as f:
+            json.dump(studio_data, f, indent=2)
+        with open(os.path.join(parent_studio_dir, "latest.json"), "w", encoding="utf-8") as f:
+            json.dump(studio_data, f, indent=2)
+
     print(f"[+] Generated studio update manifest at {studio_version_path}")
 
 def generate_redirect_assets(output_dir):
