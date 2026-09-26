@@ -176,8 +176,8 @@ enum sidelight_effect_mode {
  */
 #define LUXQMK_VERSION_MAJOR             0
 #define LUXQMK_VERSION_MINOR             3
-#define LUXQMK_VERSION_PATCH             0
-#define LUXQMK_VERSION_STRING            "0.3.0"
+#define LUXQMK_VERSION_PATCH             1
+#define LUXQMK_VERSION_STRING            "0.3.1"
 
 #define LUXQMK_CAP_REACTIVE_OVERLAY      (1 << 0)
 #define LUXQMK_CAP_DIRECTION_REVERSE     (1 << 1)
@@ -189,6 +189,7 @@ enum sidelight_effect_mode {
 #define LUXQMK_CAP_MULTI_GRADIENTS       (1 << 7)
 #define LUXQMK_CAP_SIDELIGHTS            (1 << 8)
 #define LUXQMK_CAP_PERKEY_PROFILES       (1 << 9)
+#define LUXQMK_CAP_NKRO                  (1 << 10)
 
 #define USER_VAL_LUXQMK_VERSION          25
 #define USER_VAL_QMK_VERSION             26
@@ -215,6 +216,7 @@ enum sidelight_effect_mode {
 #define USER_VAL_SIDELIGHT_GRADIENT      47
 #define USER_VAL_SIDELIGHT_REVERSE       48
 #define USER_VAL_SIDELIGHT_DENSITY       49
+#define USER_VAL_NKRO_STATE              50
 
 #define USER_VAL_BOOTLOADER_JUMP         0xFE
 

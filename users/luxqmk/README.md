@@ -1,4 +1,4 @@
-# LuxQMK Userspace Engine (v0.3.0)
+# LuxQMK Userspace Engine (v0.3.1)
 
 Dedicated QMK Userspace architecture for **LuxQMK**, providing modular hardware abstraction, dual-layer reactive RGB matrix lighting, custom VIA/WebHID channels, CIE1931 perceptual curves, multi-stop gradient sampling, and atomic direct lighting double-buffering.
 

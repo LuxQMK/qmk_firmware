@@ -24,8 +24,7 @@
 #endif
 #define WEAR_LEVELING_LOGICAL_SIZE 8192
 
-// Enforce Full N-Key Rollover (NKRO) by default upon keyboard startup
-#define FORCE_NKRO
+// Full N-Key Rollover (NKRO) supported with persistent runtime toggle via WebHID / Studio
 
 // Default contact debounce latency in milliseconds (filters mechanical switch chatter)
 #ifndef DEBOUNCE

@@ -652,12 +652,17 @@ void luxqmk_eeprom_load(void) {
 void keyboard_post_init_user(void) {
     board_init();
     luxqmk_eeprom_load();
+}
+
+/**
+ * QMK EEPROM initialization hook (called on initial EEPROM clear / factory reset)
+ */
+void eeconfig_init_user(void) {
 #if defined(NKRO_ENABLE)
-    if (!keymap_config.nkro) {
-        keymap_config.nkro = 1;
-        eeconfig_update_keymap(&keymap_config);
-    }
+    keymap_config.nkro = 1;
+    eeconfig_update_keymap(&keymap_config);
 #endif
+    luxqmk_eeprom_save();
 }
 
 /**
@@ -893,7 +898,7 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                     data[5] = LUXQMK_VERSION_PATCH;
                     uint16_t caps = 0;
 #ifdef RGB_MATRIX_ENABLE
-                    caps |= (LUXQMK_CAP_REACTIVE_OVERLAY | LUXQMK_CAP_DIRECTION_REVERSE | LUXQMK_CAP_LAYER_LIGHTING | LUXQMK_CAP_HEATMAP | LUXQMK_CAP_DIRECT_LIGHTING | LUXQMK_CAP_MULTI_GRADIENTS | LUXQMK_CAP_PERKEY_PROFILES);
+                    caps |= (LUXQMK_CAP_REACTIVE_OVERLAY | LUXQMK_CAP_DIRECTION_REVERSE | LUXQMK_CAP_LAYER_LIGHTING | LUXQMK_CAP_HEATMAP | LUXQMK_CAP_DIRECT_LIGHTING | LUXQMK_CAP_MULTI_GRADIENTS | LUXQMK_CAP_PERKEY_PROFILES | LUXQMK_CAP_NKRO);
                     if (board_get_logo_led_index() != 255) {
                         caps |= LUXQMK_CAP_LOGO_LED;
                     }
@@ -1139,6 +1144,22 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                     data[3] = g_sidelight_density;
                 } else if (*command_id == id_custom_set_value) {
                     g_sidelight_density = (data[3] == 0) ? 128 : data[3];
+                }
+                return;
+
+            case USER_VAL_NKRO_STATE:
+                if (*command_id == id_custom_get_value) {
+#if defined(NKRO_ENABLE)
+                    data[3] = keymap_config.nkro ? 1 : 0;
+#else
+                    data[3] = 0;
+#endif
+                } else if (*command_id == id_custom_set_value) {
+#if defined(NKRO_ENABLE)
+                    keymap_config.nkro = (data[3] != 0);
+                    eeconfig_update_keymap(&keymap_config);
+                    clear_keyboard();
+#endif
                 }
                 return;
 

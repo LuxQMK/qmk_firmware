@@ -1,7 +1,7 @@
 # LuxQMK Firmware Engine
 
-[![LuxQMK Version](https://img.shields.io/badge/Firmware-LuxQMK%20v0.3.0-8a2be2.svg?style=flat)](https://github.com/LuxQMK/qmk_firmware/releases)
-[![LuxQMK Studio](https://img.shields.io/badge/Companion%20App-LuxQMK%20Studio%20v1.3.0-00b4d8.svg?style=flat)](https://github.com/LuxQMK/luxqmk_studio)
+[![LuxQMK Version](https://img.shields.io/badge/Firmware-LuxQMK%20v0.3.1-8a2be2.svg?style=flat)](https://github.com/LuxQMK/qmk_firmware/releases)
+[![LuxQMK Studio](https://img.shields.io/badge/Companion%20App-LuxQMK%20Studio%20v1.4.0-00b4d8.svg?style=flat)](https://github.com/LuxQMK/luxqmk_studio)
 [![Web App](https://img.shields.io/badge/Web%20App-studio.luxqmk.click-00f0ff.svg?style=flat)](https://studio.luxqmk.click)
 [![Website](https://img.shields.io/badge/Website-luxqmk.click-3b82f6.svg?style=flat)](https://luxqmk.click)
 [![QMK Base](https://img.shields.io/badge/QMK%20Base-v0.34.4-blue.svg?style=flat)](https://github.com/qmk/qmk_firmware)
