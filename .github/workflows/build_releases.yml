@@ -18,7 +18,7 @@ on:
         required: true
         default: 'v0.3.1'
       deploy_cloudflare_pages:
-        description: 'Deploy to Cloudflare Pages (firmware.luxqmk.click / fw.luxqmk.click)?'
+        description: 'Deploy to Cloudflare Pages (files.luxqmk.click)?'
         required: true
         type: boolean
         default: true
@@ -158,22 +158,28 @@ jobs:
       - name: Build Catalog & Portal Distribution
         run: |
           TAG="${{ github.event.inputs.firmware_tag }}"
-          mkdir -p dist/binaries/${TAG}
-          find all_binaries -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} dist/binaries/${TAG}/ \;
           
-          # Also copy latest binaries to root binaries folder for stable links
-          mkdir -p dist/binaries/latest
-          cp -r dist/binaries/${TAG}/* dist/binaries/latest/
+          # 1. Structure files for files.luxqmk.click/firmware/
+          mkdir -p dist/firmware/${TAG}
+          mkdir -p dist/firmware/latest
           
-          # Run Catalog Generator
+          find all_binaries -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} dist/firmware/${TAG}/ \;
+          cp -r dist/firmware/${TAG}/* dist/firmware/latest/
+          
+          # 2. Generate catalog.json inside dist/firmware/
           python3 util/generate_catalog.py \
-            --artifacts-dir dist/binaries/${TAG} \
-            --output-dir dist \
+            --artifacts-dir dist/firmware/${TAG} \
+            --output-dir dist/firmware \
             --tag ${TAG} \
             --repo ${{ github.repository }} \
-            --base-url "https://fw.luxqmk.click/binaries/${TAG}"
+            --base-url "https://files.luxqmk.click/firmware/${TAG}"
+
+          # 3. Create root alias copies and placeholder root index
+          cp dist/firmware/catalog.json dist/catalog.json
+          cp dist/firmware/index.html dist/index.html
 
           ls -la dist/
+          ls -la dist/firmware/
 
       - name: Upload Complete Distribution Artifact
         uses: actions/upload-artifact@v4
@@ -182,16 +188,16 @@ jobs:
           path: dist/
 
       # -----------------------------------------------------------------------
-      # Cloudflare Pages Direct Deployment (firmware.luxqmk.click / fw.luxqmk.click)
+      # Cloudflare Pages Direct Deployment (files.luxqmk.click -> luxqmk-files)
       # -----------------------------------------------------------------------
-      - name: Deploy to Cloudflare Pages
+      - name: Deploy to Cloudflare Pages (luxqmk-files)
         if: ${{ github.event.inputs.deploy_cloudflare_pages == 'true' }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          npx wrangler pages project create luxqmk-firmware --production-branch=main || true
-          npx wrangler pages deploy dist --project-name=luxqmk-firmware --branch=main --commit-dirty=true
+          npx wrangler pages project create luxqmk-files --production-branch=main || true
+          npx wrangler pages deploy dist --project-name=luxqmk-files --branch=main --commit-dirty=true
 
       # -----------------------------------------------------------------------
       # GitHub Pages Deployment (Optional Fallback)
@@ -202,4 +208,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
-          cname: fw.luxqmk.click
+          cname: files.luxqmk.click

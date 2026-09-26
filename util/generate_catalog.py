@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 """
-LuxQMK Firmware Catalog & Portal Generator
-Generates `catalog.json` and a standalone high-performance web interface for `firmware.luxqmk.click` (or `fw.luxqmk.click`).
-Scans compiled firmware artifacts (.bin, .hex, .uf2), matches metadata from info.json,
-and generates SHA-256 checksums, MCU specs, flasher tool mappings, and direct download endpoints.
+LuxQMK Firmware Catalog Generator & Asset Manager
+Generates `catalog.json` with metadata, SHA-256 checksums, and download endpoints for `files.luxqmk.click/firmware`.
 """
 
 import os
@@ -196,9 +194,9 @@ def find_info_json(kb_target):
 def generate_catalog(artifacts_dir, output_dir, tag_version, repo_slug, base_url=None):
     os.makedirs(output_dir, exist_ok=True)
     
-    # Base URL for direct binary downloads (defaults to firmware.luxqmk.click or Cloudflare R2 / CDN)
+    # Base URL for direct binary downloads on files.luxqmk.click/firmware
     if not base_url:
-        base_url = f"https://firmware.luxqmk.click/binaries/{tag_version}"
+        base_url = f"https://files.luxqmk.click/firmware/{tag_version}"
     else:
         base_url = base_url.rstrip("/")
 
@@ -252,6 +250,7 @@ def generate_catalog(artifacts_dir, output_dir, tag_version, repo_slug, base_url
                 "file_size_bytes": file_size,
                 "sha256": sha256_hash,
                 "download_url": f"{base_url}/{file}",
+                "latest_url": f"https://files.luxqmk.click/firmware/latest/{file}",
                 "studio_url": f"https://luxqmk.click/?firmware={base_url}/{file}&model={stem}"
             }
             entries.append(entry)
@@ -264,8 +263,7 @@ def generate_catalog(artifacts_dir, output_dir, tag_version, repo_slug, base_url
         "version": tag_version,
         "repo": repo_slug,
         "base_url": base_url,
-        "domain": "firmware.luxqmk.click",
-        "alt_domain": "fw.luxqmk.click",
+        "domain": "files.luxqmk.click",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "total_keyboards": len(entries),
         "keyboards": entries
@@ -277,7 +275,7 @@ def generate_catalog(artifacts_dir, output_dir, tag_version, repo_slug, base_url
 
     print(f"[+] Successfully generated catalog.json with {len(entries)} keyboards at {catalog_json_path}")
 
-    # Generate standalone web portal (index.html)
+    # Generate standalone web portal (index.html) as fallback browser UI
     generate_portal_html(entries, tag_version, output_dir)
 
 def generate_portal_html(entries, tag, output_dir):
@@ -289,7 +287,7 @@ def generate_portal_html(entries, tag, output_dir):
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LuxQMK Firmware Portal & Catalog — firmware.luxqmk.click</title>
+  <title>LuxQMK Firmware Files & Catalog — files.luxqmk.click</title>
   <meta name="description" content="Official high-performance QMK & VIA firmware downloads for LuxQMK-powered keyboards. Featuring Full NKRO, hardware debounce engines, and 60 FPS RGB streaming.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -641,10 +639,10 @@ def generate_portal_html(entries, tag, output_dir):
 
   <header>
     <div class="header-inner">
-      <a href="https://firmware.luxqmk.click" class="brand">
+      <a href="https://files.luxqmk.click" class="brand">
         <div class="brand-logo">L</div>
         <div>
-          <h1>LuxQMK Firmware Portal</h1>
+          <h1>LuxQMK Files & Assets</h1>
         </div>
         <span class="brand-badge">{tag}</span>
       </a>
@@ -664,8 +662,8 @@ def generate_portal_html(entries, tag, output_dir):
 
   <main>
     <section class="hero">
-      <h2>High-Performance QMK & VIA Firmware</h2>
-      <p>Instant downloads for keyboards powered by LuxQMK. Featuring Full NKRO, hardware debounce engines, 60 FPS RGB matrix streaming, and custom EEPROM memory.</p>
+      <h2>LuxQMK Firmware & Asset CDN</h2>
+      <p>High-speed global binary downloads for LuxQMK-powered keyboards and applications. Serving <code>files.luxqmk.click</code>.</p>
 
       <div class="search-container">
         <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -690,7 +688,7 @@ def generate_portal_html(entries, tag, output_dir):
   </main>
 
   <footer>
-    <p>Powered by <strong>LuxQMK</strong> &bull; <a href="https://firmware.luxqmk.click" style="color: var(--accent-cyan); text-decoration: none;">firmware.luxqmk.click</a> &bull; Open Source GNU GPLv3 &bull; <a href="https://github.com/LuxQMK/qmk_firmware" style="color: var(--accent-purple); text-decoration: none;">GitHub Repository</a></p>
+    <p>Powered by <strong>LuxQMK</strong> &bull; <a href="https://files.luxqmk.click/firmware/catalog.json" style="color: var(--accent-cyan); text-decoration: none;">files.luxqmk.click</a> &bull; Open Source GNU GPLv3 &bull; <a href="https://github.com/LuxQMK/qmk_firmware" style="color: var(--accent-purple); text-decoration: none;">GitHub Repository</a></p>
   </footer>
 
   <script>
@@ -799,12 +797,12 @@ def generate_portal_html(entries, tag, output_dir):
         f.write(html_content)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate LuxQMK Firmware Catalog & Portal")
+    parser = argparse.ArgumentParser(description="Generate LuxQMK Firmware Catalog")
     parser.add_argument("--artifacts-dir", default=ROOT_DIR, help="Directory containing compiled binaries")
     parser.add_argument("--output-dir", default=os.path.join(ROOT_DIR, "catalog_build"), help="Output directory")
-    parser.add_argument("--tag", default="v0.4.0", help="Release tag version")
+    parser.add_argument("--tag", default="v0.3.1", help="Release tag version")
     parser.add_argument("--repo", default="LuxQMK/qmk_firmware", help="GitHub repo slug")
-    parser.add_argument("--base-url", default="https://firmware.luxqmk.click/binaries", help="Base download URL for binaries")
+    parser.add_argument("--base-url", default="https://files.luxqmk.click/firmware", help="Base download URL for binaries")
     args = parser.parse_args()
 
     generate_catalog(args.artifacts_dir, args.output_dir, args.tag, args.repo, args.base_url)
