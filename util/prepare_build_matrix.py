@@ -89,8 +89,20 @@ def find_all_targets(preferred_keymap="via", fallback_keymap="default"):
             
     return targets
 
-def get_deterministic_targets(scope):
-    if scope in ("all_via", "all_keyboards"):
+def get_deterministic_targets(scope, custom_targets=None):
+    if scope == "custom" and custom_targets:
+        raw = [t.strip() for t in custom_targets.replace(",", " ").split() if t.strip()]
+        targets = []
+        for t in raw:
+            if ":" not in t:
+                if has_keymap_in_hierarchy(t, "via"):
+                    targets.append(f"{t}:via")
+                else:
+                    targets.append(f"{t}:default")
+            else:
+                targets.append(t)
+        return targets
+    elif scope in ("all_via", "all_keyboards"):
         targets = find_all_targets(preferred_keymap="via", fallback_keymap="default")
         random.seed(42)
         random.shuffle(targets)
@@ -99,6 +111,8 @@ def get_deterministic_targets(scope):
         return [f"{t['kb']}:{t['km']}" for t in GMMK3_TARGETS]
     elif scope == "gmmk2_only":
         return [f"{t['kb']}:{t['km']}" for t in GMMK2_TARGETS]
+    elif scope in ("tier1_all", "tier1_only"):
+        return [f"{t['kb']}:{t['km']}" for t in (GMMK3_TARGETS + GMMK2_TARGETS)]
     else:
         return [f"{t['kb']}:{t['km']}" for t in (GMMK3_TARGETS + GMMK2_TARGETS)]
 
@@ -127,7 +141,7 @@ def get_runner_for_job(idx, pool="hybrid", max_oci_workers=MAX_OCI_WORKERS):
 def get_weighted_shard_bounds(total_items, shard_count, shard_id, runner_pool="hybrid"):
     """
     Calculates deterministic start and end slice indices for a shard using weighted load balancing.
-    OCI shards get weight 0.5 (half load), while GitHub runners get weight 1.0.
+    OCI shards get weight 0.25 (quarter load), while GitHub runners get weight 1.0.
     """
     weights = []
     for i in range(1, shard_count + 1):
@@ -147,8 +161,8 @@ def get_weighted_shard_bounds(total_items, shard_count, shard_id, runner_pool="h
     end_idx = round(end_ratio * total_items)
     return start_idx, end_idx
 
-def get_shard_targets(scope, shard_id, shard_count, runner_pool="hybrid"):
-    all_targets = get_deterministic_targets(scope)
+def get_shard_targets(scope, shard_id, shard_count, runner_pool="hybrid", custom_targets=None):
+    all_targets = get_deterministic_targets(scope, custom_targets)
     total_items = len(all_targets)
     shard_count = max(1, int(shard_count))
     shard_id = max(1, min(int(shard_id), shard_count))
@@ -156,15 +170,49 @@ def get_shard_targets(scope, shard_id, shard_count, runner_pool="hybrid"):
     start_idx, end_idx = get_weighted_shard_bounds(total_items, shard_count, shard_id, runner_pool)
     return all_targets[start_idx:end_idx]
 
-def generate_matrix(scope, shard_count=16, runner_pool="hybrid"):
+def generate_matrix(scope, shard_count=16, runner_pool="hybrid", custom_targets=None):
     shard_count = max(1, int(shard_count))
     
     if scope == "gmmk3_only":
         raw_targets = [dict(t) for t in GMMK3_TARGETS]
     elif scope == "gmmk2_only":
         raw_targets = [dict(t) for t in GMMK2_TARGETS]
-    elif scope == "tier1_all":
+    elif scope in ("tier1_all", "tier1_only"):
         raw_targets = [dict(t) for t in (GMMK3_TARGETS + GMMK2_TARGETS)]
+    elif scope == "custom":
+        all_targets = get_deterministic_targets(scope, custom_targets)
+        if not all_targets:
+            raise ValueError("No targets found for custom scope. Please pass --custom-targets.")
+            
+        if len(all_targets) <= 8:
+            raw_targets = []
+            for t in all_targets:
+                parts = t.split(":")
+                kb = parts[0]
+                km = parts[1] if len(parts) > 1 else "via"
+                kb_name = kb.replace("/", "_")
+                raw_targets.append({
+                    "mode": "single",
+                    "name": f"{kb_name}_{km}",
+                    "kb": kb,
+                    "km": km
+                })
+        else:
+            effective_shards = min(shard_count, len(all_targets))
+            raw_targets = []
+            for idx in range(1, effective_shards + 1):
+                runner_labels, pool_name = get_runner_for_job(idx, runner_pool)
+                start_idx, end_idx = get_weighted_shard_bounds(len(all_targets), effective_shards, idx, runner_pool)
+                raw_targets.append({
+                    "mode": "shard",
+                    "name": f"group-{idx:02d}",
+                    "shard_id": idx,
+                    "total_shards": effective_shards,
+                    "keymap": "custom",
+                    "estimated_count": end_idx - start_idx,
+                    "runner": runner_labels,
+                    "pool": pool_name
+                })
     elif scope in ("all_via", "all_keyboards"):
         all_targets = get_deterministic_targets(scope)
         total_kbs = len(all_targets)
@@ -197,7 +245,8 @@ def generate_matrix(scope, shard_count=16, runner_pool="hybrid"):
 
 def main():
     parser = argparse.ArgumentParser(description="Generate GitHub Actions matrix for LuxQMK Firmware builds")
-    parser.add_argument("--scope", default="tier1_all", choices=["tier1_all", "gmmk3_only", "gmmk2_only", "all_via", "all_keyboards"], help="Target scope")
+    parser.add_argument("--scope", default="tier1_all", choices=["tier1_all", "tier1_only", "gmmk3_only", "gmmk2_only", "all_via", "all_keyboards", "custom"], help="Target scope")
+    parser.add_argument("--custom-targets", default=None, help="Custom targets comma/space separated (e.g. gmmk/gmmk3/p75/ansi:via)")
     parser.add_argument("--shards", default=16, type=int, help="Number of shards for mass compilation")
     parser.add_argument("--runner-pool", default="hybrid", choices=["hybrid", "oci_only", "github_only"], help="Runner execution pool strategy")
     parser.add_argument("--github-output", default=None, help="Path to GITHUB_OUTPUT file")
@@ -209,7 +258,7 @@ def main():
     args = parser.parse_args()
 
     if args.get_shard_targets:
-        shard_targets = get_shard_targets(args.scope, args.shard_id, args.shards, args.runner_pool)
+        shard_targets = get_shard_targets(args.scope, args.shard_id, args.shards, args.runner_pool, args.custom_targets)
         targets_str = " ".join(shard_targets)
         if args.output_targets_file:
             with open(args.output_targets_file, "w", encoding="utf-8") as f:
@@ -219,13 +268,13 @@ def main():
             print(targets_str)
         return
 
-    matrix_data = generate_matrix(args.scope, args.shards, args.runner_pool)
+    matrix_data = generate_matrix(args.scope, args.shards, args.runner_pool, args.custom_targets)
     compact_json = json.dumps(matrix_data, separators=(",", ":"))
     
     total_entries = len(matrix_data["include"])
     print(f"[+] Prepared build matrix: scope='{args.scope}', shards={args.shards}, pool='{args.runner_pool}', total_jobs={total_entries}")
     if matrix_data["include"] and matrix_data["include"][0].get("mode") == "shard":
-        all_targets = get_deterministic_targets(args.scope)
+        all_targets = get_deterministic_targets(args.scope, args.custom_targets)
         print(f"[+] Total keyboards distributed: {len(all_targets)} across {total_entries} runner shards")
 
     if args.output_json:

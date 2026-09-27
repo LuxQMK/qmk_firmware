@@ -8,12 +8,18 @@ on:
         required: true
         type: choice
         options:
-          - 'tier1_all'       # GMMK 3 (100/75/65 ANSI & ISO) + GMMK 2 (96/65 ANSI & ISO)
-          - 'gmmk3_only'      # GMMK 3 Series only
-          - 'gmmk2_only'      # GMMK 2 Series only
-          - 'all_via'         # Mass compile all QMK VIA-compatible keyboards (16 Parallel Shards)
-          - 'all_keyboards'   # Mass compile all QMK default keyboards (16 Parallel Shards)
+          - 'tier1_all'       # GMMK 3 (100/75/65 ANSI & ISO) + GMMK 2 (96/65 ANSI & ISO) (Incremental update)
+          - 'gmmk3_only'      # GMMK 3 Series only (Incremental update)
+          - 'gmmk2_only'      # GMMK 2 Series only (Incremental update)
+          - 'custom'          # Custom selected keyboards (Incremental update)
+          - 'all_via'         # Mass compile all QMK VIA-compatible keyboards (24 Parallel Shards)
+          - 'all_keyboards'   # Mass compile all QMK default keyboards (24 Parallel Shards)
         default: 'tier1_all'
+      custom_targets:
+        description: 'Custom Keyboard Targets (if scope is custom; comma/space separated, e.g. gmmk/gmmk3/p75/ansi:via)'
+        required: false
+        type: string
+        default: ''
       shard_count:
         description: 'Matrix Shard Count for Mass Compilation (Parallel Runners)'
         required: false
@@ -79,6 +85,7 @@ jobs:
         run: |
           python3 util/prepare_build_matrix.py \
             --scope "${{ inputs.target_scope }}" \
+            --custom-targets "${{ inputs.custom_targets }}" \
             --shards "${{ inputs.shard_count }}" \
             --runner-pool "${{ inputs.runner_pool }}" \
             --github-output "$GITHUB_OUTPUT"
@@ -141,7 +148,7 @@ jobs:
         run: |
           mkdir -p artifacts
           echo "=========================================================="
-          echo "Compiling Tier 1 Board: ${{ matrix.kb }} (${{ matrix.km }})"
+          echo "Compiling Target: ${{ matrix.kb }} (${{ matrix.km }})"
           echo "=========================================================="
           qmk compile -kb ${{ matrix.kb }} -km ${{ matrix.km }} -e USER_NAME=luxqmk -e USE_CCACHE=yes || qmk compile -kb ${{ matrix.kb }} -km ${{ matrix.km }} -e USE_CCACHE=yes
           
@@ -161,6 +168,7 @@ jobs:
           
           python3 util/prepare_build_matrix.py \
             --scope "${{ inputs.target_scope }}" \
+            --custom-targets "${{ inputs.custom_targets }}" \
             --shards "${{ matrix.total_shards }}" \
             --runner-pool "${{ inputs.runner_pool }}" \
             --get-shard-targets \
@@ -261,17 +269,26 @@ jobs:
         run: |
           TAG="${{ github.event.inputs.firmware_tag }}"
           
-          # 1. Structure files for files.luxqmk.click/firmware/
+          # 1. Structure directories for files.luxqmk.click/firmware/
           mkdir -p dist/firmware/${TAG}
           mkdir -p dist/firmware/latest
           
-          find all_binaries -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} dist/firmware/${TAG}/ \; 2>/dev/null || true
-          cp -r dist/firmware/${TAG}/* dist/firmware/latest/ 2>/dev/null || true
+          # 2. Incremental Sync: If building selected/single keyboards, fetch existing binaries from CDN first
+          if [ "${{ inputs.target_scope }}" != "all_via" ] && [ "${{ inputs.target_scope }}" != "all_keyboards" ]; then
+            echo ">>> Incremental / selective build detected (scope: ${{ inputs.target_scope }})."
+            echo ">>> Fetching existing catalog and binaries from CDN (files.luxqmk.click)..."
+            python3 util/sync_existing_catalog.py --output-dir dist/firmware/${TAG} || true
+            cp -r dist/firmware/${TAG}/* dist/firmware/latest/ 2>/dev/null || true
+          fi
+          
+          # 3. Overlay newly compiled binaries on top (overwriting modified keyboards)
+          find all_binaries -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" -o -name "*.meta.json" \) -exec cp -f {} dist/firmware/${TAG}/ \; 2>/dev/null || true
+          cp -rf dist/firmware/${TAG}/* dist/firmware/latest/ 2>/dev/null || true
           
           TOTAL_BINARIES=$(ls -1 dist/firmware/${TAG}/ 2>/dev/null | wc -l)
-          echo "Found $TOTAL_BINARIES compiled binaries ready for catalog generation."
+          echo "Total catalog binaries ready: $TOTAL_BINARIES"
 
-          # 2. Generate catalog.json inside dist/firmware/
+          # 4. Generate catalog.json inside dist/firmware/
           python3 util/generate_catalog.py \
             --artifacts-dir dist/firmware/${TAG} \
             --output-dir dist/firmware \
