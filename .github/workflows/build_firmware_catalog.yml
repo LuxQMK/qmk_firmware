@@ -143,14 +143,14 @@ jobs:
           echo "=========================================================="
           
           if [ "$target_count" -gt 0 ]; then
-            targets_list=$(cat shard_targets.txt)
-            qmk mass-compile -t -j $(nproc) -p -e VIA_ENABLE=yes -e USE_CCACHE=yes $targets_list || true
+            python3 util/build_shard.py \
+              --targets-file shard_targets.txt \
+              --parallel $(nproc) \
+              --artifacts-dir artifacts \
+              --build-dir .build || true
           else
             echo "No targets found for shard ${{ matrix.name }}."
           fi
-          
-          find . -maxdepth 1 -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} artifacts/ \; 2>/dev/null || true
-          find .build -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} artifacts/ \; 2>/dev/null || true
           
           echo "Compiled $(ls -1 artifacts/ 2>/dev/null | wc -l) binaries in ${{ matrix.name }} shard."
 
