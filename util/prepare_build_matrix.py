@@ -102,15 +102,9 @@ def get_deterministic_targets(scope):
     else:
         return [f"{t['kb']}:{t['km']}" for t in (GMMK3_TARGETS + GMMK2_TARGETS)]
 
-def get_shard_targets(scope, shard_id, shard_count):
-    all_targets = get_deterministic_targets(scope)
-    shard_count = max(1, int(shard_count))
-    shard_idx = max(0, int(shard_id) - 1)
-    
-    selected = [t for i, t in enumerate(all_targets) if (i % shard_count) == shard_idx]
-    return selected
-
 MAX_OCI_WORKERS = 4
+OCI_WEIGHT = 0.5   # OCI 1-thread ARM workers receive 50% the load of 2-vCPU x86 GitHub runners
+GH_WEIGHT = 1.0
 
 def get_runner_for_job(idx, pool="hybrid", max_oci_workers=MAX_OCI_WORKERS):
     """
@@ -130,6 +124,38 @@ def get_runner_for_job(idx, pool="hybrid", max_oci_workers=MAX_OCI_WORKERS):
         else:
             return ["ubuntu-latest"], "github"
 
+def get_weighted_shard_bounds(total_items, shard_count, shard_id, runner_pool="hybrid"):
+    """
+    Calculates deterministic start and end slice indices for a shard using weighted load balancing.
+    OCI shards get weight 0.5 (half load), while GitHub runners get weight 1.0.
+    """
+    weights = []
+    for i in range(1, shard_count + 1):
+        _, pool = get_runner_for_job(i, runner_pool)
+        if pool == "oci":
+            weights.append(OCI_WEIGHT)
+        else:
+            weights.append(GH_WEIGHT)
+
+    total_weight = sum(weights)
+    shard_idx = shard_id - 1
+
+    start_ratio = sum(weights[:shard_idx]) / total_weight
+    end_ratio = sum(weights[:shard_idx + 1]) / total_weight
+
+    start_idx = round(start_ratio * total_items)
+    end_idx = round(end_ratio * total_items)
+    return start_idx, end_idx
+
+def get_shard_targets(scope, shard_id, shard_count, runner_pool="hybrid"):
+    all_targets = get_deterministic_targets(scope)
+    total_items = len(all_targets)
+    shard_count = max(1, int(shard_count))
+    shard_id = max(1, min(int(shard_id), shard_count))
+    
+    start_idx, end_idx = get_weighted_shard_bounds(total_items, shard_count, shard_id, runner_pool)
+    return all_targets[start_idx:end_idx]
+
 def generate_matrix(scope, shard_count=16, runner_pool="hybrid"):
     shard_count = max(1, int(shard_count))
     
@@ -145,22 +171,27 @@ def generate_matrix(scope, shard_count=16, runner_pool="hybrid"):
         
         raw_targets = []
         for idx in range(1, shard_count + 1):
+            runner_labels, pool_name = get_runner_for_job(idx, runner_pool)
+            start_idx, end_idx = get_weighted_shard_bounds(total_kbs, shard_count, idx, runner_pool)
             raw_targets.append({
                 "mode": "shard",
                 "name": f"group-{idx:02d}",
                 "shard_id": idx,
                 "total_shards": shard_count,
                 "keymap": "via/default",
-                "estimated_count": round(total_kbs / shard_count)
+                "estimated_count": end_idx - start_idx,
+                "runner": runner_labels,
+                "pool": pool_name
             })
     else:
         raw_targets = [dict(t) for t in (GMMK3_TARGETS + GMMK2_TARGETS)]
 
-    # Assign runners according to requested execution pool
-    for idx, item in enumerate(raw_targets, start=1):
-        runner_labels, pool_name = get_runner_for_job(idx, runner_pool)
-        item["runner"] = runner_labels
-        item["pool"] = pool_name
+    # Assign runners for single-mode targets
+    if raw_targets and raw_targets[0].get("mode") != "shard":
+        for idx, item in enumerate(raw_targets, start=1):
+            runner_labels, pool_name = get_runner_for_job(idx, runner_pool)
+            item["runner"] = runner_labels
+            item["pool"] = pool_name
 
     return {"include": raw_targets}
 
@@ -178,7 +209,7 @@ def main():
     args = parser.parse_args()
 
     if args.get_shard_targets:
-        shard_targets = get_shard_targets(args.scope, args.shard_id, args.shards)
+        shard_targets = get_shard_targets(args.scope, args.shard_id, args.shards, args.runner_pool)
         targets_str = " ".join(shard_targets)
         if args.output_targets_file:
             with open(args.output_targets_file, "w", encoding="utf-8") as f:

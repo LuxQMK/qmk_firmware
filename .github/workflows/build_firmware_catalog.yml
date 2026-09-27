@@ -161,6 +161,7 @@ jobs:
           python3 util/prepare_build_matrix.py \
             --scope "${{ inputs.target_scope }}" \
             --shards "${{ matrix.total_shards }}" \
+            --runner-pool "${{ inputs.runner_pool }}" \
             --get-shard-targets \
             --shard-id "${{ matrix.shard_id }}" \
             --output-targets-file shard_targets.txt
