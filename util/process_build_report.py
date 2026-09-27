@@ -57,11 +57,22 @@ def process_shard(build_dir: str, artifacts_dir: str, output_dir: str, shard_nam
 
     for fpath in failed_logs:
         fname = os.path.basename(fpath)
-        # Format is failed.log.<pid>.<keyboard_safe>.<keymap>[.<extra>]
-        parts = fname.split(".")
-        if len(parts) >= 4:
-            kb_safe = parts[2]
-            km = parts[3]
+        # Format can be failed.log.<pid>.<keyboard_safe>.<keymap> or failed.log.<keyboard_safe>.<keymap>
+        rest = fname
+        if rest.startswith("failed.log."):
+            rest = rest[len("failed.log."):]
+        
+        parts = rest.split(".")
+        # If the first segment is a PID (all digits), skip it
+        if len(parts) >= 2 and parts[0].isdigit():
+            parts = parts[1:]
+            
+        if len(parts) >= 2:
+            kb_safe = ".".join(parts[:-1])
+            km = parts[-1]
+        elif len(parts) == 1:
+            kb_safe = parts[0]
+            km = "default"
         else:
             kb_safe = fname
             km = "default"
@@ -169,9 +180,9 @@ def aggregate_reports(diagnostics_root: str, output_dir: str, github_summary_fil
 
     # Write all_failed_keyboards.txt
     failed_txt_path = os.path.join(output_dir, "all_failed_keyboards.txt")
-    with open(failed_txt_path, "w", encoding="utf-8") as f:
-        for f in all_failures:
-            f.write(f"{f['target']} [{f['category']}]\n")
+    with open(failed_txt_path, "w", encoding="utf-8") as f_out:
+        for item in all_failures:
+            f_out.write(f"{item['target']} [{item['category']}]\n")
 
     # Write full breakdown JSON
     breakdown = {

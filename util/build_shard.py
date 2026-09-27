@@ -16,6 +16,29 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+def collect_binaries(kb_safe: str, keymap: str, artifacts_dir: str, build_dir: str):
+    found_binaries = []
+    extensions = (".bin", ".hex", ".uf2")
+    
+    # Check root dir for {kb_safe}_{keymap}.* or {kb_safe}.*
+    for ext in extensions:
+        for fname in (f"{kb_safe}_{keymap}{ext}", f"{kb_safe}{ext}"):
+            target_file = os.path.join(ROOT_DIR, fname)
+            if os.path.isfile(target_file):
+                dest = os.path.join(artifacts_dir, os.path.basename(target_file))
+                shutil.copy2(target_file, dest)
+                found_binaries.append(dest)
+                
+    # Check .build dir
+    if not found_binaries and os.path.isdir(build_dir):
+        for ext in extensions:
+            for f in glob.glob(os.path.join(build_dir, f"*{kb_safe}*{ext}")):
+                dest = os.path.join(artifacts_dir, os.path.basename(f))
+                shutil.copy2(f, dest)
+                found_binaries.append(dest)
+                
+    return list(set(found_binaries))
+
 def compile_target(target: str, artifacts_dir: str, build_dir: str, via_enable: bool = True, ccache_enable: bool = True):
     parts = target.strip().split(":")
     if len(parts) < 2:
@@ -25,6 +48,7 @@ def compile_target(target: str, artifacts_dir: str, build_dir: str, via_enable: 
     keymap = parts[1]
     kb_safe = keyboard.replace("/", "_")
     
+    # Primary build attempt (with VIA_ENABLE if requested)
     cmd = ["qmk", "compile", "-kb", keyboard, "-km", keymap]
     if via_enable:
         cmd.extend(["-e", "VIA_ENABLE=yes"])
@@ -45,42 +69,45 @@ def compile_target(target: str, artifacts_dir: str, build_dir: str, via_enable: 
         res = subprocess.CompletedProcess(args=cmd, returncode=1)
 
     if res.returncode == 0:
-        # Search for produced binary in root and .build
-        found_binaries = []
-        extensions = (".bin", ".hex", ".uf2")
-        
-        # Check root dir for {kb_safe}_{keymap}.*
-        for ext in extensions:
-            target_file = os.path.join(ROOT_DIR, f"{kb_safe}_{keymap}{ext}")
-            if os.path.isfile(target_file):
-                dest = os.path.join(artifacts_dir, os.path.basename(target_file))
-                shutil.copy2(target_file, dest)
-                found_binaries.append(dest)
-                
-        # Check .build dir
-        if not found_binaries and os.path.isdir(build_dir):
-            for ext in extensions:
-                for f in glob.glob(os.path.join(build_dir, f"*{kb_safe}*{ext}")):
-                    dest = os.path.join(artifacts_dir, os.path.basename(f))
-                    shutil.copy2(f, dest)
-                    found_binaries.append(dest)
-                    
+        found_binaries = collect_binaries(kb_safe, keymap, artifacts_dir, build_dir)
         return target, True, f"Produced {len(found_binaries)} binaries"
-    else:
-        # Record failure log in .build/failed.log.<pid>.<kb_safe>.<keymap>
-        pid = os.getpid()
-        failed_log_path = os.path.join(build_dir, f"failed.log.{pid}.{kb_safe}.{keymap}")
-        os.makedirs(build_dir, exist_ok=True)
+    
+    # Fallback build attempt: if VIA failed (e.g. flash/eeprom/layer limits), try pure default build
+    if via_enable:
+        fallback_cmd = ["qmk", "compile", "-kb", keyboard, "-km", keymap]
+        if ccache_enable:
+            fallback_cmd.extend(["-e", "USE_CCACHE=yes"])
         try:
-            with open(failed_log_path, "w", encoding="utf-8", errors="replace") as f:
-                f.write(output)
+            res_fb = subprocess.run(
+                fallback_cmd,
+                cwd=ROOT_DIR,
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            if res_fb.returncode == 0:
+                found_binaries = collect_binaries(kb_safe, keymap, artifacts_dir, build_dir)
+                return target, True, f"Produced {len(found_binaries)} binaries (fallback)"
+            else:
+                # Include fallback error info in output
+                output += "\n--- Fallback Attempt (without VIA) Output ---\n" + (res_fb.stdout or "") + "\n" + (res_fb.stderr or "")
         except Exception:
             pass
-            
-        # Extract short error line
-        error_lines = [l for l in output.splitlines() if "error" in l.lower() or "overflow" in l.lower()]
-        snippet = error_lines[-1] if error_lines else "Compilation returned non-zero exit code"
-        return target, False, snippet
+
+    # Record failure log in .build/failed.log.<pid>.<kb_safe>.<keymap>
+    pid = os.getpid()
+    failed_log_path = os.path.join(build_dir, f"failed.log.{pid}.{kb_safe}.{keymap}")
+    os.makedirs(build_dir, exist_ok=True)
+    try:
+        with open(failed_log_path, "w", encoding="utf-8", errors="replace") as f:
+            f.write(output)
+    except Exception:
+        pass
+        
+    # Extract short error line
+    error_lines = [l for l in output.splitlines() if "error" in l.lower() or "overflow" in l.lower() or "assert" in l.lower()]
+    snippet = error_lines[-1] if error_lines else "Compilation returned non-zero exit code"
+    return target, False, snippet
 
 def main():
     parser = argparse.ArgumentParser(description="LuxQMK Parallel Shard Compilation Engine")

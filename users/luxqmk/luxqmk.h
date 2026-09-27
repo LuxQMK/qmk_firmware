@@ -176,8 +176,8 @@ enum sidelight_effect_mode {
  */
 #define LUXQMK_VERSION_MAJOR             0
 #define LUXQMK_VERSION_MINOR             3
-#define LUXQMK_VERSION_PATCH             1
-#define LUXQMK_VERSION_STRING            "0.3.1"
+#define LUXQMK_VERSION_PATCH             2
+#define LUXQMK_VERSION_STRING            "0.3.2"
 
 #define LUXQMK_CAP_REACTIVE_OVERLAY      (1 << 0)
 #define LUXQMK_CAP_DIRECTION_REVERSE     (1 << 1)
@@ -246,6 +246,7 @@ extern user_gradient_t g_user_gradients[LUXQMK_USER_GRADIENTS_COUNT];
 extern user_gradient_t g_eeprom_user_gradients[LUXQMK_USER_GRADIENTS_COUNT];
 extern uint8_t g_effect_density;
 
+#if defined(RGB_MATRIX_ENABLE)
 extern uint8_t g_active_perkey_profile;
 extern RGB g_per_key_profiles[LUXQMK_PERKEY_PROFILES_COUNT][LUXQMK_PERKEY_MAX_LEDS];
 extern RGB g_eeprom_per_key_profiles[LUXQMK_PERKEY_PROFILES_COUNT][LUXQMK_PERKEY_MAX_LEDS];
@@ -254,6 +255,7 @@ extern bool g_direct_lighting_enable;
 extern uint32_t g_direct_lighting_timer;
 extern RGB g_direct_staging[144];
 extern RGB g_direct_leds[144];
+#endif
 
 extern bool g_sidelight_custom_enable;
 extern uint8_t g_sidelight_mode;

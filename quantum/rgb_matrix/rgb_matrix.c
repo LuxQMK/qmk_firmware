@@ -73,6 +73,7 @@ last_hit_t g_last_hit_tracker;
 #endif // RGB_MATRIX_KEYREACTIVE_ENABLED
 
 __attribute__((weak)) bool g_custom_rgb_reverse = false;
+__attribute__((weak)) uint8_t g_effect_density = 128;
 
 #ifndef RGB_MATRIX_FLAG_STEPS
 #    define RGB_MATRIX_FLAG_STEPS {LED_FLAG_ALL, LED_FLAG_KEYLIGHT | LED_FLAG_MODIFIER, LED_FLAG_UNDERGLOW, LED_FLAG_NONE}

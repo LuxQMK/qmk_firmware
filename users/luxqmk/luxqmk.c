@@ -47,11 +47,13 @@ uint8_t g_reactive_blend       = REACTIVE_BLEND_ADDITIVE; // 0 = Additive Glow, 
 // Performance & Switch Debounce configuration (ms)
 uint8_t g_debounce_time        = 5; // Default 5ms
 
+#if defined(RGB_MATRIX_ENABLE)
 // Direct Software Live Lighting Streaming (LuxQMK Studio Audio Visualizer / PC FX)
 bool g_direct_lighting_enable    = false;
 uint32_t g_direct_lighting_timer = 0;
 RGB g_direct_staging[144]        = {{0, 0, 0}};
 RGB g_direct_leds[144]           = {{0, 0, 0}};
+#endif
 
 // Multi-Stop Gradient Global State & Default User Profiles
 uint8_t g_active_gradient = GRADIENT_PRESET_RAINBOW;
@@ -77,10 +79,12 @@ user_gradient_t g_user_gradients[LUXQMK_USER_GRADIENTS_COUNT] = {
 };
 user_gradient_t g_eeprom_user_gradients[LUXQMK_USER_GRADIENTS_COUNT];
 
+#if defined(RGB_MATRIX_ENABLE)
 // Per-Key Custom RGB Lighting Profiles State
 uint8_t g_active_perkey_profile = 0;
 RGB g_per_key_profiles[LUXQMK_PERKEY_PROFILES_COUNT][LUXQMK_PERKEY_MAX_LEDS] = {{{0, 0, 0}}};
 RGB g_eeprom_per_key_profiles[LUXQMK_PERKEY_PROFILES_COUNT][LUXQMK_PERKEY_MAX_LEDS] = {{{0, 0, 0}}};
+#endif
 
 // Sidelight / Underglow Custom Separate Effect State
 bool g_sidelight_custom_enable  = false;
@@ -91,6 +95,7 @@ uint8_t g_sidelight_gradient    = GRADIENT_PRESET_RAINBOW;
 bool g_sidelight_reverse        = false;
 uint8_t g_sidelight_density     = 128;
 
+#if defined(RGB_MATRIX_ENABLE)
 /**
  * Initialize default gaming profiles for Profile 1 (FPS), Profile 2 (MOBA), Profile 3 (MMO/RPG)
  * Resolves physical key assignments from matrix and active base keymap.
@@ -171,6 +176,7 @@ void luxqmk_init_default_perkey_profiles(void) {
 
     memcpy(g_eeprom_per_key_profiles, g_per_key_profiles, sizeof(g_per_key_profiles));
 }
+#endif
 
 /**
  * Built-in Gradient Stop Tables (stored in Flash ROM)
@@ -527,7 +533,9 @@ void luxqmk_eeprom_load(void) {
         g_sidelight_reverse       = false;
         g_sidelight_density       = 128;
 
+#if defined(RGB_MATRIX_ENABLE)
         luxqmk_init_default_perkey_profiles();
+#endif
         luxqmk_eeprom_save();
     } else {
         g_custom_rgb_reverse    = (rev != 0);
@@ -636,12 +644,14 @@ void luxqmk_eeprom_load(void) {
             g_sidelight_density       = (side_dens == 0xFF || side_dens == 0) ? 128 : side_dens;
         }
 
+#if defined(RGB_MATRIX_ENABLE)
         // Per-Key Custom RGB Lighting Profiles Deserialization
         uint8_t active_prof = header[101];
         g_active_perkey_profile = (active_prof < LUXQMK_PERKEY_PROFILES_COUNT) ? active_prof : 0;
 
         via_read_custom_config(g_per_key_profiles, 112, sizeof(g_per_key_profiles));
         memcpy(g_eeprom_per_key_profiles, g_per_key_profiles, sizeof(g_per_key_profiles));
+#endif
     }
 #endif
 }
@@ -991,6 +1001,7 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                 }
                 return;
 
+#if defined(RGB_MATRIX_ENABLE)
             case USER_VAL_DIRECT_LIGHTING_ENABLE:
                 if (*command_id == id_custom_get_value) {
                     data[3] = g_direct_lighting_enable ? 1 : 0;
@@ -1000,9 +1011,7 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                     if (g_direct_lighting_enable) {
                         memset(g_direct_staging, 0, sizeof(g_direct_staging));
                         memset(g_direct_leds, 0, sizeof(g_direct_leds));
-#ifdef RGB_MATRIX_ENABLE
                         rgb_matrix_set_color_all(0, 0, 0);
-#endif
                     }
                 }
                 return;
@@ -1088,6 +1097,7 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                 }
                 return;
             }
+#endif
 
             case USER_VAL_SIDELIGHT_ENABLE:
                 if (*command_id == id_custom_get_value) {

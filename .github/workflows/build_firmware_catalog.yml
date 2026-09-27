@@ -25,9 +25,9 @@ on:
           - '8'
         default: '16'
       firmware_tag:
-        description: 'Firmware Version Tag (e.g. v0.3.1)'
+        description: 'Firmware Version Tag (e.g. v0.3.2)'
         required: true
-        default: 'v0.3.1'
+        default: 'v0.3.2'
       deploy_cloudflare_pages:
         description: 'Deploy to Cloudflare Pages (files.luxqmk.click)?'
         required: true

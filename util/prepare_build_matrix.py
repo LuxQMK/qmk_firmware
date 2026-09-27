@@ -8,6 +8,7 @@ slice the targets.
 
 import os
 import sys
+import glob
 import json
 import random
 import argparse
@@ -32,54 +33,56 @@ GMMK2_TARGETS = [
     {"mode": "single", "kb": "gmmk/gmmk2/p65/iso", "km": "via", "name": "gmmk2-65-iso"},
 ]
 
-def find_keyboards_with_keymap_filesystem(keymap_name):
+def list_leaf_keyboards():
     """
-    Fallback method to find keyboards containing a specific keymap directory.
-    """
-    matches = set()
-    for root, dirs, _ in os.walk(KEYBOARDS_DIR):
-        if "keymaps" in dirs:
-            km_dir = os.path.join(root, "keymaps")
-            if os.path.exists(os.path.join(km_dir, keymap_name)):
-                rel_path = os.path.relpath(root, KEYBOARDS_DIR).replace("\\", "/")
-                matches.add(rel_path)
-    return sorted(list(matches))
-
-def find_keyboards(keymap_name):
-    """
-    Finds all keyboards supporting a keymap using qmk find or filesystem fallback.
+    Finds all compilable leaf keyboards in the repository.
+    Searches for keyboard.json and rules.mk while resolving hierarchy.
     """
     try:
-        res = subprocess.run(
-            ["qmk", "find", "-km", keymap_name],
-            capture_output=True,
-            text=True,
-            check=False
-        )
+        res = subprocess.run(["qmk", "list-keyboards"], capture_output=True, text=True, check=False)
         if res.returncode == 0 and res.stdout.strip():
-            boards = [line.strip() for line in res.stdout.strip().splitlines() if line.strip()]
-            if boards:
-                return sorted(list(set(boards)))
+            kbs = [line.strip() for line in res.stdout.strip().splitlines() if line.strip()]
+            if kbs:
+                return sorted(set(kbs))
     except Exception:
         pass
+
+    # Filesystem discovery of keyboard definitions
+    kb_wildcard = os.path.join(KEYBOARDS_DIR, "**", "keyboard.json")
+    paths = [p for p in glob.glob(kb_wildcard, recursive=True) if os.path.sep + "keymaps" + os.path.sep not in p]
+    found = [os.path.relpath(os.path.dirname(p), KEYBOARDS_DIR).replace("\\", "/") for p in paths]
+    if not found:
+        rules_wildcard = os.path.join(KEYBOARDS_DIR, "**", "rules.mk")
+        r_paths = [p for p in glob.glob(rules_wildcard, recursive=True) if os.path.sep + "keymaps" + os.path.sep not in p]
+        found = [os.path.relpath(os.path.dirname(p), KEYBOARDS_DIR).replace("\\", "/") for p in r_paths]
     
-    return find_keyboards_with_keymap_filesystem(keymap_name)
+    return sorted(set(found))
+
+def has_keymap_in_hierarchy(kb: str, keymap_name: str) -> bool:
+    """
+    Checks if a keymap folder exists directly on the keyboard or in any of its parent folders.
+    """
+    cur = os.path.join(KEYBOARDS_DIR, kb)
+    while True:
+        km_dir = os.path.join(cur, "keymaps", keymap_name)
+        if os.path.isdir(km_dir):
+            return True
+        if cur == KEYBOARDS_DIR or not cur.startswith(KEYBOARDS_DIR):
+            break
+        cur = os.path.dirname(cur)
+    return False
 
 def find_all_targets(preferred_keymap="via", fallback_keymap="default"):
     """
     Finds all keyboard targets in the repository.
-    For each keyboard:
-    - If `preferred_keymap` exists in its keymaps, use `kb:preferred_keymap`
+    For each valid leaf keyboard:
+    - If `preferred_keymap` exists in its hierarchy, use `kb:preferred_keymap`
     - Otherwise, use `kb:fallback_keymap`
     """
-    preferred_set = set(find_keyboards_with_keymap_filesystem(preferred_keymap))
-    fallback_set = set(find_keyboards_with_keymap_filesystem(fallback_keymap))
-    
-    all_kbs = sorted(list(preferred_set | fallback_set))
-    
+    leaf_keyboards = list_leaf_keyboards()
     targets = []
-    for kb in all_kbs:
-        if kb in preferred_set:
+    for kb in leaf_keyboards:
+        if has_keymap_in_hierarchy(kb, preferred_keymap):
             targets.append(f"{kb}:{preferred_keymap}")
         else:
             targets.append(f"{kb}:{fallback_keymap}")
