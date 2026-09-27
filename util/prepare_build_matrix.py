@@ -91,22 +91,10 @@ def generate_matrix(scope, shard_count=16):
         targets = GMMK3_TARGETS
     elif scope == "gmmk2_only":
         targets = GMMK2_TARGETS
-    elif scope in ("tier1_all", "all_via"):
-        # All keyboards in repository supporting VIA keymaps (GMMK 3 & GMMK 2 ANSI/ISO)
-        via_keyboards = find_keyboards_with_keymap_filesystem("via")
-        targets = []
-        for kb in via_keyboards:
-            name_slug = kb.replace("gmmk/", "").replace("/", "-")
-            targets.append({
-                "mode": "single",
-                "kb": kb,
-                "km": "via",
-                "name": name_slug
-            })
-        if not targets:
-            targets = GMMK3_TARGETS + GMMK2_TARGETS
-    elif scope == "all_keyboards":
-        # Mass compile all keyboards in repository
+    elif scope == "tier1_all":
+        targets = GMMK3_TARGETS + GMMK2_TARGETS
+    elif scope in ("all_via", "all_keyboards"):
+        # Mass compile all ~3,400 keyboards with VIA support across 16 parallel runner shards
         found_targets = find_all_targets(preferred_keymap="via", fallback_keymap="default")
         
         if not found_targets:
