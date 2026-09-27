@@ -137,7 +137,7 @@ jobs:
           echo "Starting Mass Compilation for ${{ matrix.name }}: $target_count keyboards"
           echo "=========================================================="
           
-          qmk mass-compile -t -j $(nproc) -p -e USER_NAME=luxqmk -e VIA_ENABLE=yes -e USE_CCACHE=yes $targets || true
+          qmk mass-compile -t -j $(nproc) -p -e USE_CCACHE=yes $targets || true
           
           find . -maxdepth 1 -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} artifacts/ \; 2>/dev/null || true
           find .build -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} artifacts/ \; 2>/dev/null || true
