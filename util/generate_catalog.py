@@ -25,7 +25,8 @@ KNOWN_BOARDS = {
         "flasher": "wb32-dfu-updater_cli",
         "layout": "100% Full ANSI",
         "tier": "luxqmk_enhanced",
-        "features": ["nkro", "debounce", "rgb_matrix", "reactive_layers", "logo_led", "win_lock_led", "sidelights", "encoder"]
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "logo_led", "win_lock_led", "sidelights", "encoder"]
     },
     "gmmk_gmmk3_p100_iso_via": {
         "name": "Glorious GMMK 3 (100% ISO)",
@@ -35,7 +36,8 @@ KNOWN_BOARDS = {
         "flasher": "wb32-dfu-updater_cli",
         "layout": "100% Full ISO",
         "tier": "luxqmk_enhanced",
-        "features": ["nkro", "debounce", "rgb_matrix", "reactive_layers", "logo_led", "win_lock_led", "sidelights", "encoder"]
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "logo_led", "win_lock_led", "sidelights", "encoder"]
     },
     "gmmk_gmmk3_p75_ansi_via": {
         "name": "Glorious GMMK 3 (75% ANSI)",
@@ -45,7 +47,8 @@ KNOWN_BOARDS = {
         "flasher": "wb32-dfu-updater_cli",
         "layout": "75% Compact ANSI",
         "tier": "luxqmk_enhanced",
-        "features": ["nkro", "debounce", "rgb_matrix", "reactive_layers", "logo_led", "win_lock_led", "sidelights", "encoder"]
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "logo_led", "win_lock_led", "sidelights", "encoder"]
     },
     "gmmk_gmmk3_p75_iso_via": {
         "name": "Glorious GMMK 3 (75% ISO)",
@@ -55,7 +58,8 @@ KNOWN_BOARDS = {
         "flasher": "wb32-dfu-updater_cli",
         "layout": "75% Compact ISO",
         "tier": "luxqmk_enhanced",
-        "features": ["nkro", "debounce", "rgb_matrix", "reactive_layers", "logo_led", "win_lock_led", "sidelights", "encoder"]
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "logo_led", "win_lock_led", "sidelights", "encoder"]
     },
     "gmmk_gmmk3_p65_ansi_via": {
         "name": "Glorious GMMK 3 (65% ANSI)",
@@ -65,7 +69,8 @@ KNOWN_BOARDS = {
         "flasher": "wb32-dfu-updater_cli",
         "layout": "65% Compact ANSI",
         "tier": "luxqmk_enhanced",
-        "features": ["nkro", "debounce", "rgb_matrix", "reactive_layers", "logo_led", "win_lock_led", "sidelights", "encoder"]
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "logo_led", "win_lock_led", "sidelights", "encoder"]
     },
     "gmmk_gmmk3_p65_iso_via": {
         "name": "Glorious GMMK 3 (65% ISO)",
@@ -75,7 +80,8 @@ KNOWN_BOARDS = {
         "flasher": "wb32-dfu-updater_cli",
         "layout": "65% Compact ISO",
         "tier": "luxqmk_enhanced",
-        "features": ["nkro", "debounce", "rgb_matrix", "reactive_layers", "logo_led", "win_lock_led", "sidelights", "encoder"]
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "logo_led", "win_lock_led", "sidelights", "encoder"]
     },
 
     # GMMK 2 Series (ANSI & ISO)
@@ -87,7 +93,8 @@ KNOWN_BOARDS = {
         "flasher": "wb32-dfu-updater_cli",
         "layout": "96% ANSI",
         "tier": "luxqmk_enhanced",
-        "features": ["nkro", "debounce", "rgb_matrix", "reactive_layers", "sidelights"]
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "sidelights"]
     },
     "gmmk_gmmk2_p96_iso_via": {
         "name": "Glorious GMMK 2 (96% ISO)",
@@ -97,7 +104,8 @@ KNOWN_BOARDS = {
         "flasher": "wb32-dfu-updater_cli",
         "layout": "96% ISO",
         "tier": "luxqmk_enhanced",
-        "features": ["nkro", "debounce", "rgb_matrix", "reactive_layers", "sidelights"]
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "sidelights"]
     },
     "gmmk_gmmk2_p65_ansi_via": {
         "name": "Glorious GMMK 2 (65% ANSI)",
@@ -107,7 +115,8 @@ KNOWN_BOARDS = {
         "flasher": "wb32-dfu-updater_cli",
         "layout": "65% ANSI",
         "tier": "luxqmk_enhanced",
-        "features": ["nkro", "debounce", "rgb_matrix", "reactive_layers", "sidelights"]
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "sidelights"]
     },
     "gmmk_gmmk2_p65_iso_via": {
         "name": "Glorious GMMK 2 (65% ISO)",
@@ -117,7 +126,8 @@ KNOWN_BOARDS = {
         "flasher": "wb32-dfu-updater_cli",
         "layout": "65% ISO",
         "tier": "luxqmk_enhanced",
-        "features": ["nkro", "debounce", "rgb_matrix", "reactive_layers", "sidelights"]
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "sidelights"]
     },
 
     # Universal QMK & Keychron Reference Boards
@@ -129,7 +139,8 @@ KNOWN_BOARDS = {
         "flasher": "dfu-util",
         "layout": "75%",
         "tier": "luxqmk_generic",
-        "features": ["nkro", "debounce", "rgb_matrix", "reactive_layers", "encoder"]
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
     },
     "keychron_q2_ansi_via": {
         "name": "Keychron Q2 (ANSI VIA)",
@@ -139,7 +150,8 @@ KNOWN_BOARDS = {
         "flasher": "dfu-util",
         "layout": "65%",
         "tier": "luxqmk_generic",
-        "features": ["nkro", "debounce", "rgb_matrix", "reactive_layers", "encoder"]
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
     },
     "keychron_q3_ansi_via": {
         "name": "Keychron Q3 (ANSI VIA)",
@@ -149,7 +161,8 @@ KNOWN_BOARDS = {
         "flasher": "dfu-util",
         "layout": "80% TKL",
         "tier": "luxqmk_generic",
-        "features": ["nkro", "debounce", "rgb_matrix", "reactive_layers", "encoder"]
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
     },
     "keychron_v1_ansi_via": {
         "name": "Keychron V1 (ANSI VIA)",
@@ -159,7 +172,8 @@ KNOWN_BOARDS = {
         "flasher": "dfu-util",
         "layout": "75%",
         "tier": "luxqmk_generic",
-        "features": ["nkro", "debounce", "rgb_matrix", "reactive_layers", "encoder"]
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
     },
     "dz60_via": {
         "name": "DZ60 (60% Universal VIA)",
@@ -169,7 +183,8 @@ KNOWN_BOARDS = {
         "flasher": "dfu-util",
         "layout": "60%",
         "tier": "luxqmk_generic",
-        "features": ["nkro", "debounce", "rgb_matrix", "reactive_layers"]
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers"]
     }
 }
 
@@ -191,36 +206,187 @@ def build_keyboard_lookup():
         lookup[normalized] = root
     return lookup
 
-def find_info_json(kb_target, kb_lookup=None):
-    # 1. Try direct match in pre-indexed keyboard lookup (strip _default / _via / _vial suffix)
-    if kb_lookup:
-        for suffix in ("_via", "_default", "_ansi", "_iso", "_vial"):
-            if kb_target.endswith(suffix):
-                stem_candidate = kb_target[:-len(suffix)]
-                if stem_candidate in kb_lookup:
-                    candidate_dir = kb_lookup[stem_candidate]
-                    cur = candidate_dir
-                    while cur and cur != os.path.dirname(KEYBOARDS_DIR):
-                        cand_info = os.path.join(cur, "info.json")
-                        if os.path.exists(cand_info):
-                            try:
-                                with open(cand_info, "r", encoding="utf-8") as f:
-                                    return json.load(f)
-                            except Exception:
-                                pass
-                        cur = os.path.dirname(cur)
+def parse_rules_mk(filepath):
+    data = {}
+    if not os.path.isfile(filepath):
+        return data
+    with open(filepath, "r", encoding="utf-8", errors="replace") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            k = k.replace("?", "").strip()
+            v = v.strip()
+            data[k] = v
+    return data
 
-    # 2. Fallback split logic
-    parts = kb_target.replace("-", "/").split("_")
-    for i in range(len(parts), 0, -1):
-        candidate_path = os.path.join(KEYBOARDS_DIR, *parts[:i], "info.json")
-        if os.path.exists(candidate_path):
-            try:
-                with open(candidate_path, "r", encoding="utf-8") as f:
-                    return json.load(f)
-            except Exception:
-                pass
-    return {}
+def find_keyboard_metadata(stem, kb_lookup, artifacts_meta=None):
+    """
+    Deeply inspects keyboard directory hierarchy (info.json, keyboard.json, rules.mk)
+    to extract hardware profile, MCU, flasher, layout, and firmware features (including VIA).
+    """
+    clean_stem = stem
+    for suffix in ("_default", "_via", "_vial", "_viahybrid", "_ansi", "_iso"):
+        if clean_stem.endswith(suffix):
+            clean_stem = clean_stem[:-len(suffix)]
+            break
+            
+    matched_dir = None
+    if clean_stem in kb_lookup:
+        matched_dir = kb_lookup[clean_stem]
+    else:
+        parts = clean_stem.split("_")
+        for i in range(len(parts), 0, -1):
+            cand = "_".join(parts[:i])
+            if cand in kb_lookup:
+                matched_dir = kb_lookup[cand]
+                break
+                
+    meta = {
+        "name": clean_stem.replace("_", " ").title(),
+        "vendor_id": None,
+        "product_id": None,
+        "mcu": "ARM Cortex / AVR",
+        "bootloader": None,
+        "layout": "Universal",
+        "tier": "luxqmk_generic",
+        "flasher": "dfu-util",
+        "via": True,
+        "features": ["nkro", "debounce", "via"]
+    }
+    
+    if not matched_dir:
+        return meta
+
+    # Collect directory path hierarchy from keyboards/ down to matched_dir
+    hierarchy = []
+    cur = matched_dir
+    while cur and cur != os.path.dirname(KEYBOARDS_DIR):
+        hierarchy.append(cur)
+        if cur == KEYBOARDS_DIR:
+            break
+        cur = os.path.dirname(cur)
+    hierarchy.reverse()
+
+    # Merge rules.mk, info.json, keyboard.json from top to bottom
+    merged_json = {}
+    merged_rules = {}
+
+    for d in hierarchy:
+        rules_path = os.path.join(d, "rules.mk")
+        if os.path.isfile(rules_path):
+            merged_rules.update(parse_rules_mk(rules_path))
+            
+        for jname in ("info.json", "keyboard.json"):
+            jpath = os.path.join(d, jname)
+            if os.path.isfile(jpath):
+                try:
+                    with open(jpath, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                        for k, v in data.items():
+                            if isinstance(v, dict) and k in merged_json and isinstance(merged_json[k], dict):
+                                merged_json[k].update(v)
+                            else:
+                                merged_json[k] = v
+                except Exception:
+                    pass
+
+    # Extract keyboard name
+    if "keyboard_name" in merged_json:
+        meta["name"] = merged_json["keyboard_name"]
+    elif "keyboard_folder" in merged_json:
+        meta["name"] = merged_json["keyboard_folder"].split("/")[-1].replace("_", " ").title()
+
+    # Extract USB VID/PID
+    if "usb" in merged_json:
+        meta["vendor_id"] = merged_json["usb"].get("vid", meta["vendor_id"])
+        meta["product_id"] = merged_json["usb"].get("pid", meta["product_id"])
+
+    # Extract MCU / processor
+    if "processor" in merged_json:
+        meta["mcu"] = merged_json["processor"]
+    elif "MCU" in merged_rules:
+        meta["mcu"] = merged_rules["MCU"]
+
+    # Extract bootloader & Flasher Tool
+    if "bootloader" in merged_json:
+        meta["bootloader"] = merged_json["bootloader"]
+    elif "BOOTLOADER" in merged_rules:
+        meta["bootloader"] = merged_rules["BOOTLOADER"]
+
+    # Flasher determination
+    mcu_upper = meta["mcu"].upper()
+    bootloader_lower = (meta["bootloader"] or "").lower()
+    if "WB32" in mcu_upper:
+        meta["flasher"] = "wb32-dfu-updater_cli"
+    elif "RP2040" in mcu_upper or "rp2040" in bootloader_lower:
+        meta["flasher"] = "uf2"
+    elif "caterina" in bootloader_lower:
+        meta["flasher"] = "caterina"
+    elif "bootloadhid" in bootloader_lower or "bootloadhid" in mcu_upper:
+        meta["flasher"] = "bootloadHID"
+    elif "dfu" in bootloader_lower or "STM32" in mcu_upper or "GD32" in mcu_upper:
+        meta["flasher"] = "dfu-util"
+    else:
+        meta["flasher"] = "dfu-util"
+
+    # Layout extraction
+    if "layouts" in merged_json:
+        layouts_dict = merged_json["layouts"]
+        if "LAYOUT_60_ansi" in layouts_dict or "LAYOUT_60_iso" in layouts_dict or "LAYOUT_60" in layouts_dict:
+            meta["layout"] = "60%"
+        elif "LAYOUT_65_ansi" in layouts_dict or "LAYOUT_65_iso" in layouts_dict or "LAYOUT_65" in layouts_dict:
+            meta["layout"] = "65%"
+        elif "LAYOUT_75_ansi" in layouts_dict or "LAYOUT_75_iso" in layouts_dict or "LAYOUT_75" in layouts_dict:
+            meta["layout"] = "75%"
+        elif "LAYOUT_tkl_ansi" in layouts_dict or "LAYOUT_tkl_iso" in layouts_dict or "LAYOUT_tkl" in layouts_dict:
+            meta["layout"] = "80% TKL"
+        elif "LAYOUT_all" in layouts_dict or "LAYOUT" in layouts_dict:
+            meta["layout"] = "Universal"
+
+    # Features detection
+    feat_set = {"nkro", "debounce"}
+    
+    # VIA check: Shard metadata > rules.mk > default True for standard LuxQMK
+    has_via = True
+    if artifacts_meta and stem in artifacts_meta:
+        has_via = artifacts_meta[stem].get("via", True)
+    elif merged_rules.get("VIA_ENABLE") in ("no", "NO", "0"):
+        has_via = False
+    
+    if has_via:
+        feat_set.add("via")
+    meta["via"] = has_via
+
+    # RGB Matrix / Reactive Layers
+    json_feats = merged_json.get("features", {})
+    if json_feats.get("rgb_matrix") is True or "rgb_matrix" in merged_json or merged_rules.get("RGB_MATRIX_ENABLE") in ("yes", "YES", "1"):
+        feat_set.add("rgb_matrix")
+        feat_set.add("reactive_layers")
+
+    # RGBLight
+    if json_feats.get("rgblight") is True or "rgblight" in merged_json or merged_rules.get("RGBLIGHT_ENABLE") in ("yes", "YES", "1"):
+        feat_set.add("rgblight")
+
+    # Encoder
+    if json_feats.get("encoder") is True or "encoder" in merged_json or merged_rules.get("ENCODER_ENABLE") in ("yes", "YES", "1"):
+        feat_set.add("encoder")
+
+    # OLED
+    if json_feats.get("oled") is True or "oled" in merged_json or merged_rules.get("OLED_ENABLE") in ("yes", "YES", "1"):
+        feat_set.add("oled")
+
+    # Audio
+    if json_feats.get("audio") is True or "audio" in merged_json or merged_rules.get("AUDIO_ENABLE") in ("yes", "YES", "1"):
+        feat_set.add("audio")
+
+    # Backlight
+    if json_feats.get("backlight") is True or "backlight" in merged_json or merged_rules.get("BACKLIGHT_ENABLE") in ("yes", "YES", "1"):
+        feat_set.add("backlight")
+
+    meta["features"] = sorted(list(feat_set))
+    return meta
 
 def generate_catalog(artifacts_dir, output_dir, tag_version, repo_slug, base_url=None):
     os.makedirs(output_dir, exist_ok=True)
@@ -231,6 +397,19 @@ def generate_catalog(artifacts_dir, output_dir, tag_version, repo_slug, base_url
         base_url = f"https://files.luxqmk.click/firmware/{tag_version}"
     else:
         base_url = base_url.rstrip("/")
+
+    # Collect build-time metadata from any *.meta.json files in artifacts
+    artifacts_meta = {}
+    for root, _, files in os.walk(artifacts_dir):
+        for file in files:
+            if file.endswith(".meta.json"):
+                mpath = os.path.join(root, file)
+                mstem = file[:-len(".meta.json")]
+                try:
+                    with open(mpath, "r", encoding="utf-8") as mf:
+                        artifacts_meta[mstem] = json.load(mf)
+                except Exception:
+                    pass
 
     entries = []
     candidates = {}
@@ -260,26 +439,31 @@ def generate_catalog(artifacts_dir, output_dir, tag_version, repo_slug, base_url
         sha256_hash = calculate_sha256(filepath)
         file_size = os.path.getsize(filepath)
 
-        # Metadata matching
-        meta = KNOWN_BOARDS.get(stem, {})
-        kb_name = meta.get("name")
-        vid = meta.get("vendor_id")
-        pid = meta.get("product_id")
-        mcu = meta.get("mcu", "ARM Cortex / AVR")
-        flasher = meta.get("flasher", "wb32-dfu-updater_cli" if "WB32" in mcu else ("dfu-util" if file.endswith((".bin", ".hex")) else "uf2"))
-        layout = meta.get("layout", "Universal")
-        tier = meta.get("tier", "luxqmk_generic")
-        features = meta.get("features", ["nkro", "debounce", "rgb_matrix", "reactive_layers"])
-
-        if not kb_name:
-            # Fallback lookup from info.json
-            info = find_info_json(stem, kb_lookup)
-            kb_name = info.get("keyboard_name", stem.replace("_", " ").title())
-            if "usb" in info:
-                vid = info["usb"].get("vid", vid)
-                pid = info["usb"].get("pid", pid)
-            if "processor" in info:
-                mcu = info.get("processor", mcu)
+        # Metadata matching: Tier 1 Known Boards vs Deep Firmware Extractor
+        if stem in KNOWN_BOARDS:
+            meta = KNOWN_BOARDS[stem]
+            kb_name = meta["name"]
+            vid = meta.get("vendor_id")
+            pid = meta.get("product_id")
+            mcu = meta.get("mcu", "ARM Cortex / AVR")
+            flasher = meta.get("flasher", "wb32-dfu-updater_cli" if "WB32" in mcu else ("dfu-util" if file.endswith((".bin", ".hex")) else "uf2"))
+            layout = meta.get("layout", "Universal")
+            tier = meta.get("tier", "luxqmk_enhanced")
+            via = meta.get("via", True)
+            features = list(meta.get("features", ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers"]))
+            if via and "via" not in features:
+                features.append("via")
+        else:
+            extracted = find_keyboard_metadata(stem, kb_lookup, artifacts_meta)
+            kb_name = extracted["name"]
+            vid = extracted["vendor_id"]
+            pid = extracted["product_id"]
+            mcu = extracted["mcu"]
+            flasher = extracted["flasher"]
+            layout = extracted["layout"]
+            tier = extracted["tier"]
+            via = extracted["via"]
+            features = extracted["features"]
 
         entry = {
             "id": stem,
@@ -293,6 +477,7 @@ def generate_catalog(artifacts_dir, output_dir, tag_version, repo_slug, base_url
             "flasher": flasher,
             "layout": layout,
             "tier": tier,
+            "via": via,
             "features": features,
             "file_size_bytes": file_size,
             "sha256": sha256_hash,
@@ -515,7 +700,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate LuxQMK Firmware Catalog")
     parser.add_argument("--artifacts-dir", default=ROOT_DIR, help="Directory containing compiled binaries")
     parser.add_argument("--output-dir", default=os.path.join(ROOT_DIR, "catalog_build"), help="Output directory")
-    parser.add_argument("--tag", default="v0.3.1", help="Release tag version")
+    parser.add_argument("--tag", default="v0.3.2", help="Release tag version")
     parser.add_argument("--repo", default="LuxQMK/qmk_firmware", help="GitHub repo slug")
     parser.add_argument("--base-url", default="https://files.luxqmk.click/firmware", help="Base download URL for binaries")
     args = parser.parse_args()

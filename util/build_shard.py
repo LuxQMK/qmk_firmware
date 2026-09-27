@@ -70,6 +70,12 @@ def compile_target(target: str, artifacts_dir: str, build_dir: str, via_enable: 
 
     if res.returncode == 0:
         found_binaries = collect_binaries(kb_safe, keymap, artifacts_dir, build_dir)
+        meta_file = os.path.join(artifacts_dir, f"{kb_safe}_{keymap}.meta.json")
+        try:
+            with open(meta_file, "w", encoding="utf-8") as mf:
+                json.dump({"keyboard": keyboard, "keymap": keymap, "via": True, "fallback": False}, mf)
+        except Exception:
+            pass
         return target, True, f"Produced {len(found_binaries)} binaries"
     
     # Fallback build attempt: if VIA failed (e.g. flash/eeprom/layer limits), try pure default build
@@ -87,6 +93,12 @@ def compile_target(target: str, artifacts_dir: str, build_dir: str, via_enable: 
             )
             if res_fb.returncode == 0:
                 found_binaries = collect_binaries(kb_safe, keymap, artifacts_dir, build_dir)
+                meta_file = os.path.join(artifacts_dir, f"{kb_safe}_{keymap}.meta.json")
+                try:
+                    with open(meta_file, "w", encoding="utf-8") as mf:
+                        json.dump({"keyboard": keyboard, "keymap": keymap, "via": False, "fallback": True}, mf)
+                except Exception:
+                    pass
                 return target, True, f"Produced {len(found_binaries)} binaries (fallback)"
             else:
                 # Include fallback error info in output
