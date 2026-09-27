@@ -52,7 +52,7 @@ def compile_target(target: str, artifacts_dir: str, build_dir: str, via_enable: 
     cmd = ["qmk", "compile", "-kb", keyboard, "-km", keymap]
     if via_enable:
         cmd.extend(["-e", "VIA_ENABLE=yes"])
-    if ccache_enable:
+    if ccache_enable and shutil.which("ccache"):
         cmd.extend(["-e", "USE_CCACHE=yes"])
         
     try:
@@ -75,7 +75,7 @@ def compile_target(target: str, artifacts_dir: str, build_dir: str, via_enable: 
     # Fallback build attempt: if VIA failed (e.g. flash/eeprom/layer limits), try pure default build
     if via_enable:
         fallback_cmd = ["qmk", "compile", "-kb", keyboard, "-km", keymap]
-        if ccache_enable:
+        if ccache_enable and shutil.which("ccache"):
             fallback_cmd.extend(["-e", "USE_CCACHE=yes"])
         try:
             res_fb = subprocess.run(
