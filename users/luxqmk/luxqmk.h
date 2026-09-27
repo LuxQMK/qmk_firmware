@@ -195,8 +195,8 @@ enum sidelight_effect_mode {
 /**
  * Configurable Hardware DIP / Physical Slider Switches
  */
-#define LUXQMK_MAX_DIP_SWITCHES          2
-#define LUXQMK_MAX_DIP_POSITIONS         3
+#define LUXQMK_MAX_DIP_SWITCHES          1
+#define LUXQMK_MAX_DIP_POSITIONS         2
 
 typedef struct {
     uint8_t target_layer;       // 0..3 = switch default base layer, 0xFF = keep current
@@ -206,7 +206,7 @@ typedef struct {
 } dip_switch_pos_config_t;
 
 typedef struct {
-    dip_switch_pos_config_t pos[LUXQMK_MAX_DIP_POSITIONS]; // pos[0] = Left/Pos1, pos[1] = Center/Pos2, pos[2] = Right/Pos3
+    dip_switch_pos_config_t pos[LUXQMK_MAX_DIP_POSITIONS]; // pos[0] = Mac (Pos 1), pos[1] = Win (Pos 2)
 } dip_switch_config_t;
 
 #define USER_VAL_LUXQMK_VERSION          25
