@@ -99,8 +99,8 @@ uint8_t g_sidelight_density     = 128;
 dip_switch_config_t g_dip_switch_configs[LUXQMK_MAX_DIP_SWITCHES] = {
     {
         .pos = {
-            { .target_layer = 0,    .swap_gui_alt = 0,    .perkey_profile = 0xFF, .win_lock_state = 0xFF }, // Pos 0: Win layout
-            { .target_layer = 2,    .swap_gui_alt = 1,    .perkey_profile = 0xFF, .win_lock_state = 0xFF }  // Pos 1: Mac layout
+            { .target_layer = 2,    .swap_gui_alt = 1,    .perkey_profile = 0xFF, .win_lock_state = 0xFF }, // Pos 0: Left / Mac layout
+            { .target_layer = 0,    .swap_gui_alt = 0,    .perkey_profile = 0xFF, .win_lock_state = 0xFF }  // Pos 1: Right / Win layout
         }
     },
     {
@@ -563,8 +563,8 @@ void luxqmk_eeprom_load(void) {
         g_sidelight_reverse       = false;
         g_sidelight_density       = 128;
 
-        g_dip_switch_configs[0].pos[0] = (dip_switch_pos_config_t){ .target_layer = 0,    .swap_gui_alt = 0,    .perkey_profile = 0xFF, .win_lock_state = 0xFF };
-        g_dip_switch_configs[0].pos[1] = (dip_switch_pos_config_t){ .target_layer = 2,    .swap_gui_alt = 1,    .perkey_profile = 0xFF, .win_lock_state = 0xFF };
+        g_dip_switch_configs[0].pos[0] = (dip_switch_pos_config_t){ .target_layer = 2,    .swap_gui_alt = 1,    .perkey_profile = 0xFF, .win_lock_state = 0xFF };
+        g_dip_switch_configs[0].pos[1] = (dip_switch_pos_config_t){ .target_layer = 0,    .swap_gui_alt = 0,    .perkey_profile = 0xFF, .win_lock_state = 0xFF };
         g_dip_switch_configs[1].pos[0] = (dip_switch_pos_config_t){ .target_layer = 0xFF, .swap_gui_alt = 0xFF, .perkey_profile = 0,    .win_lock_state = 0xFF };
         g_dip_switch_configs[1].pos[1] = (dip_switch_pos_config_t){ .target_layer = 0xFF, .swap_gui_alt = 0xFF, .perkey_profile = 1,    .win_lock_state = 0xFF };
 
