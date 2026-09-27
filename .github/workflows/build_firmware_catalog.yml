@@ -259,16 +259,16 @@ jobs:
       - name: Generate Job Summary Markdown
         run: |
           TAG="${{ github.event.inputs.firmware_tag }}"
-          TOTAL=$(jq '.total_keyboards' dist/firmware/catalog.json 2>/dev/null || echo "N/A")
+          TOTAL=$(jq -r '.total_keyboards // "N/A"' dist/firmware/catalog.json 2>/dev/null || echo "N/A")
           
-          cat << 'EOF' >> $GITHUB_STEP_SUMMARY
+          cat << EOF >> $GITHUB_STEP_SUMMARY
           ## 🚀 LuxQMK Firmware Catalog Build Summary
           
           | Metric | Value |
           | :--- | :--- |
-          | **Scope** | `${{ inputs.target_scope }}` |
-          | **Release Tag** | `${{ inputs.firmware_tag }}` |
-          | **Total Indexed Keyboards** | **$TOTAL** |
+          | **Scope** | \`${{ inputs.target_scope }}\` |
+          | **Release Tag** | \`${{ inputs.firmware_tag }}\` |
+          | **Total Indexed Keyboards** | **${TOTAL}** |
           | **Primary CDN Endpoint** | [files.luxqmk.click/firmware/catalog.json](https://files.luxqmk.click/firmware/catalog.json) |
           | **Latest Tag Endpoint** | [files.luxqmk.click/firmware/${{ inputs.firmware_tag }}/](https://files.luxqmk.click/firmware/${{ inputs.firmware_tag }}/) |
           | **Studio Update Feed** | [files.luxqmk.click/studio/version.json](https://files.luxqmk.click/studio/version.json) |
