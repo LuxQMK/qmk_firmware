@@ -1,6 +1,9 @@
 # LuxQMK Core Engine
 SRC += luxqmk.c
 
+# Enable VIA Dynamic Keymap & WebHID Protocol across all LuxQMK builds
+VIA_ENABLE ?= yes
+
 # Custom Dynamic Eager Debounce Engine
 DEBOUNCE_TYPE = custom
 
