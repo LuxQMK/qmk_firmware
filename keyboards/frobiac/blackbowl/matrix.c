@@ -25,11 +25,11 @@ static bool read_rows_on_col(matrix_row_t current_matrix[], uint8_t current_col)
 
 static uint8_t expander_reset_loop;
 uint8_t        expander_status;
-const uint8_t  expander_input_mask = ((1 << MATRIX_ROWS_PER_SIDE) - 1); // No special mapping, 5 bits [0..4] per side
+#define EXPANDER_INPUT_MASK ((1 << MATRIX_ROWS_PER_SIDE) - 1) // No special mapping, 5 bits [0..4] per side
 bool           i2c_initialized     = false;
 
-static const uint8_t I2C_ADDR_RIGHT = 0x4E;
-static const uint8_t I2C_ADDR_LEFT  = 0x46;
+#define I2C_ADDR_RIGHT 0x4E
+#define I2C_ADDR_LEFT  0x46
 static const uint8_t i2c_addr[]     = {I2C_ADDR_RIGHT, I2C_ADDR_LEFT};
 
 void matrix_init_custom(void) {
@@ -40,8 +40,8 @@ void matrix_init_custom(void) {
 
     // Pin direction and pull-up depends on diode direction and column register:
     // ROW2COL, GPIOA => input, output
-    uint8_t direction[2] = {0, expander_input_mask};
-    uint8_t pullup[2]    = {0, expander_input_mask};
+    uint8_t direction[2] = {0, EXPANDER_INPUT_MASK};
+    uint8_t pullup[2]    = {0, EXPANDER_INPUT_MASK};
 
     for (uint8_t i = 0; i < 2; ++i) {
         expander_status = i2c_write_register(i2c_addr[i], IODIRA, direction, 2, I2C_TIMEOUT);
