@@ -95,6 +95,22 @@ uint8_t g_sidelight_gradient    = GRADIENT_PRESET_RAINBOW;
 bool g_sidelight_reverse        = false;
 uint8_t g_sidelight_density     = 128;
 
+// Hardware DIP / Physical Slider Switches Configuration State
+dip_switch_config_t g_dip_switch_configs[LUXQMK_MAX_DIP_SWITCHES] = {
+    {
+        .pos = {
+            { .target_layer = 0,    .swap_gui_alt = 0,    .perkey_profile = 0xFF, .win_lock_state = 0xFF }, // Pos 0: Win layout
+            { .target_layer = 2,    .swap_gui_alt = 1,    .perkey_profile = 0xFF, .win_lock_state = 0xFF }  // Pos 1: Mac layout
+        }
+    },
+    {
+        .pos = {
+            { .target_layer = 0xFF, .swap_gui_alt = 0xFF, .perkey_profile = 0,    .win_lock_state = 0xFF }, // Pos 0: Profile 1
+            { .target_layer = 0xFF, .swap_gui_alt = 0xFF, .perkey_profile = 1,    .win_lock_state = 0xFF }  // Pos 1: Profile 2
+        }
+    }
+};
+
 #if defined(RGB_MATRIX_ENABLE)
 /**
  * Initialize default gaming profiles for Profile 1 (FPS), Profile 2 (MOBA), Profile 3 (MMO/RPG)
@@ -378,7 +394,7 @@ RGB luxqmk_sample_gradient(uint8_t gradient_id, uint8_t phase) {
  */
 void luxqmk_eeprom_save(void) {
 #if defined(VIA_ENABLE) && defined(VIA_EEPROM_CUSTOM_CONFIG_SIZE)
-    uint8_t header[112];
+    uint8_t header[128];
     memset(header, 0, sizeof(header));
 
     header[0] = g_custom_rgb_reverse ? 1 : 0;
@@ -445,8 +461,22 @@ void luxqmk_eeprom_save(void) {
     header[108] = g_sidelight_reverse ? 1 : 0;
     header[109] = g_sidelight_density;
 
+    // Hardware DIP / Physical Slider Switches Configuration (bytes 110..125)
+    for (uint8_t s = 0; s < LUXQMK_MAX_DIP_SWITCHES; s++) {
+        uint8_t base = 110 + (s * 8);
+        header[base + 0] = g_dip_switch_configs[s].pos[0].target_layer;
+        header[base + 1] = g_dip_switch_configs[s].pos[0].swap_gui_alt;
+        header[base + 2] = g_dip_switch_configs[s].pos[0].perkey_profile;
+        header[base + 3] = g_dip_switch_configs[s].pos[0].win_lock_state;
+
+        header[base + 4] = g_dip_switch_configs[s].pos[1].target_layer;
+        header[base + 5] = g_dip_switch_configs[s].pos[1].swap_gui_alt;
+        header[base + 6] = g_dip_switch_configs[s].pos[1].perkey_profile;
+        header[base + 7] = g_dip_switch_configs[s].pos[1].win_lock_state;
+    }
+
     via_update_custom_config(header, 0, sizeof(header));
-    via_update_custom_config(g_eeprom_per_key_profiles, 112, sizeof(g_eeprom_per_key_profiles));
+    via_update_custom_config(g_eeprom_per_key_profiles, 128, sizeof(g_eeprom_per_key_profiles));
 #endif
 }
 
@@ -455,7 +485,7 @@ void luxqmk_eeprom_save(void) {
  */
 void luxqmk_eeprom_load(void) {
 #if defined(VIA_ENABLE) && defined(VIA_EEPROM_CUSTOM_CONFIG_SIZE)
-    uint8_t header[112];
+    uint8_t header[128];
     via_read_custom_config(header, 0, sizeof(header));
 
     uint8_t rev    = header[0];
@@ -532,6 +562,11 @@ void luxqmk_eeprom_load(void) {
         g_sidelight_gradient      = GRADIENT_PRESET_RAINBOW;
         g_sidelight_reverse       = false;
         g_sidelight_density       = 128;
+
+        g_dip_switch_configs[0].pos[0] = (dip_switch_pos_config_t){ .target_layer = 0,    .swap_gui_alt = 0,    .perkey_profile = 0xFF, .win_lock_state = 0xFF };
+        g_dip_switch_configs[0].pos[1] = (dip_switch_pos_config_t){ .target_layer = 2,    .swap_gui_alt = 1,    .perkey_profile = 0xFF, .win_lock_state = 0xFF };
+        g_dip_switch_configs[1].pos[0] = (dip_switch_pos_config_t){ .target_layer = 0xFF, .swap_gui_alt = 0xFF, .perkey_profile = 0,    .win_lock_state = 0xFF };
+        g_dip_switch_configs[1].pos[1] = (dip_switch_pos_config_t){ .target_layer = 0xFF, .swap_gui_alt = 0xFF, .perkey_profile = 1,    .win_lock_state = 0xFF };
 
 #if defined(RGB_MATRIX_ENABLE)
         luxqmk_init_default_perkey_profiles();
@@ -644,12 +679,39 @@ void luxqmk_eeprom_load(void) {
             g_sidelight_density       = (side_dens == 0xFF || side_dens == 0) ? 128 : side_dens;
         }
 
+        // Hardware DIP / Physical Slider Switches Deserialization (bytes 110..125)
+        for (uint8_t s = 0; s < LUXQMK_MAX_DIP_SWITCHES; s++) {
+            uint8_t base = 110 + (s * 8);
+            uint8_t t0 = header[base + 0];
+            uint8_t m0 = header[base + 1];
+            uint8_t p0 = header[base + 2];
+            uint8_t w0 = header[base + 3];
+
+            uint8_t t1 = header[base + 4];
+            uint8_t m1 = header[base + 5];
+            uint8_t p1 = header[base + 6];
+            uint8_t w1 = header[base + 7];
+
+            if (t0 != 0xFF || m0 != 0xFF || p0 != 0xFF || w0 != 0xFF ||
+                t1 != 0xFF || m1 != 0xFF || p1 != 0xFF || w1 != 0xFF) {
+                g_dip_switch_configs[s].pos[0].target_layer   = t0;
+                g_dip_switch_configs[s].pos[0].swap_gui_alt   = m0;
+                g_dip_switch_configs[s].pos[0].perkey_profile = p0;
+                g_dip_switch_configs[s].pos[0].win_lock_state = w0;
+
+                g_dip_switch_configs[s].pos[1].target_layer   = t1;
+                g_dip_switch_configs[s].pos[1].swap_gui_alt   = m1;
+                g_dip_switch_configs[s].pos[1].perkey_profile = p1;
+                g_dip_switch_configs[s].pos[1].win_lock_state = w1;
+            }
+        }
+
 #if defined(RGB_MATRIX_ENABLE)
         // Per-Key Custom RGB Lighting Profiles Deserialization
         uint8_t active_prof = header[101];
         g_active_perkey_profile = (active_prof < LUXQMK_PERKEY_PROFILES_COUNT) ? active_prof : 0;
 
-        via_read_custom_config(g_per_key_profiles, 112, sizeof(g_per_key_profiles));
+        via_read_custom_config(g_per_key_profiles, 128, sizeof(g_per_key_profiles));
         memcpy(g_eeprom_per_key_profiles, g_per_key_profiles, sizeof(g_per_key_profiles));
 #endif
     }
@@ -657,11 +719,70 @@ void luxqmk_eeprom_load(void) {
 }
 
 /**
+ * Hardware DIP / Physical Slider Switch state apply and init
+ */
+void luxqmk_dip_switch_apply(uint8_t index, bool active) {
+    if (index >= LUXQMK_MAX_DIP_SWITCHES) return;
+    uint8_t pos_idx = active ? 1 : 0;
+    dip_switch_pos_config_t *cfg = &g_dip_switch_configs[index].pos[pos_idx];
+
+    // 1. Layer switching
+    if (cfg->target_layer <= 3) {
+        default_layer_set(1UL << cfg->target_layer);
+    }
+
+    // 2. GUI/Alt Swap (Mac layout modifier swap)
+    if (cfg->swap_gui_alt == 1) {
+        keymap_config.swap_lalt_lgui = 1;
+        eeconfig_update_keymap(&keymap_config);
+    } else if (cfg->swap_gui_alt == 0) {
+        keymap_config.swap_lalt_lgui = 0;
+        eeconfig_update_keymap(&keymap_config);
+    }
+
+    // 3. Per-Key Profile switching
+    if (cfg->perkey_profile <= 2) {
+        g_active_perkey_profile = cfg->perkey_profile;
+    }
+
+    // 4. Win Lock switching
+    if (cfg->win_lock_state == 1) {
+        keymap_config.no_gui = 1;
+        eeconfig_update_keymap(&keymap_config);
+    } else if (cfg->win_lock_state == 0) {
+        keymap_config.no_gui = 0;
+        eeconfig_update_keymap(&keymap_config);
+    }
+}
+
+void luxqmk_dip_switch_init(void) {
+#if defined(DIP_SWITCH_ENABLE)
+    dip_switch_read(true);
+    #if defined(DIP_SWITCH_PINS)
+    static const pin_t dip_pins[] = DIP_SWITCH_PINS;
+    uint8_t num_switches = sizeof(dip_pins) / sizeof(pin_t);
+    for (uint8_t i = 0; i < num_switches && i < LUXQMK_MAX_DIP_SWITCHES; i++) {
+        bool active = (gpio_read_pin(dip_pins[i]) == 0);
+        luxqmk_dip_switch_apply(i, active);
+    }
+    #endif
+#endif
+}
+
+#if defined(DIP_SWITCH_ENABLE)
+bool dip_switch_update_user(uint8_t index, bool active) {
+    luxqmk_dip_switch_apply(index, active);
+    return true;
+}
+#endif
+
+/**
  * QMK keyboard post-initialization hook
  */
 void keyboard_post_init_user(void) {
     board_init();
     luxqmk_eeprom_load();
+    luxqmk_dip_switch_init();
 }
 
 /**
@@ -919,6 +1040,9 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                         caps |= LUXQMK_CAP_SIDELIGHTS;
                     }
 #endif
+#if defined(DIP_SWITCH_ENABLE) && defined(DIP_SWITCH_PINS)
+                    caps |= LUXQMK_CAP_DIP_SWITCHES;
+#endif
                     data[6] = (uint8_t)(caps & 0xFF);
                     data[7] = (uint8_t)((caps >> 8) & 0xFF);
                 }
@@ -1172,6 +1296,65 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
 #endif
                 }
                 return;
+
+            case USER_VAL_DIP_SWITCH_COUNT:
+                if (*command_id == id_custom_get_value) {
+#if defined(DIP_SWITCH_ENABLE) && defined(DIP_SWITCH_PINS)
+                    static const pin_t dip_pins[] = DIP_SWITCH_PINS;
+                    data[3] = sizeof(dip_pins) / sizeof(pin_t);
+#else
+                    data[3] = 0;
+#endif
+                }
+                return;
+
+            case USER_VAL_DIP_SWITCH_STATE:
+                if (*command_id == id_custom_get_value) {
+#if defined(DIP_SWITCH_ENABLE) && defined(DIP_SWITCH_PINS)
+                    uint8_t sw_idx = data[3];
+                    static const pin_t dip_pins[] = DIP_SWITCH_PINS;
+                    uint8_t num_switches = sizeof(dip_pins) / sizeof(pin_t);
+                    if (sw_idx < num_switches) {
+                        data[4] = (gpio_read_pin(dip_pins[sw_idx]) == 0) ? 1 : 0;
+                    } else {
+                        data[4] = 0;
+                    }
+#else
+                    data[4] = 0;
+#endif
+                }
+                return;
+
+            case USER_VAL_DIP_SWITCH_GET_POS: {
+                uint8_t sw_idx  = (data[3] >= LUXQMK_MAX_DIP_SWITCHES) ? 0 : data[3];
+                uint8_t pos_idx = (data[4] >= 2) ? 0 : data[4];
+                if (*command_id == id_custom_get_value) {
+                    data[5] = g_dip_switch_configs[sw_idx].pos[pos_idx].target_layer;
+                    data[6] = g_dip_switch_configs[sw_idx].pos[pos_idx].swap_gui_alt;
+                    data[7] = g_dip_switch_configs[sw_idx].pos[pos_idx].perkey_profile;
+                    data[8] = g_dip_switch_configs[sw_idx].pos[pos_idx].win_lock_state;
+                }
+                return;
+            }
+
+            case USER_VAL_DIP_SWITCH_SET_POS: {
+                uint8_t sw_idx  = (data[3] >= LUXQMK_MAX_DIP_SWITCHES) ? 0 : data[3];
+                uint8_t pos_idx = (data[4] >= 2) ? 0 : data[4];
+                if (*command_id == id_custom_set_value) {
+                    g_dip_switch_configs[sw_idx].pos[pos_idx].target_layer   = data[5];
+                    g_dip_switch_configs[sw_idx].pos[pos_idx].swap_gui_alt   = data[6];
+                    g_dip_switch_configs[sw_idx].pos[pos_idx].perkey_profile = data[7];
+                    g_dip_switch_configs[sw_idx].pos[pos_idx].win_lock_state = data[8];
+                }
+                return;
+            }
+
+            case USER_VAL_DIP_SWITCH_SAVE_EEPROM: {
+                if (*command_id == id_custom_set_value) {
+                    luxqmk_eeprom_save();
+                }
+                return;
+            }
 
             case USER_VAL_RELOAD_EEPROM: {
                 if (*command_id == id_custom_set_value) {

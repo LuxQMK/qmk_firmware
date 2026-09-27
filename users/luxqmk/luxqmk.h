@@ -176,8 +176,8 @@ enum sidelight_effect_mode {
  */
 #define LUXQMK_VERSION_MAJOR             0
 #define LUXQMK_VERSION_MINOR             3
-#define LUXQMK_VERSION_PATCH             2
-#define LUXQMK_VERSION_STRING            "0.3.2"
+#define LUXQMK_VERSION_PATCH             3
+#define LUXQMK_VERSION_STRING            "0.3.3"
 
 #define LUXQMK_CAP_REACTIVE_OVERLAY      (1 << 0)
 #define LUXQMK_CAP_DIRECTION_REVERSE     (1 << 1)
@@ -190,6 +190,23 @@ enum sidelight_effect_mode {
 #define LUXQMK_CAP_SIDELIGHTS            (1 << 8)
 #define LUXQMK_CAP_PERKEY_PROFILES       (1 << 9)
 #define LUXQMK_CAP_NKRO                  (1 << 10)
+#define LUXQMK_CAP_DIP_SWITCHES          (1 << 11)
+
+/**
+ * Configurable Hardware DIP / Physical Slider Switches
+ */
+#define LUXQMK_MAX_DIP_SWITCHES          2
+
+typedef struct {
+    uint8_t target_layer;       // 0..3 = switch default base layer, 0xFF = keep current
+    uint8_t swap_gui_alt;       // 0 = Normal (Win), 1 = Swap Alt ↔ Win (Mac), 0xFF = keep current
+    uint8_t perkey_profile;     // 0..2 = Per-Key RGB Profile 1..3, 0xFF = keep current
+    uint8_t win_lock_state;     // 0 = Win Lock OFF, 1 = Win Lock ON, 0xFF = keep current
+} dip_switch_pos_config_t;
+
+typedef struct {
+    dip_switch_pos_config_t pos[2]; // pos[0] = Inactive (Left/Off), pos[1] = Active (Right/On)
+} dip_switch_config_t;
 
 #define USER_VAL_LUXQMK_VERSION          25
 #define USER_VAL_QMK_VERSION             26
@@ -217,6 +234,12 @@ enum sidelight_effect_mode {
 #define USER_VAL_SIDELIGHT_REVERSE       48
 #define USER_VAL_SIDELIGHT_DENSITY       49
 #define USER_VAL_NKRO_STATE              50
+
+#define USER_VAL_DIP_SWITCH_COUNT        51
+#define USER_VAL_DIP_SWITCH_STATE        52
+#define USER_VAL_DIP_SWITCH_GET_POS      53
+#define USER_VAL_DIP_SWITCH_SET_POS      54
+#define USER_VAL_DIP_SWITCH_SAVE_EEPROM  55
 
 #define USER_VAL_BOOTLOADER_JUMP         0xFE
 
@@ -265,6 +288,8 @@ extern uint8_t g_sidelight_gradient;
 extern bool g_sidelight_reverse;
 extern uint8_t g_sidelight_density;
 
+extern dip_switch_config_t g_dip_switch_configs[LUXQMK_MAX_DIP_SWITCHES];
+
 /**
  * LuxQMK core function declarations
  */
@@ -274,6 +299,8 @@ void luxqmk_eeprom_reload(void);
 bool process_record_user_custom(uint16_t keycode, keyrecord_t *record);
 
 RGB luxqmk_sample_gradient(uint8_t gradient_id, uint8_t phase);
+void luxqmk_dip_switch_apply(uint8_t index, bool active);
+void luxqmk_dip_switch_init(void);
 
 /**
  * Board-specific hardware module interface

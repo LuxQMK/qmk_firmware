@@ -14,7 +14,7 @@
 #if defined(__AVR__)
 #    define VIA_EEPROM_CUSTOM_CONFIG_SIZE 32
 #else
-#    define VIA_EEPROM_CUSTOM_CONFIG_SIZE 1408
+#    define VIA_EEPROM_CUSTOM_CONFIG_SIZE 1536
 #endif
 
 // Expand wear leveling SPI Flash allocation on ARM to accommodate custom EEPROM + dynamic keymap & macros
