@@ -164,14 +164,15 @@ jobs:
             --output-targets-file shard_targets.txt
             
           target_count=$(wc -w < shard_targets.txt 2>/dev/null || echo "0")
+          parallel_threads="${{ matrix.pool == 'oci' && 1 || 2 }}"
           echo "=========================================================="
-          echo "Starting Mass Compilation for ${{ matrix.name }}: $target_count keyboards"
+          echo "Starting Mass Compilation for ${{ matrix.name }} (${{ matrix.pool }}): $target_count keyboards with $parallel_threads compiler threads"
           echo "=========================================================="
           
           if [ "$target_count" -gt 0 ]; then
             python3 util/build_shard.py \
               --targets-file shard_targets.txt \
-              --parallel $(nproc) \
+              --parallel "$parallel_threads" \
               --artifacts-dir artifacts \
               --build-dir .build || true
           else
