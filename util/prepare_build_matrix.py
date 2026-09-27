@@ -110,13 +110,13 @@ def get_shard_targets(scope, shard_id, shard_count):
     selected = [t for i, t in enumerate(all_targets) if (i % shard_count) == shard_idx]
     return selected
 
-MAX_OCI_WORKERS = 8
+MAX_OCI_WORKERS = 4
 
 def get_runner_for_job(idx, pool="hybrid", max_oci_workers=MAX_OCI_WORKERS):
     """
     Returns runner labels and pool identifier based on allocation strategy.
     In hybrid mode:
-    - First N jobs (up to MAX_OCI_WORKERS=8) are allocated to dedicated OCI cloud nodes.
+    - First N jobs (up to MAX_OCI_WORKERS=4) are allocated to dedicated 1:1 OCI cloud nodes.
     - All remaining jobs (up to 20) are allocated to GitHub-hosted runners (ubuntu-latest).
     This guarantees 100% immediate parallel job execution across both clusters with zero queue wait.
     """

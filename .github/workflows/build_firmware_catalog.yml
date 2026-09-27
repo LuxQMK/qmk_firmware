@@ -19,19 +19,18 @@ on:
         required: false
         type: choice
         options:
-          - '28'
           - '24'
           - '20'
           - '16'
           - '12'
           - '8'
-        default: '28'
+        default: '24'
       runner_pool:
         description: 'Runner Execution Pool'
         required: true
         type: choice
         options:
-          - 'hybrid'          # Hybrid: OCI Self-Hosted (8x) + GitHub Actions (Parallel)
+          - 'hybrid'          # Hybrid: OCI Dedicated Nodes (4x) + GitHub Actions (20x Parallel)
           - 'oci_only'        # Dedicated OCI Cloud Nodes only (self-hosted, oci-builder)
           - 'github_only'     # GitHub-Hosted Runners only (ubuntu-latest)
         default: 'hybrid'
@@ -67,6 +66,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -105,6 +106,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
+          fetch-depth: 1
           submodules: recursive
 
       - name: Setup Compiler & QMK Environment
