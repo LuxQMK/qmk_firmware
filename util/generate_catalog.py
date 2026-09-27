@@ -391,12 +391,27 @@ def generate_redirect_assets(output_dir):
     with open(redirects_file, "w", encoding="utf-8") as f:
         f.write(redirect_rules)
 
-    # 2. Cloudflare Pages _headers for CORS
+    # 2. Cloudflare Pages _headers for CORS and binary downloads
     headers_content = (
         "/*\n"
         "  Access-Control-Allow-Origin: *\n"
         "  Access-Control-Allow-Methods: GET, HEAD, OPTIONS\n"
-        "  Access-Control-Allow-Headers: *\n"
+        "  Access-Control-Allow-Headers: *\n\n"
+        "/firmware/*\n"
+        "  Access-Control-Allow-Origin: *\n"
+        "  Content-Disposition: attachment\n\n"
+        "/firmware/*/*\n"
+        "  Access-Control-Allow-Origin: *\n"
+        "  Content-Disposition: attachment\n\n"
+        "/*.bin\n"
+        "  Content-Type: application/octet-stream\n"
+        "  Content-Disposition: attachment\n\n"
+        "/*.hex\n"
+        "  Content-Type: application/octet-stream\n"
+        "  Content-Disposition: attachment\n\n"
+        "/*.uf2\n"
+        "  Content-Type: application/octet-stream\n"
+        "  Content-Disposition: attachment\n"
     )
     headers_file = os.path.join(output_dir, "_headers")
     with open(headers_file, "w", encoding="utf-8") as f:
