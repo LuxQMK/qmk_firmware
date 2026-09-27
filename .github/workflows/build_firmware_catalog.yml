@@ -19,11 +19,13 @@ on:
         required: false
         type: choice
         options:
-          - '16'
+          - '28'
+          - '24'
           - '20'
+          - '16'
           - '12'
           - '8'
-        default: '16'
+        default: '28'
       runner_pool:
         description: 'Runner Execution Pool'
         required: true
