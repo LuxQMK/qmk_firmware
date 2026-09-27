@@ -63,6 +63,27 @@ def find_keyboards(keymap_name):
     
     return find_keyboards_with_keymap_filesystem(keymap_name)
 
+def find_all_targets(preferred_keymap="via", fallback_keymap="default"):
+    """
+    Finds all keyboard targets in the repository.
+    For each keyboard:
+    - If `preferred_keymap` exists in its keymaps, use `kb:preferred_keymap`
+    - Otherwise, use `kb:fallback_keymap`
+    """
+    preferred_set = set(find_keyboards_with_keymap_filesystem(preferred_keymap))
+    fallback_set = set(find_keyboards_with_keymap_filesystem(fallback_keymap))
+    
+    all_kbs = sorted(list(preferred_set | fallback_set))
+    
+    targets = []
+    for kb in all_kbs:
+        if kb in preferred_set:
+            targets.append(f"{kb}:{preferred_keymap}")
+        else:
+            targets.append(f"{kb}:{fallback_keymap}")
+            
+    return targets
+
 def generate_matrix(scope, shard_count=16):
     shard_count = max(1, int(shard_count))
     
@@ -73,22 +94,23 @@ def generate_matrix(scope, shard_count=16):
     elif scope == "tier1_all":
         targets = GMMK3_TARGETS + GMMK2_TARGETS
     elif scope in ("all_via", "all_keyboards"):
-        km = "via" if scope == "all_via" else "default"
-        found_kbs = find_keyboards(km)
+        # Mass compile all ~3,400 keyboards in the QMK ecosystem
+        # Prefers 'via' keymaps for boards with custom VIA support, falling back to 'default'
+        found_targets = find_all_targets(preferred_keymap="via", fallback_keymap="default")
         
-        if not found_kbs:
+        if not found_targets:
             # Fallback if no targets found
-            print(f"[!] Warning: No keyboards found for keymap '{km}'. Falling back to Tier 1.", file=sys.stderr)
+            print(f"[!] Warning: No keyboards found. Falling back to Tier 1.", file=sys.stderr)
             targets = GMMK3_TARGETS + GMMK2_TARGETS
         else:
             # Reproducibly shuffle to balance heavy ARM vs light AVR builds across shards
             random.seed(42)
-            random.shuffle(found_kbs)
+            random.shuffle(found_targets)
             
             # Divide into balanced shards
             shards = [[] for _ in range(shard_count)]
-            for i, kb in enumerate(found_kbs):
-                shards[i % shard_count].append(f"{kb}:{km}")
+            for i, target_str in enumerate(found_targets):
+                shards[i % shard_count].append(target_str)
             
             targets = []
             for idx, shard_items in enumerate(shards, 1):
@@ -98,7 +120,7 @@ def generate_matrix(scope, shard_count=16):
                     "mode": "shard",
                     "name": f"group-{idx:02d}",
                     "shard_id": f"{idx:02d}",
-                    "keymap": km,
+                    "keymap": "via/default",
                     "count": len(shard_items),
                     "targets": " ".join(shard_items)
                 })

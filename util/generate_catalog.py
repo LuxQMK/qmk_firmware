@@ -180,7 +180,37 @@ def calculate_sha256(filepath):
             sha.update(chunk)
     return sha.hexdigest()
 
-def find_info_json(kb_target):
+def build_keyboard_lookup():
+    """
+    Pre-indexes normalized keyboard path stems to their directory paths for fast O(1) matching.
+    """
+    lookup = {}
+    for root, _, _ in os.walk(KEYBOARDS_DIR):
+        rel = os.path.relpath(root, KEYBOARDS_DIR)
+        normalized = rel.replace(os.sep, "_").replace("/", "_")
+        lookup[normalized] = root
+    return lookup
+
+def find_info_json(kb_target, kb_lookup=None):
+    # 1. Try direct match in pre-indexed keyboard lookup (strip _default / _via / _vial suffix)
+    if kb_lookup:
+        for suffix in ("_via", "_default", "_ansi", "_iso", "_vial"):
+            if kb_target.endswith(suffix):
+                stem_candidate = kb_target[:-len(suffix)]
+                if stem_candidate in kb_lookup:
+                    candidate_dir = kb_lookup[stem_candidate]
+                    cur = candidate_dir
+                    while cur and cur != os.path.dirname(KEYBOARDS_DIR):
+                        cand_info = os.path.join(cur, "info.json")
+                        if os.path.exists(cand_info):
+                            try:
+                                with open(cand_info, "r", encoding="utf-8") as f:
+                                    return json.load(f)
+                            except Exception:
+                                pass
+                        cur = os.path.dirname(cur)
+
+    # 2. Fallback split logic
     parts = kb_target.replace("-", "/").split("_")
     for i in range(len(parts), 0, -1):
         candidate_path = os.path.join(KEYBOARDS_DIR, *parts[:i], "info.json")
@@ -194,6 +224,7 @@ def find_info_json(kb_target):
 
 def generate_catalog(artifacts_dir, output_dir, tag_version, repo_slug, base_url=None):
     os.makedirs(output_dir, exist_ok=True)
+    kb_lookup = build_keyboard_lookup()
     
     # Base URL for direct binary downloads on files.luxqmk.click/firmware
     if not base_url:
@@ -242,7 +273,7 @@ def generate_catalog(artifacts_dir, output_dir, tag_version, repo_slug, base_url
 
         if not kb_name:
             # Fallback lookup from info.json
-            info = find_info_json(stem)
+            info = find_info_json(stem, kb_lookup)
             kb_name = info.get("keyboard_name", stem.replace("_", " ").title())
             if "usb" in info:
                 vid = info["usb"].get("vid", vid)
