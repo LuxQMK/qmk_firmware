@@ -735,7 +735,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate LuxQMK Firmware Catalog")
     parser.add_argument("--artifacts-dir", default=ROOT_DIR, help="Directory containing compiled binaries")
     parser.add_argument("--output-dir", default=os.path.join(ROOT_DIR, "catalog_build"), help="Output directory")
-    parser.add_argument("--tag", default="v0.3.2", help="Release tag version")
+    parser.add_argument("--tag", default="v0.3.3", help="Release tag version")
     parser.add_argument("--repo", default="LuxQMK/qmk_firmware", help="GitHub repo slug")
     parser.add_argument("--base-url", default="https://files.luxqmk.click/firmware", help="Base download URL for binaries")
     args = parser.parse_args()

@@ -1,4 +1,4 @@
-# LuxQMK Userspace Engine (v0.3.2)
+# LuxQMK Userspace Engine (v0.3.3)
 
 Dedicated QMK Userspace architecture for **LuxQMK**, providing native out-of-the-box VIA support (`VIA_ENABLE = yes`), modular hardware abstraction, dual-layer reactive RGB matrix lighting, custom VIA/WebHID channels, multi-stop gradient sampling, real-time configurable debouncing, forced boot NKRO, and atomic direct lighting double-buffering.
 
