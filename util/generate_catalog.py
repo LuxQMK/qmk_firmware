@@ -513,23 +513,58 @@ def generate_catalog(artifacts_dir, output_dir, tag_version, repo_slug, base_url
     # Generate Cloudflare Pages redirect assets and index.html fallback
     generate_redirect_assets(output_dir)
 
-def generate_studio_manifest(output_dir, release_tag):
+def get_latest_studio_version_info():
+    """
+    Fetches the latest official LuxQMK Studio release tag from GitHub API,
+    or falls back to reading luxqmk_studio/package.json.
+    """
+    try:
+        import urllib.request
+        req = urllib.request.Request(
+            "https://api.github.com/repos/LuxQMK/luxqmk_studio/releases/latest",
+            headers={"User-Agent": "LuxQMK-Catalog-Generator"}
+        )
+        with urllib.request.urlopen(req, timeout=5) as response:
+            if response.status == 200:
+                data = json.loads(response.read().decode("utf-8"))
+                tag = data.get("tag_name", "v1.4.1")
+                return tag
+    except Exception:
+        pass
+
+    # Fallback to local package.json if present
+    pkg_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "luxqmk_studio", "package.json"))
+    if os.path.exists(pkg_path):
+        try:
+            with open(pkg_path, "r", encoding="utf-8") as f:
+                pkg = json.load(f)
+                ver = pkg.get("version", "1.4.1").replace("-dev", "")
+                return f"v{ver}"
+        except Exception:
+            pass
+
+    return "v1.4.1"
+
+
+def generate_studio_manifest(output_dir, release_tag=None):
     """
     Generates studio/version.json manifest for LuxQMK Studio OTA update detection.
+    Resolves the actual LuxQMK Studio application release version.
     """
-    clean_version = release_tag.lstrip("v")
+    studio_tag = get_latest_studio_version_info()
+    clean_version = studio_tag.lstrip("v")
     studio_dir = os.path.join(output_dir, "studio")
     os.makedirs(studio_dir, exist_ok=True)
 
     studio_data = {
         "version": clean_version,
-        "release_tag": release_tag,
-        "release_name": f"LuxQMK Studio {release_tag}",
+        "release_tag": studio_tag,
+        "release_name": f"LuxQMK Studio {studio_tag}",
         "release_date": datetime.now(timezone.utc).isoformat(),
-        "min_compatible_firmware": clean_version,
+        "min_compatible_firmware": "0.3.2",
         "changelog": [],
         "downloads": {
-            "windows_installer": f"https://files.luxqmk.click/studio/{release_tag}/LuxQMK-Studio-Setup-{clean_version}.exe",
+            "windows_installer": f"https://github.com/LuxQMK/luxqmk_studio/releases/download/{studio_tag}/LuxQMK-Studio-Setup-{clean_version}.exe",
             "web_app": "https://studio.luxqmk.click"
         }
     }
@@ -552,7 +587,7 @@ def generate_studio_manifest(output_dir, release_tag):
         with open(os.path.join(parent_studio_dir, "latest.json"), "w", encoding="utf-8") as f:
             json.dump(studio_data, f, indent=2)
 
-    print(f"[+] Generated studio update manifest at {studio_version_path}")
+    print(f"[+] Generated studio update manifest at {studio_version_path} (Studio version: {clean_version})")
 
 def generate_redirect_assets(output_dir):
     """
