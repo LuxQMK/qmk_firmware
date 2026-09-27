@@ -30,6 +30,8 @@ on:
           - '16'
           - '12'
           - '8'
+          - '4'
+          - '1'
         default: '24'
       runner_pool:
         description: 'Runner Execution Pool'
