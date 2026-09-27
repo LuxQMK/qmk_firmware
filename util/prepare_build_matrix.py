@@ -2,6 +2,8 @@
 """
 LuxQMK Firmware Build Matrix Generator
 Generates GitHub Actions matrix JSON for targeted or mass parallelized keyboard compilation.
+Supports deterministic sharding so matrix JSON remains lightweight while runners dynamically
+slice the targets.
 """
 
 import os
@@ -84,6 +86,27 @@ def find_all_targets(preferred_keymap="via", fallback_keymap="default"):
             
     return targets
 
+def get_deterministic_targets(scope):
+    if scope in ("all_via", "all_keyboards"):
+        targets = find_all_targets(preferred_keymap="via", fallback_keymap="default")
+        random.seed(42)
+        random.shuffle(targets)
+        return targets
+    elif scope == "gmmk3_only":
+        return [f"{t['kb']}:{t['km']}" for t in GMMK3_TARGETS]
+    elif scope == "gmmk2_only":
+        return [f"{t['kb']}:{t['km']}" for t in GMMK2_TARGETS]
+    else:
+        return [f"{t['kb']}:{t['km']}" for t in (GMMK3_TARGETS + GMMK2_TARGETS)]
+
+def get_shard_targets(scope, shard_id, shard_count):
+    all_targets = get_deterministic_targets(scope)
+    shard_count = max(1, int(shard_count))
+    shard_idx = max(0, int(shard_id) - 1)
+    
+    selected = [t for i, t in enumerate(all_targets) if (i % shard_count) == shard_idx]
+    return selected
+
 def generate_matrix(scope, shard_count=16):
     shard_count = max(1, int(shard_count))
     
@@ -94,33 +117,21 @@ def generate_matrix(scope, shard_count=16):
     elif scope == "tier1_all":
         targets = GMMK3_TARGETS + GMMK2_TARGETS
     elif scope in ("all_via", "all_keyboards"):
-        # Mass compile all ~3,400 keyboards with VIA support across 16 parallel runner shards
-        found_targets = find_all_targets(preferred_keymap="via", fallback_keymap="default")
+        # Matrix output stays ultra-lightweight (< 1 KB) to avoid GitHub Actions buffer limits.
+        # Targets are dynamically sliced by runners using deterministic random seed 42.
+        all_targets = get_deterministic_targets(scope)
+        total_kbs = len(all_targets)
         
-        if not found_targets:
-            targets = GMMK3_TARGETS + GMMK2_TARGETS
-        else:
-            # Reproducibly shuffle to balance heavy ARM vs light AVR builds across shards
-            random.seed(42)
-            random.shuffle(found_targets)
-            
-            # Divide into balanced shards
-            shards = [[] for _ in range(shard_count)]
-            for i, target_str in enumerate(found_targets):
-                shards[i % shard_count].append(target_str)
-            
-            targets = []
-            for idx, shard_items in enumerate(shards, 1):
-                if not shard_items:
-                    continue
-                targets.append({
-                    "mode": "shard",
-                    "name": f"group-{idx:02d}",
-                    "shard_id": f"{idx:02d}",
-                    "keymap": "via/default",
-                    "count": len(shard_items),
-                    "targets": " ".join(shard_items)
-                })
+        targets = []
+        for idx in range(1, shard_count + 1):
+            targets.append({
+                "mode": "shard",
+                "name": f"group-{idx:02d}",
+                "shard_id": idx,
+                "total_shards": shard_count,
+                "keymap": "via/default",
+                "estimated_count": round(total_kbs / shard_count)
+            })
     else:
         # Default fallback to Tier 1
         targets = GMMK3_TARGETS + GMMK2_TARGETS
@@ -133,24 +144,40 @@ def main():
     parser.add_argument("--shards", default=16, type=int, help="Number of shards for mass compilation")
     parser.add_argument("--github-output", default=None, help="Path to GITHUB_OUTPUT file")
     parser.add_argument("--output-json", default=None, help="Optional output JSON file")
+    parser.add_argument("--get-shard-targets", action="store_true", help="Retrieve targets for a specific shard ID")
+    parser.add_argument("--shard-id", type=int, default=1, help="Shard ID (1-indexed)")
+    parser.add_argument("--output-targets-file", default=None, help="File to write shard targets to")
     
     args = parser.parse_args()
+
+    if args.get_shard_targets:
+        shard_targets = get_shard_targets(args.scope, args.shard_id, args.shards)
+        targets_str = " ".join(shard_targets)
+        if args.output_targets_file:
+            with open(args.output_targets_file, "w", encoding="utf-8") as f:
+                f.write(targets_str)
+            print(f"[+] Written {len(shard_targets)} targets for shard {args.shard_id}/{args.shards} to {args.output_targets_file}")
+        else:
+            print(targets_str)
+        return
+
     matrix_data = generate_matrix(args.scope, args.shards)
     compact_json = json.dumps(matrix_data, separators=(",", ":"))
     
     total_entries = len(matrix_data["include"])
     print(f"[+] Prepared build matrix: scope='{args.scope}', shards={args.shards}, total_jobs={total_entries}")
     if matrix_data["include"] and matrix_data["include"][0].get("mode") == "shard":
-        total_kbs = sum(item.get("count", 0) for item in matrix_data["include"])
-        print(f"[+] Total keyboards distributed: {total_kbs} across {total_entries} runner shards")
+        all_targets = get_deterministic_targets(args.scope)
+        print(f"[+] Total keyboards distributed: {len(all_targets)} across {total_entries} runner shards")
 
     if args.output_json:
         with open(args.output_json, "w", encoding="utf-8") as f:
             json.dump(matrix_data, f, indent=2)
 
     if args.github_output:
+        delimiter = f"EOF_MATRIX_{os.urandom(6).hex()}"
         with open(args.github_output, "a", encoding="utf-8") as f:
-            f.write(f"matrix={compact_json}\n")
+            f.write(f"matrix<<{delimiter}\n{compact_json}\n{delimiter}\n")
     else:
         print(compact_json)
 

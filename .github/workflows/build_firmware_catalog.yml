@@ -126,18 +126,28 @@ jobs:
         if: matrix.mode == 'shard'
         run: |
           mkdir -p artifacts
-          targets="${{ matrix.targets }}"
-          if [ -z "$targets" ]; then
-            echo "No targets assigned to this shard."
-            exit 0
-          fi
+          echo "=========================================================="
+          echo "Preparing Target List for ${{ matrix.name }} (Shard ${{ matrix.shard_id }}/${{ matrix.total_shards }})"
+          echo "=========================================================="
           
-          target_count=$(echo $targets | wc -w)
+          python3 util/prepare_build_matrix.py \
+            --scope "${{ inputs.target_scope }}" \
+            --shards "${{ matrix.total_shards }}" \
+            --get-shard-targets \
+            --shard-id "${{ matrix.shard_id }}" \
+            --output-targets-file shard_targets.txt
+            
+          target_count=$(wc -w < shard_targets.txt 2>/dev/null || echo "0")
           echo "=========================================================="
           echo "Starting Mass Compilation for ${{ matrix.name }}: $target_count keyboards"
           echo "=========================================================="
           
-          qmk mass-compile -t -j $(nproc) -p -e VIA_ENABLE=yes -e USE_CCACHE=yes $targets || true
+          if [ "$target_count" -gt 0 ]; then
+            targets_list=$(cat shard_targets.txt)
+            qmk mass-compile -t -j $(nproc) -p -e VIA_ENABLE=yes -e USE_CCACHE=yes $targets_list || true
+          else
+            echo "No targets found for shard ${{ matrix.name }}."
+          fi
           
           find . -maxdepth 1 -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} artifacts/ \; 2>/dev/null || true
           find .build -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} artifacts/ \; 2>/dev/null || true

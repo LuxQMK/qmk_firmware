@@ -93,6 +93,23 @@ def process_shard(build_dir: str, artifacts_dir: str, output_dir: str, shard_nam
             "log_file": log_out_name
         })
 
+    # If no binaries were produced and no failed.log was caught, register target as failed
+    if len(compiled_binaries) == 0 and len(failures) == 0 and shard_name != "unknown":
+        target_name = shard_name
+        failed_targets_list.append(target_name)
+        log_out_name = f"{shard_name}.log"
+        with open(os.path.join(logs_dir, log_out_name), "w", encoding="utf-8") as f:
+            f.write(f"Target {shard_name} failed to produce any binary output.\n")
+
+        failures.append({
+            "target": target_name,
+            "keyboard": shard_name,
+            "keymap": "via",
+            "category": "Compilation Failed (No Binary)",
+            "snippet": f"Target {shard_name} failed to produce any binary artifact.",
+            "log_file": log_out_name
+        })
+
     # Write failed_keyboards.txt
     failed_targets_list.sort()
     with open(os.path.join(output_dir, "failed_keyboards.txt"), "w", encoding="utf-8") as f:
