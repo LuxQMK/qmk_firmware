@@ -8,6 +8,8 @@ the rest of the shard, and captures exact compiler output into .build/failed.log
 
 import os
 import sys
+import time
+import json
 import glob
 import shutil
 import argparse
@@ -40,9 +42,10 @@ def collect_binaries(kb_safe: str, keymap: str, artifacts_dir: str, build_dir: s
     return list(set(found_binaries))
 
 def compile_target(target: str, artifacts_dir: str, build_dir: str, via_enable: bool = True, ccache_enable: bool = True):
+    t_start = time.time()
     parts = target.strip().split(":")
     if len(parts) < 2:
-        return target, False, "Invalid target format (expected keyboard:keymap)"
+        return target, False, "Invalid target format (expected keyboard:keymap)", 0.0
     
     keyboard = parts[0]
     keymap = parts[1]
@@ -68,6 +71,8 @@ def compile_target(target: str, artifacts_dir: str, build_dir: str, via_enable: 
         output = f"Failed to execute qmk command: {e}"
         res = subprocess.CompletedProcess(args=cmd, returncode=1)
 
+    duration = time.time() - t_start
+
     if res.returncode == 0:
         found_binaries = collect_binaries(kb_safe, keymap, artifacts_dir, build_dir)
         meta_file = os.path.join(artifacts_dir, f"{kb_safe}_{keymap}.meta.json")
@@ -76,7 +81,7 @@ def compile_target(target: str, artifacts_dir: str, build_dir: str, via_enable: 
                 json.dump({"keyboard": keyboard, "keymap": keymap, "via": True, "fallback": False}, mf)
         except Exception:
             pass
-        return target, True, f"Produced {len(found_binaries)} binaries"
+        return target, True, f"Produced {len(found_binaries)} binaries", duration
     
     # Fallback build attempt: if VIA failed (e.g. flash/eeprom/layer limits), try pure default build
     if via_enable:
@@ -91,6 +96,7 @@ def compile_target(target: str, artifacts_dir: str, build_dir: str, via_enable: 
                 text=True,
                 check=False
             )
+            duration = time.time() - t_start
             if res_fb.returncode == 0:
                 found_binaries = collect_binaries(kb_safe, keymap, artifacts_dir, build_dir)
                 meta_file = os.path.join(artifacts_dir, f"{kb_safe}_{keymap}.meta.json")
@@ -99,7 +105,7 @@ def compile_target(target: str, artifacts_dir: str, build_dir: str, via_enable: 
                         json.dump({"keyboard": keyboard, "keymap": keymap, "via": False, "fallback": True}, mf)
                 except Exception:
                     pass
-                return target, True, f"Produced {len(found_binaries)} binaries (fallback)"
+                return target, True, f"Produced {len(found_binaries)} binaries (fallback)", duration
             else:
                 # Include fallback error info in output
                 output += "\n--- Fallback Attempt (without VIA) Output ---\n" + (res_fb.stdout or "") + "\n" + (res_fb.stderr or "")
@@ -119,7 +125,7 @@ def compile_target(target: str, artifacts_dir: str, build_dir: str, via_enable: 
     # Extract short error line
     error_lines = [l for l in output.splitlines() if "error" in l.lower() or "overflow" in l.lower() or "assert" in l.lower()]
     snippet = error_lines[-1] if error_lines else "Compilation returned non-zero exit code"
-    return target, False, snippet
+    return target, False, snippet, duration
 
 def main():
     parser = argparse.ArgumentParser(description="LuxQMK Parallel Shard Compilation Engine")
@@ -155,15 +161,16 @@ def main():
             unique_targets.append(clean)
             
     total = len(unique_targets)
-    print(f"[+] Starting parallel shard build: {total} targets with {args.parallel} worker threads.")
+    print(f"[+] Starting parallel shard build: {total} targets with {args.parallel} worker threads.", flush=True)
     
     if total == 0:
-        print("[!] No targets provided.")
+        print("[!] No targets provided.", flush=True)
         return
         
     succeeded = 0
     failed = 0
     completed = 0
+    t_shard_start = time.time()
     
     with ThreadPoolExecutor(max_workers=args.parallel) as executor:
         future_to_target = {
@@ -174,19 +181,25 @@ def main():
         for future in as_completed(future_to_target):
             target = future_to_target[future]
             completed += 1
+            pct = int((completed / total) * 100)
             try:
-                tgt, ok, msg = future.result()
+                tgt, ok, msg, duration = future.result()
                 if ok:
                     succeeded += 1
-                    print(f"[{completed}/{total}] \033[92m[OK]\033[0m {tgt}")
+                    print(f"[{completed:3d}/{total:3d} | {pct:3d}%] \033[92m[OK]\033[0m {tgt} ({duration:.1f}s) -> {msg}", flush=True)
                 else:
                     failed += 1
-                    print(f"[{completed}/{total}] \033[91m[FAILED]\033[0m {tgt} -> {msg[:90]}")
+                    print(f"[{completed:3d}/{total:3d} | {pct:3d}%] \033[91m[FAILED]\033[0m {tgt} ({duration:.1f}s) -> {msg[:90]}", flush=True)
             except Exception as e:
                 failed += 1
-                print(f"[{completed}/{total}] \033[91m[ERROR]\033[0m {target} -> {e}")
+                print(f"[{completed:3d}/{total:3d} | {pct:3d}%] \033[91m[ERROR]\033[0m {target} -> {e}", flush=True)
 
-    print(f"\n[+] Shard build complete: {succeeded}/{total} succeeded, {failed}/{total} failed.")
+            if completed % 25 == 0 or completed == total:
+                elapsed = time.time() - t_shard_start
+                print(f"--- Shard Progress: {completed}/{total} ({pct}%) | Succeeded: {succeeded} | Failed: {failed} | Time: {elapsed:.1f}s ---", flush=True)
+
+    total_time = time.time() - t_shard_start
+    print(f"\n[+] Shard build complete in {total_time:.1f}s: {succeeded}/{total} succeeded, {failed}/{total} failed.", flush=True)
 
 if __name__ == "__main__":
     main()
