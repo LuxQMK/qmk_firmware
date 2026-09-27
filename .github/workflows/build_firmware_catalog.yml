@@ -24,6 +24,15 @@ on:
           - '12'
           - '8'
         default: '16'
+      runner_pool:
+        description: 'Runner Execution Pool'
+        required: true
+        type: choice
+        options:
+          - 'hybrid'          # Hybrid: OCI Self-Hosted (8x) + GitHub Actions (Parallel)
+          - 'oci_only'        # Dedicated OCI Cloud Nodes only (self-hosted, oci-builder)
+          - 'github_only'     # GitHub-Hosted Runners only (ubuntu-latest)
+        default: 'hybrid'
       firmware_tag:
         description: 'Firmware Version Tag (e.g. v0.3.3)'
         required: true
@@ -68,20 +77,20 @@ jobs:
           python3 util/prepare_build_matrix.py \
             --scope "${{ inputs.target_scope }}" \
             --shards "${{ inputs.shard_count }}" \
+            --runner-pool "${{ inputs.runner_pool }}" \
             --github-output "$GITHUB_OUTPUT"
 
   # ---------------------------------------------------------------------------
   # 2. Parallel Firmware Compilation (with Ccache & Multithreading)
   # ---------------------------------------------------------------------------
   build-firmware:
-    name: Compile ${{ matrix.name }}
+    name: Compile ${{ matrix.name }} (${{ matrix.pool }})
     needs: [prepare-matrix]
-    runs-on: ubuntu-latest
-    container: ghcr.io/qmk/qmk_cli:latest
+    runs-on: ${{ matrix.runner }}
     continue-on-error: true
     env:
-      CCACHE_CONFIGPATH: /root/.cache
-      CCACHE_DIR: /root/.cache/ccache
+      CCACHE_CONFIGPATH: ~/.cache
+      CCACHE_DIR: ~/.cache/ccache
 
     strategy:
       fail-fast: false
@@ -96,11 +105,26 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Setup Compiler & QMK Environment
+        run: |
+          if ! command -v qmk &>/dev/null || ! command -v arm-none-eabi-gcc &>/dev/null; then
+            echo ">>> Installing Cross-Compilers and QMK CLI..."
+            sudo apt update -y
+            sudo apt install -y gcc-arm-none-eabi gcc-avr avr-libc binutils-arm-none-eabi libnewlib-arm-none-eabi ccache python3-pip pipx
+            pipx install --force qmk || pip3 install --break-system-packages qmk || pip3 install qmk
+            pipx ensurepath || true
+            echo "$HOME/.local/bin" >> $GITHUB_PATH
+          else
+            echo ">>> Native toolchain & QMK verified!"
+            echo ">>> $(qmk --version 2>/dev/null || echo 'QMK ready')"
+          fi
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
       - name: Restore Ccache
         id: cache
         uses: actions/cache/restore@v4
         with:
-          path: /root/.cache/ccache
+          path: ~/.cache/ccache
           key: ccache-${{ matrix.mode }}-${{ matrix.name }}-${{ github.sha }}
           restore-keys: |
             ccache-${{ matrix.mode }}-${{ matrix.name }}-
