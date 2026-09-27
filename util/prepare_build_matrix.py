@@ -103,7 +103,7 @@ def get_deterministic_targets(scope):
         return [f"{t['kb']}:{t['km']}" for t in (GMMK3_TARGETS + GMMK2_TARGETS)]
 
 MAX_OCI_WORKERS = 4
-OCI_WEIGHT = 0.5   # OCI 1-thread ARM workers receive 50% the load of 2-vCPU x86 GitHub runners
+OCI_WEIGHT = 0.25  # OCI 1-thread ARM workers receive 25% the load of 2-vCPU x86 GitHub runners
 GH_WEIGHT = 1.0
 
 def get_runner_for_job(idx, pool="hybrid", max_oci_workers=MAX_OCI_WORKERS):
