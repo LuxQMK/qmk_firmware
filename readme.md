@@ -96,4 +96,4 @@ Configure your keyboard in real time using **[LuxQMK Studio](https://github.com/
 - **LuxQMK Firmware Extension**: Licensed under the GNU General Public License v2 / v3 ([GPLv2+](LICENSE)).
 - **QMK Firmware Engine**: LuxQMK is built upon the open-source [QMK Firmware](https://github.com/qmk/qmk_firmware) ecosystem.
 - **Hardware Credits**: Thanks to [ell1010](https://github.com/ell1010) ([QMK-OpenRGB](https://github.com/ell1010/QMK-OpenRGB)) — GMMK hardware support in LuxQMK is based on their original implementation.
-- **Trademarks**: All product names, logos, and brands (including Glorious, GMMK, WB32) are property of their respective owners and are used solely for compatibility and identification purposes.
+- **Trademarks**: All product names, logos, and brands are property of their respective owners and are used solely for compatibility and identification purposes.
