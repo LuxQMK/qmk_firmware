@@ -4,15 +4,26 @@ on:
   workflow_dispatch:
     inputs:
       target_scope:
-        description: 'Target Keyboards to Build'
+        description: 'Target Keyboards Scope'
         required: true
         type: choice
         options:
           - 'tier1_all'       # GMMK 3 (100/75/65 ANSI & ISO) + GMMK 2 (96/65 ANSI & ISO)
           - 'gmmk3_only'      # GMMK 3 Series only
           - 'gmmk2_only'      # GMMK 2 Series only
-          - 'all_via'         # Mass compile all QMK VIA-compatible keyboards
+          - 'all_via'         # Mass compile all QMK VIA-compatible keyboards (16 Parallel Shards)
+          - 'all_keyboards'   # Mass compile all QMK default keyboards (16 Parallel Shards)
         default: 'tier1_all'
+      shard_count:
+        description: 'Matrix Shard Count for Mass Compilation (Parallel Runners)'
+        required: false
+        type: choice
+        options:
+          - '16'
+          - '20'
+          - '12'
+          - '8'
+        default: '16'
       firmware_tag:
         description: 'Firmware Version Tag (e.g. v0.3.1)'
         required: true
@@ -35,7 +46,7 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # 1. Dynamic Target Matrix Generator
+  # 1. Dynamic Matrix Preparation (Single Targets or Balanced Mass Shards)
   # ---------------------------------------------------------------------------
   prepare-matrix:
     name: Prepare Build Targets
@@ -43,76 +54,118 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - name: Calculate Target Scope Matrix
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Calculate Target Matrix
         id: set-matrix
         run: |
-          SCOPE="${{ inputs.target_scope }}"
-          
-          GMMK3='[
-            {"kb":"gmmk/gmmk3/p100/ansi","km":"via","name":"gmmk3-100-ansi"},
-            {"kb":"gmmk/gmmk3/p75/ansi","km":"via","name":"gmmk3-75-ansi"},
-            {"kb":"gmmk/gmmk3/p65/ansi","km":"via","name":"gmmk3-65-ansi"},
-            {"kb":"gmmk/gmmk3/p100/iso","km":"via","name":"gmmk3-100-iso"},
-            {"kb":"gmmk/gmmk3/p75/iso","km":"via","name":"gmmk3-75-iso"},
-            {"kb":"gmmk/gmmk3/p65/iso","km":"via","name":"gmmk3-65-iso"}
-          ]'
-          
-          GMMK2='[
-            {"kb":"gmmk/gmmk2/p96/ansi","km":"via","name":"gmmk2-96-ansi"},
-            {"kb":"gmmk/gmmk2/p96/iso","km":"via","name":"gmmk2-96-iso"},
-            {"kb":"gmmk/gmmk2/p65/ansi","km":"via","name":"gmmk2-65-ansi"},
-            {"kb":"gmmk/gmmk2/p65/iso","km":"via","name":"gmmk2-65-iso"}
-          ]'
-          
-          if [ "$SCOPE" = "gmmk3_only" ]; then
-            TARGETS=$(echo "$GMMK3" | jq -c .)
-          elif [ "$SCOPE" = "gmmk2_only" ]; then
-            TARGETS=$(echo "$GMMK2" | jq -c .)
-          else
-            TARGETS=$(jq -c -s '.[0] + .[1]' <(echo "$GMMK3") <(echo "$GMMK2"))
-          fi
-          
-          echo "matrix={\"include\":$TARGETS}" >> "$GITHUB_OUTPUT"
+          python3 util/prepare_build_matrix.py \
+            --scope "${{ inputs.target_scope }}" \
+            --shards "${{ inputs.shard_count }}" \
+            --github-output "$GITHUB_OUTPUT"
 
   # ---------------------------------------------------------------------------
-  # 2. Compilation Job
+  # 2. Parallel Firmware Compilation (with Ccache & Multithreading)
   # ---------------------------------------------------------------------------
   build-firmware:
-    name: Compile Firmware Targets
+    name: Compile ${{ matrix.name }}
     needs: [prepare-matrix]
     runs-on: ubuntu-latest
     container: ghcr.io/qmk/qmk_cli:latest
+    continue-on-error: true
+    env:
+      CCACHE_CONFIGPATH: /root/.cache
+      CCACHE_DIR: /root/.cache/ccache
+
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare-matrix.outputs.matrix) }}
 
     steps:
+      - name: Disable Git Safe Directory Warning
+        run: git config --global --add safe.directory '*'
+
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Compile LuxQMK Firmware
-        run: |
-          qmk compile -kb ${{ matrix.kb }} -km ${{ matrix.km }} -e USER_NAME=luxqmk || qmk compile -kb ${{ matrix.kb }} -km ${{ matrix.km }}
+      - name: Restore Ccache
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: /root/.cache/ccache
+          key: ccache-${{ matrix.mode }}-${{ matrix.name }}-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ matrix.mode }}-${{ matrix.name }}-
+            ccache-${{ matrix.mode }}-
 
-      - name: Collect Binary
+      # Tier 1 Single Board Compilation
+      - name: Compile Single Board Target
+        if: matrix.mode == 'single'
         run: |
           mkdir -p artifacts
-          find .build -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} artifacts/ \;
+          echo "=========================================================="
+          echo "Compiling Tier 1 Board: ${{ matrix.kb }} (${{ matrix.km }})"
+          echo "=========================================================="
+          qmk compile -kb ${{ matrix.kb }} -km ${{ matrix.km }} -e USER_NAME=luxqmk -e USE_CCACHE=yes || qmk compile -kb ${{ matrix.kb }} -km ${{ matrix.km }} -e USE_CCACHE=yes
+          
+          find .build -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} artifacts/ \; 2>/dev/null || true
+          find . -maxdepth 1 -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} artifacts/ \; 2>/dev/null || true
+          
+          echo "Generated $(ls -1 artifacts/ 2>/dev/null | wc -l) binary files."
 
-      - name: Upload Binary Artifact
+      # Mass Compilation Shard (Parallel Multithreaded Build)
+      - name: Compile Sharded Group Targets
+        if: matrix.mode == 'shard'
+        run: |
+          mkdir -p artifacts
+          targets="${{ matrix.targets }}"
+          if [ -z "$targets" ]; then
+            echo "No targets assigned to this shard."
+            exit 0
+          fi
+          
+          target_count=$(echo $targets | wc -w)
+          echo "=========================================================="
+          echo "Starting Mass Compilation for ${{ matrix.name }}: $target_count keyboards"
+          echo "=========================================================="
+          
+          qmk mass-compile -t -j $(nproc) -p -e USER_NAME=luxqmk -e USE_CCACHE=yes $targets || true
+          
+          find . -maxdepth 1 -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} artifacts/ \; 2>/dev/null || true
+          find .build -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} artifacts/ \; 2>/dev/null || true
+          
+          echo "Compiled $(ls -1 artifacts/ 2>/dev/null | wc -l) binaries in ${{ matrix.name }} shard."
+
+      - name: Dump Ccache Statistics
+        run: ccache -s || true
+
+      - name: Save Ccache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: /root/.cache/ccache
+          key: ccache-${{ matrix.mode }}-${{ matrix.name }}-${{ github.sha }}
+
+      - name: Upload Binary Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.name }}
+          name: fw-${{ matrix.name }}
           path: artifacts/*
           if-no-files-found: ignore
 
   # ---------------------------------------------------------------------------
-  # 2. Package Catalog, Generate Portal & Distribute
+  # 3. Package Catalog, Generate Portal Manifest & Deploy to CDN
   # ---------------------------------------------------------------------------
   package-catalog:
-    name: Generate Catalog & Deploy to Cloudflare Pages
+    name: Generate Catalog & Deploy Distribution
     needs: [build-firmware]
     runs-on: ubuntu-latest
     steps:
@@ -122,6 +175,7 @@ jobs:
       - name: Download All Compiled Binaries
         uses: actions/download-artifact@v4
         with:
+          pattern: fw-*
           path: all_binaries/
           merge-multiple: true
 
@@ -143,9 +197,12 @@ jobs:
           mkdir -p dist/firmware/${TAG}
           mkdir -p dist/firmware/latest
           
-          find all_binaries -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} dist/firmware/${TAG}/ \;
-          cp -r dist/firmware/${TAG}/* dist/firmware/latest/
+          find all_binaries -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) -exec cp {} dist/firmware/${TAG}/ \; 2>/dev/null || true
+          cp -r dist/firmware/${TAG}/* dist/firmware/latest/ 2>/dev/null || true
           
+          TOTAL_BINARIES=$(ls -1 dist/firmware/${TAG}/ 2>/dev/null | wc -l)
+          echo "Found $TOTAL_BINARIES compiled binaries ready for catalog generation."
+
           # 2. Generate catalog.json inside dist/firmware/
           python3 util/generate_catalog.py \
             --artifacts-dir dist/firmware/${TAG} \
@@ -154,12 +211,32 @@ jobs:
             --repo ${{ github.repository }} \
             --base-url "https://files.luxqmk.click/firmware/${TAG}"
 
-          # 3. Create root alias copies and placeholder root index
+          # 3. Create root alias copies and redirect helpers
           cp dist/firmware/catalog.json dist/catalog.json
           cp dist/firmware/index.html dist/index.html
 
-          ls -la dist/
-          ls -la dist/firmware/
+          echo "Catalog distribution prepared successfully:"
+          ls -lh dist/
+          ls -lh dist/firmware/ | head -n 30
+
+      - name: Generate Job Summary Markdown
+        run: |
+          TAG="${{ github.event.inputs.firmware_tag }}"
+          TOTAL=$(jq '.total_keyboards' dist/firmware/catalog.json 2>/dev/null || echo "N/A")
+          
+          cat << 'EOF' >> $GITHUB_STEP_SUMMARY
+          ## 🚀 LuxQMK Firmware Catalog Build Summary
+          
+          | Metric | Value |
+          | :--- | :--- |
+          | **Scope** | `${{ inputs.target_scope }}` |
+          | **Release Tag** | `${{ inputs.firmware_tag }}` |
+          | **Total Indexed Keyboards** | **$TOTAL** |
+          | **Primary CDN Endpoint** | [files.luxqmk.click/firmware/catalog.json](https://files.luxqmk.click/firmware/catalog.json) |
+          | **Latest Tag Endpoint** | [files.luxqmk.click/firmware/${{ inputs.firmware_tag }}/](https://files.luxqmk.click/firmware/${{ inputs.firmware_tag }}/) |
+          | **Studio Update Feed** | [files.luxqmk.click/studio/version.json](https://files.luxqmk.click/studio/version.json) |
+          | **Official Web Portal** | [luxqmk.click](https://luxqmk.click/) |
+          EOF
 
       - name: Upload Complete Distribution Artifact
         uses: actions/upload-artifact@v4
