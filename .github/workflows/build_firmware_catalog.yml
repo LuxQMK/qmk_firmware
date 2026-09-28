@@ -125,8 +125,7 @@ jobs:
           qmk config user.qmk_home="$GITHUB_WORKSPACE" 2>/dev/null || true
           if ! command -v qmk &>/dev/null || ! command -v arm-none-eabi-gcc &>/dev/null; then
             echo ">>> Installing Cross-Compilers and QMK CLI..."
-            sudo apt update -y
-            sudo apt install -y gcc-arm-none-eabi gcc-avr avr-libc binutils-arm-none-eabi libnewlib-arm-none-eabi gcc-riscv64-unknown-elf dfu-util dfu-programmer avrdude ccache python3-pip pipx
+            (command -v sudo >/dev/null && sudo apt update -y && sudo apt install -y gcc-arm-none-eabi gcc-avr avr-libc binutils-arm-none-eabi libnewlib-arm-none-eabi gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf libnewlib-riscv64-unknown-elf dfu-util dfu-programmer avrdude ccache python3-pip pipx) || (apt-get update -y && apt-get install -y gcc-arm-none-eabi gcc-avr avr-libc binutils-arm-none-eabi libnewlib-arm-none-eabi gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf libnewlib-riscv64-unknown-elf dfu-util dfu-programmer avrdude ccache python3-pip pipx)
             pipx install --force qmk || pip3 install --break-system-packages qmk || pip3 install qmk
             pipx ensurepath || true
           else
@@ -134,6 +133,13 @@ jobs:
             echo ">>> QMK version: $(qmk --version 2>/dev/null || echo 'ready')"
             echo ">>> ARM GCC: $(arm-none-eabi-gcc --version 2>/dev/null | head -n 1 || echo 'ready')"
           fi
+
+          # Ensure RISC-V toolchain is available for RISC-V architectures (e.g. GD32VF103 / Sipeed Longan Nano)
+          if ! command -v riscv64-unknown-elf-gcc &>/dev/null && ! command -v riscv-none-elf-gcc &>/dev/null; then
+            echo ">>> Installing RISC-V cross-compiler and libraries..."
+            (command -v sudo >/dev/null && sudo apt-get update -y && sudo apt-get install -y gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf libnewlib-riscv64-unknown-elf) || (apt-get update -y && apt-get install -y gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf libnewlib-riscv64-unknown-elf) || true
+          fi
+
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Restore Ccache
