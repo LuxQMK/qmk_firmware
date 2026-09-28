@@ -120,9 +120,10 @@ jobs:
 
       - name: Setup Compiler & QMK Environment
         run: |
-          if ! command -v qmk &>/dev/null || ! command -v arm-none-eabi-gcc &>/dev/null || ! command -v dfu-suffix &>/dev/null; then
-            echo ">>> Installing Cross-Compilers, DFU tools and QMK CLI..."
+          if ! command -v qmk &>/dev/null || ! command -v arm-none-eabi-gcc &>/dev/null || ! command -v dfu-suffix &>/dev/null || ! command -v riscv64-unknown-elf-gcc &>/dev/null; then
+            echo ">>> Installing Cross-Compilers, DFU tools, RISC-V toolchain and QMK CLI..."
             sudo apt update -y
+            sudo apt install -y gcc-arm-none-eabi gcc-avr avr-libc binutils-arm-none-eabi libnewlib-arm-none-eabi gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf picolibc-riscv64-unknown-elf libnewlib-riscv64-unknown-elf dfu-util dfu-programmer avrdude ccache python3-pip pipx || \
             sudo apt install -y gcc-arm-none-eabi gcc-avr avr-libc binutils-arm-none-eabi libnewlib-arm-none-eabi gcc-riscv64-unknown-elf dfu-util dfu-programmer avrdude ccache python3-pip pipx || \
             sudo apt install -y gcc-arm-none-eabi gcc-avr avr-libc binutils-arm-none-eabi libnewlib-arm-none-eabi dfu-util dfu-programmer avrdude ccache python3-pip pipx
             pipx install --force qmk || pip3 install --break-system-packages qmk || pip3 install qmk
