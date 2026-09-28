@@ -390,7 +390,7 @@ RGB luxqmk_sample_gradient(uint8_t gradient_id, uint8_t phase) {
  */
 void luxqmk_eeprom_save(void) {
 #if defined(VIA_ENABLE) && defined(VIA_EEPROM_CUSTOM_CONFIG_SIZE)
-    uint8_t header[128];
+    uint8_t header[160];
     memset(header, 0, sizeof(header));
 
     header[0] = g_custom_rgb_reverse ? 1 : 0;
