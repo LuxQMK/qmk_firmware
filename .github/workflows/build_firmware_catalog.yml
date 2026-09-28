@@ -99,10 +99,11 @@ jobs:
     name: Compile ${{ matrix.name }} (${{ matrix.pool }})
     needs: [prepare-matrix]
     runs-on: ${{ matrix.runner }}
+    container: ghcr.io/qmk/qmk_cli
     continue-on-error: true
     env:
-      CCACHE_CONFIGPATH: ~/.cache
-      CCACHE_DIR: ~/.cache/ccache
+      CCACHE_CONFIGPATH: /root/.cache
+      CCACHE_DIR: /root/.cache/ccache
 
     strategy:
       fail-fast: false
@@ -120,18 +121,18 @@ jobs:
 
       - name: Setup Compiler & QMK Environment
         run: |
-          if ! command -v qmk &>/dev/null || ! command -v arm-none-eabi-gcc &>/dev/null || ! command -v dfu-suffix &>/dev/null || ! command -v riscv64-unknown-elf-gcc &>/dev/null; then
-            echo ">>> Installing Cross-Compilers, DFU tools, RISC-V toolchain and QMK CLI..."
+          git config --global --add safe.directory '*'
+          qmk config user.qmk_home="$GITHUB_WORKSPACE" 2>/dev/null || true
+          if ! command -v qmk &>/dev/null || ! command -v arm-none-eabi-gcc &>/dev/null; then
+            echo ">>> Installing Cross-Compilers and QMK CLI..."
             sudo apt update -y
-            sudo apt install -y gcc-arm-none-eabi gcc-avr avr-libc binutils-arm-none-eabi libnewlib-arm-none-eabi gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf picolibc-riscv64-unknown-elf libnewlib-riscv64-unknown-elf dfu-util dfu-programmer avrdude ccache python3-pip pipx || \
-            sudo apt install -y gcc-arm-none-eabi gcc-avr avr-libc binutils-arm-none-eabi libnewlib-arm-none-eabi gcc-riscv64-unknown-elf dfu-util dfu-programmer avrdude ccache python3-pip pipx || \
-            sudo apt install -y gcc-arm-none-eabi gcc-avr avr-libc binutils-arm-none-eabi libnewlib-arm-none-eabi dfu-util dfu-programmer avrdude ccache python3-pip pipx
+            sudo apt install -y gcc-arm-none-eabi gcc-avr avr-libc binutils-arm-none-eabi libnewlib-arm-none-eabi gcc-riscv64-unknown-elf dfu-util dfu-programmer avrdude ccache python3-pip pipx
             pipx install --force qmk || pip3 install --break-system-packages qmk || pip3 install qmk
             pipx ensurepath || true
-            echo "$HOME/.local/bin" >> $GITHUB_PATH
           else
-            echo ">>> Native toolchain & QMK verified!"
-            echo ">>> $(qmk --version 2>/dev/null || echo 'QMK ready')"
+            echo ">>> Official QMK toolchain verified!"
+            echo ">>> QMK version: $(qmk --version 2>/dev/null || echo 'ready')"
+            echo ">>> ARM GCC: $(arm-none-eabi-gcc --version 2>/dev/null | head -n 1 || echo 'ready')"
           fi
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
@@ -139,7 +140,7 @@ jobs:
         id: cache
         uses: actions/cache/restore@v4
         with:
-          path: ~/.cache/ccache
+          path: /root/.cache/ccache
           key: ccache-${{ matrix.mode }}-${{ matrix.name }}-${{ github.sha }}
           restore-keys: |
             ccache-${{ matrix.mode }}-${{ matrix.name }}-
