@@ -137,13 +137,16 @@ def get_deterministic_targets(scope, custom_targets=None):
     else:
         return [f"{t['kb']}:{t['km']}" for t in TIER1_TARGETS]
 
-MAX_OCI_WORKERS = 4
-OCI_WEIGHT = 0.25  # OCI 1-thread ARM workers receive 25% the load of 2-vCPU x86 GitHub runners
+MAX_OCI_WORKERS = 1
+OCI_WEIGHT = 2.0  # OCI 4-thread dedicated ARM node receives 2x the load of a 2-vCPU GitHub runner
 GH_WEIGHT = 1.0
 
 def get_runner_for_job(idx, pool="hybrid", max_oci_workers=MAX_OCI_WORKERS):
     """
     Returns runner labels and pool identifier based on allocation strategy.
+    In hybrid mode:
+    - First job (idx=1) is allocated to the dedicated 4-thread OCI cloud node.
+    - All remaining jobs (up to 20) are allocated to GitHub-hosted runners (ubuntu-latest).
     """
     if pool in ("hetzner_cpx62", "hetzner_cpx52", "hetzner_cpx42", "hetzner_only"):
         return ["self-hosted", "hetzner-builder"], "hetzner"

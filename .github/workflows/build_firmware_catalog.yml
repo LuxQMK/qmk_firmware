@@ -26,14 +26,14 @@ on:
         required: false
         type: choice
         options:
-          - '24'
-          - '20'
+          - '21'              # Hybrid Pool: 1x OCI (4-thread) + 20x GitHub Actions (2-thread)
+          - '20'              # GitHub Only Pool: 20x Parallel ubuntu-latest
           - '16'
           - '12'
           - '8'
           - '4'
-          - '1'
-        default: '24'
+          - '1'               # Single Runner (Recommended for Hetzner On-Demand CPX / Single OCI Node)
+        default: '21'
       runner_pool:
         description: 'Runner Execution Pool'
         required: true
@@ -42,9 +42,9 @@ on:
           - 'hetzner_cpx62'   # On-Demand Hetzner Cloud: 16 vCPU AMD EPYC / 32GB RAM (FSN1 Falkenstein) - Maximum 16-Thread Power
           - 'hetzner_cpx52'   # On-Demand Hetzner Cloud: 12 vCPU AMD EPYC / 24GB RAM (FSN1 Falkenstein) - 12-Thread Power
           - 'hetzner_cpx42'   # On-Demand Hetzner Cloud: 8 vCPU AMD EPYC / 16GB RAM (FSN1 Falkenstein) - 8-Thread Power
+          - 'hybrid'          # Hybrid: OCI Dedicated Node (1x 4-thread) + GitHub Actions (20x Parallel) - 21 Shards
           - 'github_only'     # GitHub-Hosted Runners (20x Parallel ubuntu-latest - 100% Free)
-          - 'oci_only'        # Dedicated OCI Cloud Nodes only (self-hosted, oci-builder)
-          - 'hybrid'          # Hybrid: OCI Dedicated Nodes (4x) + GitHub Actions (20x Parallel)
+          - 'oci_only'        # Dedicated OCI Cloud Node only (1x 4-thread)
         default: 'hetzner_cpx62'
       firmware_tag:
         description: 'Firmware Version Tag (e.g. v0.3.4)'
@@ -346,7 +346,7 @@ jobs:
           elif [ "${{ matrix.pool }}" = "hetzner" ]; then
             parallel_threads=16
           elif [ "${{ matrix.pool }}" = "oci" ]; then
-            parallel_threads=1
+            parallel_threads=4
           fi
           echo "=========================================================="
           echo "Starting Mass Compilation for ${{ matrix.name }} (${{ matrix.pool }}): $target_count keyboards with $parallel_threads compiler threads"
