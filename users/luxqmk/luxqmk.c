@@ -825,7 +825,8 @@ void luxqmk_dip_switch_init(void) {
 #if defined(DIP_SWITCH_ENABLE)
 bool dip_switch_update_user(uint8_t index, bool active) {
     luxqmk_dip_switch_apply(index, active);
-    return true;
+    // Return false to prevent board-level default handler (e.g. Keychron dip_switch_update_kb) from overriding LuxQMK EEPROM config
+    return false;
 }
 #endif
 
