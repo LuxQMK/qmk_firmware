@@ -33,6 +33,25 @@ GMMK2_TARGETS = [
     {"mode": "single", "kb": "gmmk/gmmk2/p65/iso", "km": "via", "name": "gmmk2-65-iso"},
 ]
 
+KEYCHRON_TARGETS = [
+    {"mode": "single", "kb": "keychron/v1/ansi_encoder", "km": "via", "name": "keychron-v1-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/v1/iso_encoder", "km": "via", "name": "keychron-v1-iso-encoder"},
+    {"mode": "single", "kb": "keychron/v2/ansi_encoder", "km": "via", "name": "keychron-v2-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/v3/ansi_encoder", "km": "via", "name": "keychron-v3-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/v4/ansi", "km": "via", "name": "keychron-v4-ansi"},
+    {"mode": "single", "kb": "keychron/v5/ansi_encoder", "km": "via", "name": "keychron-v5-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/v6/ansi_encoder", "km": "via", "name": "keychron-v6-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/v6/iso_encoder", "km": "via", "name": "keychron-v6-iso-encoder"},
+    {"mode": "single", "kb": "keychron/q1v2/ansi_encoder", "km": "via", "name": "keychron-q1v2-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/q2/ansi_encoder", "km": "via", "name": "keychron-q2-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/q3/ansi_encoder", "km": "via", "name": "keychron-q3-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/q5/ansi_encoder", "km": "via", "name": "keychron-q5-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/q6/ansi_encoder", "km": "via", "name": "keychron-q6-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/q6/iso_encoder", "km": "via", "name": "keychron-q6-iso-encoder"},
+]
+
+TIER1_TARGETS = GMMK3_TARGETS + GMMK2_TARGETS + KEYCHRON_TARGETS
+
 def list_leaf_keyboards():
     """
     Finds all compilable leaf keyboards in the repository.
@@ -111,10 +130,12 @@ def get_deterministic_targets(scope, custom_targets=None):
         return [f"{t['kb']}:{t['km']}" for t in GMMK3_TARGETS]
     elif scope == "gmmk2_only":
         return [f"{t['kb']}:{t['km']}" for t in GMMK2_TARGETS]
+    elif scope == "keychron_only":
+        return [f"{t['kb']}:{t['km']}" for t in KEYCHRON_TARGETS]
     elif scope in ("tier1_all", "tier1_only"):
-        return [f"{t['kb']}:{t['km']}" for t in (GMMK3_TARGETS + GMMK2_TARGETS)]
+        return [f"{t['kb']}:{t['km']}" for t in TIER1_TARGETS]
     else:
-        return [f"{t['kb']}:{t['km']}" for t in (GMMK3_TARGETS + GMMK2_TARGETS)]
+        return [f"{t['kb']}:{t['km']}" for t in TIER1_TARGETS]
 
 MAX_OCI_WORKERS = 4
 OCI_WEIGHT = 0.25  # OCI 1-thread ARM workers receive 25% the load of 2-vCPU x86 GitHub runners
@@ -123,12 +144,10 @@ GH_WEIGHT = 1.0
 def get_runner_for_job(idx, pool="hybrid", max_oci_workers=MAX_OCI_WORKERS):
     """
     Returns runner labels and pool identifier based on allocation strategy.
-    In hybrid mode:
-    - First N jobs (up to MAX_OCI_WORKERS=4) are allocated to dedicated 1:1 OCI cloud nodes.
-    - All remaining jobs (up to 20) are allocated to GitHub-hosted runners (ubuntu-latest).
-    This guarantees 100% immediate parallel job execution across both clusters with zero queue wait.
     """
-    if pool == "oci_only":
+    if pool in ("hetzner_cax41", "hetzner_cpx62", "hetzner_cpx52", "hetzner_cpx51", "hetzner_only"):
+        return ["self-hosted", "hetzner-builder"], "hetzner"
+    elif pool == "oci_only":
         return ["self-hosted", "oci-builder"], "oci"
     elif pool == "github_only":
         return ["ubuntu-latest"], "github"
@@ -177,8 +196,10 @@ def generate_matrix(scope, shard_count=16, runner_pool="hybrid", custom_targets=
         raw_targets = [dict(t) for t in GMMK3_TARGETS]
     elif scope == "gmmk2_only":
         raw_targets = [dict(t) for t in GMMK2_TARGETS]
+    elif scope == "keychron_only":
+        raw_targets = [dict(t) for t in KEYCHRON_TARGETS]
     elif scope in ("tier1_all", "tier1_only"):
-        raw_targets = [dict(t) for t in (GMMK3_TARGETS + GMMK2_TARGETS)]
+        raw_targets = [dict(t) for t in TIER1_TARGETS]
     elif scope == "custom":
         all_targets = get_deterministic_targets(scope, custom_targets)
         if not all_targets:
@@ -232,7 +253,7 @@ def generate_matrix(scope, shard_count=16, runner_pool="hybrid", custom_targets=
                 "pool": pool_name
             })
     else:
-        raw_targets = [dict(t) for t in (GMMK3_TARGETS + GMMK2_TARGETS)]
+        raw_targets = [dict(t) for t in TIER1_TARGETS]
 
     # Assign runners for single-mode targets
     if raw_targets and raw_targets[0].get("mode") != "shard":
@@ -245,10 +266,10 @@ def generate_matrix(scope, shard_count=16, runner_pool="hybrid", custom_targets=
 
 def main():
     parser = argparse.ArgumentParser(description="Generate GitHub Actions matrix for LuxQMK Firmware builds")
-    parser.add_argument("--scope", default="tier1_all", choices=["tier1_all", "tier1_only", "gmmk3_only", "gmmk2_only", "all_via", "all_keyboards", "custom"], help="Target scope")
+    parser.add_argument("--scope", default="tier1_all", choices=["tier1_all", "tier1_only", "gmmk3_only", "gmmk2_only", "keychron_only", "all_via", "all_keyboards", "custom"], help="Target scope")
     parser.add_argument("--custom-targets", default=None, help="Custom targets comma/space separated (e.g. gmmk/gmmk3/p75/ansi:via)")
     parser.add_argument("--shards", default=16, type=int, help="Number of shards for mass compilation")
-    parser.add_argument("--runner-pool", default="hybrid", choices=["hybrid", "oci_only", "github_only"], help="Runner execution pool strategy")
+    parser.add_argument("--runner-pool", default="hetzner_cax41", choices=["hybrid", "oci_only", "github_only", "hetzner_cax41", "hetzner_cpx62", "hetzner_cpx52", "hetzner_cpx51", "hetzner_only"], help="Runner execution pool strategy")
     parser.add_argument("--github-output", default=None, help="Path to GITHUB_OUTPUT file")
     parser.add_argument("--output-json", default=None, help="Optional output JSON file")
     parser.add_argument("--get-shard-targets", action="store_true", help="Retrieve targets for a specific shard ID")

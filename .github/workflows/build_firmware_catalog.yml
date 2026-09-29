@@ -8,12 +8,13 @@ on:
         required: true
         type: choice
         options:
-          - 'tier1_all'       # GMMK 3 (100/75/65 ANSI & ISO) + GMMK 2 (96/65 ANSI & ISO) (Incremental update)
+          - 'tier1_all'       # GMMK 3 + GMMK 2 + Keychron V/Q Series (Incremental update)
           - 'gmmk3_only'      # GMMK 3 Series only (Incremental update)
           - 'gmmk2_only'      # GMMK 2 Series only (Incremental update)
+          - 'keychron_only'   # Keychron V & Q Series only (Incremental update)
           - 'custom'          # Custom selected keyboards (Incremental update)
-          - 'all_via'         # Mass compile all QMK VIA-compatible keyboards (24 Parallel Shards)
-          - 'all_keyboards'   # Mass compile all QMK default keyboards (24 Parallel Shards)
+          - 'all_via'         # Mass compile all QMK VIA-compatible keyboards
+          - 'all_keyboards'   # Mass compile all QMK default keyboards
         default: 'tier1_all'
       custom_targets:
         description: 'Custom Keyboard Targets (if scope is custom; comma/space separated, e.g. gmmk/gmmk3/p75/ansi:via)'
@@ -38,14 +39,17 @@ on:
         required: true
         type: choice
         options:
-          - 'hybrid'          # Hybrid: OCI Dedicated Nodes (4x) + GitHub Actions (20x Parallel)
+          - 'hetzner_cax41'   # On-Demand Hetzner Cloud: 16 vCPU ARM Ampere (FSN1 Falkenstein) - Ultra-Fast & Ephemeral
+          - 'hetzner_cpx62'   # On-Demand Hetzner Cloud: 24 vCPU AMD EPYC (FSN1 Falkenstein) - Maximum 24-Thread Power
+          - 'hetzner_cpx52'   # On-Demand Hetzner Cloud: 16 vCPU AMD EPYC (FSN1 Falkenstein) - Ultra-Fast x86_64
+          - 'github_only'     # GitHub-Hosted Runners (20x Parallel ubuntu-latest - 100% Free)
           - 'oci_only'        # Dedicated OCI Cloud Nodes only (self-hosted, oci-builder)
-          - 'github_only'     # GitHub-Hosted Runners only (ubuntu-latest)
-        default: 'hybrid'
+          - 'hybrid'          # Hybrid: OCI Dedicated Nodes (4x) + GitHub Actions (20x Parallel)
+        default: 'hetzner_cax41'
       firmware_tag:
-        description: 'Firmware Version Tag (e.g. v0.3.3)'
+        description: 'Firmware Version Tag (e.g. v0.3.4)'
         required: true
-        default: 'v0.3.3'
+        default: 'v0.3.4'
       deploy_cloudflare_pages:
         description: 'Deploy to Cloudflare Pages (files.luxqmk.click)?'
         required: true
@@ -93,11 +97,129 @@ jobs:
             --github-output "$GITHUB_OUTPUT"
 
   # ---------------------------------------------------------------------------
+  # 1.5. On-Demand Hetzner Cloud Ephemeral Runner Provisioning (FSN1 Falkenstein)
+  # ---------------------------------------------------------------------------
+  start-hetzner-runner:
+    name: Provision On-Demand Hetzner Runner (FSN1)
+    needs: [prepare-matrix]
+    if: startsWith(inputs.runner_pool, 'hetzner')
+    runs-on: ubuntu-latest
+    outputs:
+      server_name: ${{ steps.spawn.outputs.server_name }}
+    steps:
+      - name: Install Hetzner Cloud CLI (hcloud)
+        run: |
+          curl -fsSL https://github.com/hetznercloud/cli/releases/latest/download/hcloud-linux-amd64.tar.gz | tar -xz
+          sudo mv hcloud /usr/local/bin/
+          hcloud version
+
+      - name: Generate GitHub Actions Registration Token
+        id: get-token
+        run: |
+          TOKEN_RESP=$(curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.GH_RUNNER_PAT }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/actions/runners/registration-token)
+          
+          RUNNER_TOKEN=$(echo "$TOKEN_RESP" | jq -r .token)
+          if [ -z "$RUNNER_TOKEN" ] || [ "$RUNNER_TOKEN" = "null" ]; then
+            echo "::error::Failed to generate GitHub Actions registration token. Please check GH_RUNNER_PAT secret."
+            exit 1
+          fi
+          echo "token=$RUNNER_TOKEN" >> $GITHUB_OUTPUT
+
+      - name: Create Cloud-Init Script & Launch Server
+        id: spawn
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HETZNER_API_TOKEN }}
+        run: |
+          SERVER_NAME="luxqmk-build-${{ github.run_id }}-${{ github.run_attempt }}"
+          SERVER_TYPE="cax41"
+          RUNNER_ARCH="arm64"
+          
+          if [ "${{ inputs.runner_pool }}" = "hetzner_cpx62" ]; then
+            SERVER_TYPE="cpx62"
+            RUNNER_ARCH="x64"
+          elif [ "${{ inputs.runner_pool }}" = "hetzner_cpx52" ] || [ "${{ inputs.runner_pool }}" = "hetzner_cpx51" ]; then
+            SERVER_TYPE="cpx52"
+            RUNNER_ARCH="x64"
+          fi
+          
+          echo "server_name=$SERVER_NAME" >> $GITHUB_OUTPUT
+          
+          cat << 'EOF' > user-data.sh
+#!/bin/bash
+set -e
+export DEBIAN_FRONTEND=noninteractive
+
+# Install Docker & system dependencies
+apt-get update -y
+apt-get install -y docker.io curl jq tar sudo git
+systemctl enable --now docker
+
+# Create dedicated runner user and grant docker permissions
+useradd -m -s /bin/bash runner || true
+usermod -aG docker runner
+echo "runner ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Download and extract GitHub Actions Runner
+RUNNER_DIR="/home/runner/actions-runner"
+mkdir -p "$RUNNER_DIR"
+cd "$RUNNER_DIR"
+
+RUNNER_VER="2.322.0"
+ARCH="__RUNNER_ARCH__"
+curl -fsSL -o runner.tar.gz "https://github.com/actions/runner/releases/download/v${RUNNER_VER}/actions-runner-linux-${ARCH}-${RUNNER_VER}.tar.gz"
+tar -xzf runner.tar.gz
+chown -R runner:runner /home/runner
+
+# Configure as ephemeral runner (auto-terminates after single job)
+sudo -u runner ./config.sh \
+  --url "https://github.com/__REPO__" \
+  --token "__RUNNER_TOKEN__" \
+  --name "__SERVER_NAME__" \
+  --labels "hetzner-builder" \
+  --ephemeral \
+  --unattended
+
+# Run runner in foreground
+sudo -u runner ./run.sh
+EOF
+
+          sed -i "s|__RUNNER_ARCH__|${RUNNER_ARCH}|g" user-data.sh
+          sed -i "s|__REPO__|${{ github.repository }}|g" user-data.sh
+          sed -i "s|__RUNNER_TOKEN__|${{ steps.get-token.outputs.token }}|g" user-data.sh
+          sed -i "s|__SERVER_NAME__|${SERVER_NAME}|g" user-data.sh
+
+          echo ">>> Launching Hetzner Cloud Server: $SERVER_NAME (Type: $SERVER_TYPE, Datacenter: fsn1 Falkenstein)..."
+          hcloud server create \
+            --name "$SERVER_NAME" \
+            --type "$SERVER_TYPE" \
+            --image "ubuntu-24.04" \
+            --location "fsn1" \
+            --user-data-from-file "user-data.sh"
+            
+          echo ">>> Server created successfully. Waiting for runner to connect to GitHub Actions..."
+          for i in $(seq 1 30); do
+            STATUS=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_RUNNER_PAT }}" \
+              -H "Accept: application/vnd.github+json" \
+              https://api.github.com/repos/${{ github.repository }}/actions/runners | jq -r ".runners[] | select(.name==\"$SERVER_NAME\") | .status" || echo "")
+            
+            if [ "$STATUS" = "online" ]; then
+              echo ">>> Runner $SERVER_NAME is ONLINE and ready!"
+              break
+            fi
+            echo ">>> Waiting for runner to register... ($i/30)"
+            sleep 5
+          done
+
+  # ---------------------------------------------------------------------------
   # 2. Parallel Firmware Compilation (with Ccache & Multithreading)
   # ---------------------------------------------------------------------------
   build-firmware:
     name: Compile ${{ matrix.name }} (${{ matrix.pool }})
-    needs: [prepare-matrix]
+    needs: [prepare-matrix, start-hetzner-runner]
+    if: always() && needs.prepare-matrix.result == 'success' && (needs.start-hetzner-runner.result == 'success' || needs.start-hetzner-runner.result == 'skipped')
     runs-on: ${{ matrix.runner }}
     container: ghcr.io/qmk/qmk_cli
     continue-on-error: true
@@ -190,7 +312,14 @@ jobs:
             --output-targets-file shard_targets.txt
             
           target_count=$(wc -w < shard_targets.txt 2>/dev/null || echo "0")
-          parallel_threads="${{ matrix.pool == 'oci' && 1 || 2 }}"
+          parallel_threads=2
+          if [ "${{ inputs.runner_pool }}" = "hetzner_cpx62" ]; then
+            parallel_threads=24
+          elif [ "${{ matrix.pool }}" = "hetzner" ]; then
+            parallel_threads=16
+          elif [ "${{ matrix.pool }}" = "oci" ]; then
+            parallel_threads=1
+          fi
           echo "=========================================================="
           echo "Starting Mass Compilation for ${{ matrix.name }} (${{ matrix.pool }}): $target_count keyboards with $parallel_threads compiler threads"
           echo "=========================================================="
@@ -242,6 +371,29 @@ jobs:
           name: diag-${{ matrix.name }}
           path: diagnostics/
           if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------------
+  # 2.5. Cleanup On-Demand Hetzner Runner (Always Executed)
+  # ---------------------------------------------------------------------------
+  stop-hetzner-runner:
+    name: Teardown On-Demand Hetzner Runner
+    needs: [start-hetzner-runner, build-firmware]
+    if: always() && needs.start-hetzner-runner.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Hetzner Cloud CLI (hcloud)
+        run: |
+          curl -fsSL https://github.com/hetznercloud/cli/releases/latest/download/hcloud-linux-amd64.tar.gz | tar -xz
+          sudo mv hcloud /usr/local/bin/
+
+      - name: Delete Hetzner Server
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HETZNER_API_TOKEN }}
+        run: |
+          SERVER_NAME="luxqmk-build-${{ github.run_id }}-${{ github.run_attempt }}"
+          echo ">>> Tearing down Hetzner server: $SERVER_NAME..."
+          hcloud server delete "$SERVER_NAME" || true
+          echo ">>> Server $SERVER_NAME deleted. Billing stopped."
 
   # ---------------------------------------------------------------------------
   # 3. Package Catalog, Generate Portal Manifest & Deploy to CDN
