@@ -314,6 +314,8 @@ jobs:
           cp dist/firmware/catalog.json dist/catalog.json
           cp dist/firmware/index.html dist/index.html
           cp dist/firmware/404.html dist/404.html 2>/dev/null || true
+          cp dist/firmware/_headers dist/_headers 2>/dev/null || true
+          cp dist/firmware/_redirects dist/_redirects 2>/dev/null || true
 
           echo "Catalog distribution prepared successfully:"
           ls -lh dist/
