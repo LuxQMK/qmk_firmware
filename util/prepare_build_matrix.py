@@ -145,7 +145,7 @@ def get_runner_for_job(idx, pool="hybrid", max_oci_workers=MAX_OCI_WORKERS):
     """
     Returns runner labels and pool identifier based on allocation strategy.
     """
-    if pool in ("hetzner_cax41", "hetzner_cpx62", "hetzner_cpx52", "hetzner_cpx51", "hetzner_only"):
+    if pool in ("hetzner_cpx62", "hetzner_cpx52", "hetzner_cpx42", "hetzner_only"):
         return ["self-hosted", "hetzner-builder"], "hetzner"
     elif pool == "oci_only":
         return ["self-hosted", "oci-builder"], "oci"
@@ -269,7 +269,7 @@ def main():
     parser.add_argument("--scope", default="tier1_all", choices=["tier1_all", "tier1_only", "gmmk3_only", "gmmk2_only", "keychron_only", "all_via", "all_keyboards", "custom"], help="Target scope")
     parser.add_argument("--custom-targets", default=None, help="Custom targets comma/space separated (e.g. gmmk/gmmk3/p75/ansi:via)")
     parser.add_argument("--shards", default=16, type=int, help="Number of shards for mass compilation")
-    parser.add_argument("--runner-pool", default="hetzner_cax41", choices=["hybrid", "oci_only", "github_only", "hetzner_cax41", "hetzner_cpx62", "hetzner_cpx52", "hetzner_cpx51", "hetzner_only"], help="Runner execution pool strategy")
+    parser.add_argument("--runner-pool", default="hetzner_cpx62", choices=["hybrid", "oci_only", "github_only", "hetzner_cpx62", "hetzner_cpx52", "hetzner_cpx42", "hetzner_only"], help="Runner execution pool strategy")
     parser.add_argument("--github-output", default=None, help="Path to GITHUB_OUTPUT file")
     parser.add_argument("--output-json", default=None, help="Optional output JSON file")
     parser.add_argument("--get-shard-targets", action="store_true", help="Retrieve targets for a specific shard ID")
