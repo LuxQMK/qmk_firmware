@@ -617,33 +617,51 @@ def generate_redirect_assets(output_dir):
         "  Access-Control-Allow-Origin: *\n"
         "  Access-Control-Allow-Methods: GET, HEAD, OPTIONS\n"
         "  Access-Control-Allow-Headers: *\n\n"
-        "/firmware/*\n"
-        "  Access-Control-Allow-Origin: *\n"
-        "  Content-Disposition: attachment\n\n"
-        "/firmware/*/*\n"
-        "  Access-Control-Allow-Origin: *\n"
-        "  Content-Disposition: attachment\n\n"
-        "/*.bin\n"
-        "  Content-Type: application/octet-stream\n"
-        "  Content-Disposition: attachment\n\n"
-        "/*.hex\n"
-        "  Content-Type: application/octet-stream\n"
-        "  Content-Disposition: attachment\n\n"
-        "/*.uf2\n"
+        "/*.html\n"
+        "  Content-Type: text/html; charset=utf-8\n"
+        "  Content-Disposition: inline\n\n"
+        "/404.html\n"
+        "  Content-Type: text/html; charset=utf-8\n"
+        "  Content-Disposition: inline\n\n"
+        "/index.html\n"
+        "  Content-Type: text/html; charset=utf-8\n"
+        "  Content-Disposition: inline\n\n"
+        "/*.json\n"
+        "  Content-Type: application/json; charset=utf-8\n"
+        "  Content-Disposition: inline\n"
+        "  Access-Control-Allow-Origin: *\n\n"
+        "/firmware/catalog.json\n"
+        "  Content-Type: application/json; charset=utf-8\n"
+        "  Content-Disposition: inline\n"
+        "  Access-Control-Allow-Origin: *\n\n"
+        "/firmware/latest/*.bin\n"
         "  Content-Type: application/octet-stream\n"
         "  Content-Disposition: attachment\n"
+        "  Access-Control-Allow-Origin: *\n\n"
+        "/firmware/latest/*.hex\n"
+        "  Content-Type: application/octet-stream\n"
+        "  Content-Disposition: attachment\n"
+        "  Access-Control-Allow-Origin: *\n\n"
+        "/firmware/latest/*.uf2\n"
+        "  Content-Type: application/octet-stream\n"
+        "  Content-Disposition: attachment\n"
+        "  Access-Control-Allow-Origin: *\n\n"
+        "/firmware/*/*.bin\n"
+        "  Content-Type: application/octet-stream\n"
+        "  Content-Disposition: attachment\n"
+        "  Access-Control-Allow-Origin: *\n\n"
+        "/firmware/*/*.hex\n"
+        "  Content-Type: application/octet-stream\n"
+        "  Content-Disposition: attachment\n"
+        "  Access-Control-Allow-Origin: *\n\n"
+        "/firmware/*/*.uf2\n"
+        "  Content-Type: application/octet-stream\n"
+        "  Content-Disposition: attachment\n"
+        "  Access-Control-Allow-Origin: *\n"
     )
     headers_file = os.path.join(output_dir, "_headers")
     with open(headers_file, "w", encoding="utf-8") as f:
         f.write(headers_content)
-
-    # If output_dir is a subfolder like dist/firmware, also write _redirects and _headers to root dist
-    if os.path.basename(os.path.normpath(output_dir)).lower() == "firmware":
-        root_dist = os.path.dirname(os.path.normpath(output_dir))
-        with open(os.path.join(root_dist, "_redirects"), "w", encoding="utf-8") as f:
-            f.write(redirect_rules)
-        with open(os.path.join(root_dist, "_headers"), "w", encoding="utf-8") as f:
-            f.write(headers_content)
 
     # 3. Fallback index.html with immediate client redirect
     out_file = os.path.join(output_dir, "index.html")
@@ -730,6 +748,111 @@ def generate_redirect_assets(output_dir):
 """
     with open(out_file, "w", encoding="utf-8") as f:
         f.write(html_content)
+
+    # 4. Standard 404.html page to prevent Cloudflare Pages SPA fallback on missing binaries
+    not_found_file = os.path.join(output_dir, "404.html")
+    not_found_html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 — File Not Found | LuxQMK</title>
+  <style>
+    :root {
+      --bg: #08080c;
+      --card: #10111a;
+      --border: #1e2030;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --cyan: #00f2fe;
+      --purple: #bd00ff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem;
+      text-align: center;
+      max-width: 480px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      background: rgba(255, 68, 68, 0.15);
+      border: 1px solid rgba(255, 68, 68, 0.3);
+      color: #ff5555;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 0.75rem;
+      color: #fff;
+    }
+    p {
+      color: var(--muted);
+      margin-bottom: 1.75rem;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+    a.btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: linear-gradient(135deg, var(--cyan) 0%, var(--purple) 100%);
+      color: #08080c;
+      font-weight: 700;
+      padding: 0.75rem 1.5rem;
+      border-radius: 9999px;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    a.btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 20px rgba(0, 242, 254, 0.4);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">HTTP 404</div>
+    <h1>Firmware File Not Found</h1>
+    <p>The requested firmware file or version does not exist on this server. Please check the active catalog or visit our main portal.</p>
+    <a class="btn" href="https://luxqmk.click/">
+      Open LuxQMK Portal &rarr;
+    </a>
+  </div>
+</body>
+</html>
+"""
+    with open(not_found_file, "w", encoding="utf-8") as f:
+        f.write(not_found_html)
+
+    # If output_dir is a subfolder like dist/firmware, also write _redirects, _headers, index.html, and 404.html to root dist
+    if os.path.basename(os.path.normpath(output_dir)).lower() == "firmware":
+        root_dist = os.path.dirname(os.path.normpath(output_dir))
+        with open(os.path.join(root_dist, "_redirects"), "w", encoding="utf-8") as f:
+            f.write(redirect_rules)
+        with open(os.path.join(root_dist, "_headers"), "w", encoding="utf-8") as f:
+            f.write(headers_content)
+        with open(os.path.join(root_dist, "index.html"), "w", encoding="utf-8") as f:
+            f.write(html_content)
+        with open(os.path.join(root_dist, "404.html"), "w", encoding="utf-8") as f:
+            f.write(not_found_html)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate LuxQMK Firmware Catalog")
