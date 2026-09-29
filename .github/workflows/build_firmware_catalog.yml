@@ -148,43 +148,43 @@ jobs:
           echo "server_name=$SERVER_NAME" >> $GITHUB_OUTPUT
           
           cat << 'EOF' > user-data.sh
-#!/bin/bash
-set -e
-export DEBIAN_FRONTEND=noninteractive
+          #!/bin/bash
+          set -e
+          export DEBIAN_FRONTEND=noninteractive
 
-# Install Docker & system dependencies
-apt-get update -y
-apt-get install -y docker.io curl jq tar sudo git
-systemctl enable --now docker
+          # Install Docker & system dependencies
+          apt-get update -y
+          apt-get install -y docker.io curl jq tar sudo git
+          systemctl enable --now docker
 
-# Create dedicated runner user and grant docker permissions
-useradd -m -s /bin/bash runner || true
-usermod -aG docker runner
-echo "runner ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+          # Create dedicated runner user and grant docker permissions
+          useradd -m -s /bin/bash runner || true
+          usermod -aG docker runner
+          echo "runner ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Download and extract GitHub Actions Runner
-RUNNER_DIR="/home/runner/actions-runner"
-mkdir -p "$RUNNER_DIR"
-cd "$RUNNER_DIR"
+          # Download and extract GitHub Actions Runner
+          RUNNER_DIR="/home/runner/actions-runner"
+          mkdir -p "$RUNNER_DIR"
+          cd "$RUNNER_DIR"
 
-RUNNER_VER="2.322.0"
-ARCH="__RUNNER_ARCH__"
-curl -fsSL -o runner.tar.gz "https://github.com/actions/runner/releases/download/v${RUNNER_VER}/actions-runner-linux-${ARCH}-${RUNNER_VER}.tar.gz"
-tar -xzf runner.tar.gz
-chown -R runner:runner /home/runner
+          RUNNER_VER="2.322.0"
+          ARCH="__RUNNER_ARCH__"
+          curl -fsSL -o runner.tar.gz "https://github.com/actions/runner/releases/download/v${RUNNER_VER}/actions-runner-linux-${ARCH}-${RUNNER_VER}.tar.gz"
+          tar -xzf runner.tar.gz
+          chown -R runner:runner /home/runner
 
-# Configure as ephemeral runner (auto-terminates after single job)
-sudo -u runner ./config.sh \
-  --url "https://github.com/__REPO__" \
-  --token "__RUNNER_TOKEN__" \
-  --name "__SERVER_NAME__" \
-  --labels "hetzner-builder" \
-  --ephemeral \
-  --unattended
+          # Configure as ephemeral runner (auto-terminates after single job)
+          sudo -u runner ./config.sh \
+            --url "https://github.com/__REPO__" \
+            --token "__RUNNER_TOKEN__" \
+            --name "__SERVER_NAME__" \
+            --labels "hetzner-builder" \
+            --ephemeral \
+            --unattended
 
-# Run runner in foreground
-sudo -u runner ./run.sh
-EOF
+          # Run runner in foreground
+          sudo -u runner ./run.sh
+          EOF
 
           sed -i "s|__RUNNER_ARCH__|${RUNNER_ARCH}|g" user-data.sh
           sed -i "s|__REPO__|${{ github.repository }}|g" user-data.sh
