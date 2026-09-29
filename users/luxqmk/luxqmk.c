@@ -528,10 +528,10 @@ void luxqmk_eeprom_load(void) {
         g_logo_lock_colors[0]   = (layer_color_t){ 0, 0 };
         g_logo_lock_colors[1]   = (layer_color_t){ 0, 255 };    // Caps (#FF0000)
         g_logo_lock_colors[2]   = (layer_color_t){ 165, 255 };  // Num (#001EFF)
-        g_logo_lock_colors[3]   = (layer_color_t){ 8, 255 };    // Caps + Num (#FF3200)
-        g_logo_lock_colors[4]   = (layer_color_t){ 77, 255 };   // Scroll (#32FF00)
-        g_logo_lock_colors[5]   = (layer_color_t){ 43, 255 };   // Caps + Scroll (#FFFF00)
-        g_logo_lock_colors[6]   = (layer_color_t){ 137, 255 };  // Num + Scroll (#00C8FF)
+        g_logo_lock_colors[3]   = (layer_color_t){ 8, 255 };    // Caps + Num (#FF3000)
+        g_logo_lock_colors[4]   = (layer_color_t){ 77, 255 };   // Scroll (#30FF00)
+        g_logo_lock_colors[5]   = (layer_color_t){ 43, 255 };   // Caps + Scroll (#FCFF00)
+        g_logo_lock_colors[6]   = (layer_color_t){ 137, 255 };  // Num + Scroll (#00C6FF)
         g_logo_lock_colors[7]   = (layer_color_t){ 0, 0 };      // All (#FFFFFF)
 
         g_win_lock_mode         = WIN_LOCK_MODE_ANIMATION;
