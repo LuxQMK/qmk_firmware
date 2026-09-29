@@ -50,6 +50,14 @@ on:
         description: 'Firmware Version Tag (e.g. v0.3.4)'
         required: true
         default: 'v0.3.4'
+      hetzner_teardown:
+        description: 'Hetzner Runner Teardown Strategy'
+        required: true
+        type: choice
+        options:
+          - 'keep_alive_55m'    # Reuse server for 55m within the paid hour, then auto-delete (Recommended)
+          - 'delete_immediately' # Delete server immediately after this workflow completes
+        default: 'keep_alive_55m'
       deploy_cloudflare_pages:
         description: 'Deploy to Cloudflare Pages (files.luxqmk.click)?'
         required: true
@@ -133,7 +141,15 @@ jobs:
         env:
           HCLOUD_TOKEN: ${{ secrets.HETZNER_API_TOKEN }}
         run: |
-          SERVER_NAME="luxqmk-build-${{ github.run_id }}-${{ github.run_attempt }}"
+          EXISTING_SERVER=$(hcloud server list --selector "role=luxqmk-builder" -o json | jq -r '.[0].name // empty')
+          if [ -n "$EXISTING_SERVER" ]; then
+            echo ">>> Active Hetzner builder server already exists: $EXISTING_SERVER"
+            echo ">>> Reusing existing runner within current paid hour window!"
+            echo "server_name=$EXISTING_SERVER" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          SERVER_NAME="luxqmk-hetzner-builder"
           SERVER_TYPE="cpx62"
           RUNNER_ARCH="x64"
           
@@ -157,6 +173,13 @@ jobs:
           apt-get install -y docker.io curl jq tar sudo git
           systemctl enable --now docker
 
+          # Install hcloud CLI on the VM for self-destruct watchdog
+          curl -fsSL https://github.com/hetznercloud/cli/releases/latest/download/hcloud-linux-amd64.tar.gz | tar -xz
+          mv hcloud /usr/local/bin/
+
+          # Start 55-minute (3300s) auto-destruct watchdog to prevent 2nd hour billing
+          nohup bash -c "sleep 3300 && export HCLOUD_TOKEN='__HCLOUD_TOKEN__' && hcloud server delete __SERVER_NAME__" >/dev/null 2>&1 &
+
           # Create dedicated runner user and grant docker permissions
           useradd -m -s /bin/bash runner || true
           usermod -aG docker runner
@@ -173,23 +196,23 @@ jobs:
           tar -xzf runner.tar.gz
           chown -R runner:runner /home/runner
 
-          # Configure as ephemeral runner (auto-terminates after single job)
+          # Configure as persistent background service for the duration of the 55-minute session
           sudo -u runner ./config.sh \
             --url "https://github.com/__REPO__" \
             --token "__RUNNER_TOKEN__" \
             --name "__SERVER_NAME__" \
             --labels "hetzner-builder" \
-            --ephemeral \
             --unattended
 
-          # Run runner in foreground
-          sudo -u runner ./run.sh
+          ./svc.sh install runner
+          ./svc.sh start
           EOF
 
           sed -i "s|__RUNNER_ARCH__|${RUNNER_ARCH}|g" user-data.sh
           sed -i "s|__REPO__|${{ github.repository }}|g" user-data.sh
           sed -i "s|__RUNNER_TOKEN__|${{ steps.get-token.outputs.token }}|g" user-data.sh
           sed -i "s|__SERVER_NAME__|${SERVER_NAME}|g" user-data.sh
+          sed -i "s|__HCLOUD_TOKEN__|${{ secrets.HETZNER_API_TOKEN }}|g" user-data.sh
 
           echo ">>> Launching Hetzner Cloud Server: $SERVER_NAME (Type: $SERVER_TYPE, Datacenter: fsn1 Falkenstein)..."
           hcloud server create \
@@ -197,6 +220,7 @@ jobs:
             --type "$SERVER_TYPE" \
             --image "ubuntu-26.04" \
             --location "fsn1" \
+            --label "role=luxqmk-builder" \
             --user-data-from-file "user-data.sh"
             
           echo ">>> Server created successfully. Waiting for runner to connect to GitHub Actions..."
@@ -390,14 +414,23 @@ jobs:
           curl -fsSL https://github.com/hetznercloud/cli/releases/latest/download/hcloud-linux-amd64.tar.gz | tar -xz
           sudo mv hcloud /usr/local/bin/
 
-      - name: Delete Hetzner Server
+      - name: Process Runner Teardown
         env:
           HCLOUD_TOKEN: ${{ secrets.HETZNER_API_TOKEN }}
         run: |
-          SERVER_NAME="luxqmk-build-${{ github.run_id }}-${{ github.run_attempt }}"
-          echo ">>> Tearing down Hetzner server: $SERVER_NAME..."
-          hcloud server delete "$SERVER_NAME" || true
-          echo ">>> Server $SERVER_NAME deleted. Billing stopped."
+          SERVER_NAME="${{ needs.start-hetzner-runner.outputs.server_name }}"
+          if [ -z "$SERVER_NAME" ]; then
+            SERVER_NAME="luxqmk-hetzner-builder"
+          fi
+
+          if [ "${{ inputs.hetzner_teardown }}" = "delete_immediately" ]; then
+            echo ">>> Deleting Hetzner server immediately: $SERVER_NAME..."
+            hcloud server delete "$SERVER_NAME" || true
+            echo ">>> Server $SERVER_NAME deleted successfully."
+          else
+            echo ">>> Server $SERVER_NAME remains active for subsequent builds during the current 1-hour billing window."
+            echo ">>> The internal 55-minute watchdog on the VM will automatically delete it before the next hour begins."
+          fi
 
   # ---------------------------------------------------------------------------
   # 3. Package Catalog, Generate Portal Manifest & Deploy to CDN
