@@ -35,7 +35,34 @@ layer_color_t g_logo_lock_colors[8] = {
 
 // Windows Key Lock configuration
 uint8_t g_win_lock_mode = WIN_LOCK_MODE_ANIMATION; // 0 = Standard Animation, 1 = Off, 2 = Custom Color
-layer_color_t g_win_lock_color = { 0, 255 };       // Default red
+layer_color_t g_win_lock_color = { 0, 0 };         // Default white (#ffffff)
+
+#if defined(CAPS_LOCK_LED_INDEX) || defined(CAPS_LED_INDEX)
+#    define LUXQMK_DEFAULT_CAPS_LOCK_MODE LOCK_INDICATOR_MODE_COLOR
+#else
+#    define LUXQMK_DEFAULT_CAPS_LOCK_MODE LOCK_INDICATOR_MODE_ANIMATION
+#endif
+
+#if defined(NUM_LOCK_LED_INDEX) || defined(NUM_LED_INDEX)
+#    define LUXQMK_DEFAULT_NUM_LOCK_MODE LOCK_INDICATOR_MODE_COLOR
+#else
+#    define LUXQMK_DEFAULT_NUM_LOCK_MODE LOCK_INDICATOR_MODE_ANIMATION
+#endif
+
+#if defined(SCROLL_LOCK_LED_INDEX) || defined(SCROLL_LED_INDEX)
+#    define LUXQMK_DEFAULT_SCROLL_LOCK_MODE LOCK_INDICATOR_MODE_COLOR
+#else
+#    define LUXQMK_DEFAULT_SCROLL_LOCK_MODE LOCK_INDICATOR_MODE_ANIMATION
+#endif
+
+uint8_t g_caps_lock_mode = LUXQMK_DEFAULT_CAPS_LOCK_MODE;
+layer_color_t g_caps_lock_color = { 0, 0 }; // Default white (#ffffff)
+
+uint8_t g_num_lock_mode = LUXQMK_DEFAULT_NUM_LOCK_MODE;
+layer_color_t g_num_lock_color = { 0, 0 }; // Default white (#ffffff)
+
+uint8_t g_scroll_lock_mode = LUXQMK_DEFAULT_SCROLL_LOCK_MODE;
+layer_color_t g_scroll_lock_color = { 0, 0 }; // Default white (#ffffff)
 
 // Dual-Layer Reactive Lighting configuration
 bool g_reactive_enable         = false;
@@ -468,6 +495,17 @@ void luxqmk_eeprom_save(void) {
         }
     }
 
+    // Lock Indicators Configuration (bytes 134..142)
+    header[134] = g_caps_lock_mode;
+    header[135] = g_caps_lock_color.h;
+    header[136] = g_caps_lock_color.s;
+    header[137] = g_num_lock_mode;
+    header[138] = g_num_lock_color.h;
+    header[139] = g_num_lock_color.s;
+    header[140] = g_scroll_lock_mode;
+    header[141] = g_scroll_lock_color.h;
+    header[142] = g_scroll_lock_color.s;
+
     via_update_custom_config(header, 0, sizeof(header));
     via_update_custom_config(g_eeprom_per_key_profiles, 160, sizeof(g_eeprom_per_key_profiles));
 #endif
@@ -535,7 +573,14 @@ void luxqmk_eeprom_load(void) {
         g_logo_lock_colors[7]   = (layer_color_t){ 0, 0 };      // All (#FFFFFF)
 
         g_win_lock_mode         = WIN_LOCK_MODE_ANIMATION;
-        g_win_lock_color        = (layer_color_t){ 0, 255 };
+        g_win_lock_color        = (layer_color_t){ 0, 0 };
+
+        g_caps_lock_mode        = LUXQMK_DEFAULT_CAPS_LOCK_MODE;
+        g_caps_lock_color       = (layer_color_t){ 0, 0 };
+        g_num_lock_mode         = LUXQMK_DEFAULT_NUM_LOCK_MODE;
+        g_num_lock_color        = (layer_color_t){ 0, 0 };
+        g_scroll_lock_mode      = LUXQMK_DEFAULT_SCROLL_LOCK_MODE;
+        g_scroll_lock_color     = (layer_color_t){ 0, 0 };
 
         g_reactive_enable       = false;
         g_reactive_mode         = REACTIVE_MODE_OFF;
@@ -593,7 +638,7 @@ void luxqmk_eeprom_load(void) {
 
         if (win_lock_mode == 0xFF) {
             g_win_lock_mode  = WIN_LOCK_MODE_ANIMATION;
-            g_win_lock_color = (layer_color_t){ 0, 255 };
+            g_win_lock_color = (layer_color_t){ 0, 0 };
         } else {
             g_win_lock_mode  = win_lock_mode;
             g_win_lock_color = (layer_color_t){ win_lock_h, win_lock_s };
@@ -684,6 +729,34 @@ void luxqmk_eeprom_load(void) {
                 if (pk <= 2 || pk == 0xFF) g_dip_switch_configs[s].pos[p].perkey_profile = pk;
                 if (w <= 1 || w == 0xFF) g_dip_switch_configs[s].pos[p].win_lock_state = w;
             }
+        }
+
+        // Lock Indicators Deserialization (bytes 134..142)
+        uint8_t caps_mode = header[134];
+        if (caps_mode == 0xFF) {
+            g_caps_lock_mode   = LUXQMK_DEFAULT_CAPS_LOCK_MODE;
+            g_caps_lock_color  = (layer_color_t){ 0, 0 };
+        } else {
+            g_caps_lock_mode   = caps_mode;
+            g_caps_lock_color  = (layer_color_t){ header[135], header[136] };
+        }
+
+        uint8_t num_mode = header[137];
+        if (num_mode == 0xFF) {
+            g_num_lock_mode    = LUXQMK_DEFAULT_NUM_LOCK_MODE;
+            g_num_lock_color   = (layer_color_t){ 0, 0 };
+        } else {
+            g_num_lock_mode    = num_mode;
+            g_num_lock_color   = (layer_color_t){ header[138], header[139] };
+        }
+
+        uint8_t scroll_mode = header[140];
+        if (scroll_mode == 0xFF) {
+            g_scroll_lock_mode = LUXQMK_DEFAULT_SCROLL_LOCK_MODE;
+            g_scroll_lock_color= (layer_color_t){ 0, 0 };
+        } else {
+            g_scroll_lock_mode = scroll_mode;
+            g_scroll_lock_color= (layer_color_t){ header[141], header[142] };
         }
 
 #if defined(RGB_MATRIX_ENABLE)
@@ -960,6 +1033,60 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                 }
                 return;
 
+            case USER_VAL_CAPS_LOCK_MODE:
+                if (*command_id == id_custom_get_value) {
+                    data[3] = g_caps_lock_mode;
+                } else if (*command_id == id_custom_set_value) {
+                    g_caps_lock_mode = data[3];
+                }
+                return;
+
+            case USER_VAL_CAPS_LOCK_COLOR:
+                if (*command_id == id_custom_get_value) {
+                    data[3] = g_caps_lock_color.h;
+                    data[4] = g_caps_lock_color.s;
+                } else if (*command_id == id_custom_set_value) {
+                    g_caps_lock_color.h = data[3];
+                    g_caps_lock_color.s = data[4];
+                }
+                return;
+
+            case USER_VAL_NUM_LOCK_MODE:
+                if (*command_id == id_custom_get_value) {
+                    data[3] = g_num_lock_mode;
+                } else if (*command_id == id_custom_set_value) {
+                    g_num_lock_mode = data[3];
+                }
+                return;
+
+            case USER_VAL_NUM_LOCK_COLOR:
+                if (*command_id == id_custom_get_value) {
+                    data[3] = g_num_lock_color.h;
+                    data[4] = g_num_lock_color.s;
+                } else if (*command_id == id_custom_set_value) {
+                    g_num_lock_color.h = data[3];
+                    g_num_lock_color.s = data[4];
+                }
+                return;
+
+            case USER_VAL_SCROLL_LOCK_MODE:
+                if (*command_id == id_custom_get_value) {
+                    data[3] = g_scroll_lock_mode;
+                } else if (*command_id == id_custom_set_value) {
+                    g_scroll_lock_mode = data[3];
+                }
+                return;
+
+            case USER_VAL_SCROLL_LOCK_COLOR:
+                if (*command_id == id_custom_get_value) {
+                    data[3] = g_scroll_lock_color.h;
+                    data[4] = g_scroll_lock_color.s;
+                } else if (*command_id == id_custom_set_value) {
+                    g_scroll_lock_color.h = data[3];
+                    g_scroll_lock_color.s = data[4];
+                }
+                return;
+
             case USER_VAL_REACTIVE_ENABLE:
                 if (*command_id == id_custom_get_value) {
                     data[3] = g_reactive_enable ? 1 : 0;
@@ -1020,7 +1147,7 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                         caps |= LUXQMK_CAP_SIDELIGHTS;
                     }
 #endif
-#if defined(DIP_SWITCH_ENABLE) && defined(DIP_SWITCH_PINS)
+#if defined(DIP_SWITCH_ENABLE)
                     caps |= LUXQMK_CAP_DIP_SWITCHES;
 #endif
                     data[6] = (uint8_t)(caps & 0xFF);
@@ -1814,10 +1941,10 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
         }
     }
 
-    // 3. Always ensure board-specific hardware indicators (Logo badge, Win Lock) are rendered
+    // 3. Always ensure board-specific hardware indicators (Logo badge, Win Lock, Caps/Num/Scroll) are rendered
     board_indicators_render();
 
-    return true;
+    return false;
 }
 
 bool rgb_matrix_indicators_user(void) {
@@ -2066,7 +2193,7 @@ bool rgb_matrix_indicators_user(void) {
     // 3. Render hardware board-specific indicators
     board_indicators_render();
 
-    return true;
+    return false;
 }
 
 bool board_has_sidelights(void) {

@@ -1,4 +1,4 @@
-# LuxQMK Userspace Engine (v0.3.3)
+# LuxQMK Userspace Engine (v0.3.4)
 
 Dedicated QMK Userspace architecture for **LuxQMK**, providing native out-of-the-box VIA support (`VIA_ENABLE = yes`), modular hardware abstraction, dual-layer reactive RGB matrix lighting, custom VIA/WebHID channels, multi-stop gradient sampling, real-time configurable debouncing, forced boot NKRO, and atomic direct lighting double-buffering.
 
@@ -16,6 +16,7 @@ users/luxqmk/
 ├── rgb/
 │   └── custom_effects.h   # Multi-stop gradient shaders & reactive blend math
 └── boards/                # Hardware Abstraction Layer (HAL)
+    ├── keychron.c / .h    # Keychron Family (Q, V, C Pro, S series ANSI/ISO/JIS/Encoders)
     ├── gmmk3.c / .h       # GMMK 3 (100%, 75%, 65% ANSI/ISO), Logo badge, Win Lock LED (Index 92)
     ├── gmmk2.c / .h       # GMMK 2 (96%, 65% ANSI/ISO), side lighting strips
     └── generic.c / .h     # Standard fallback driver for universal QMK / VIA keyboards

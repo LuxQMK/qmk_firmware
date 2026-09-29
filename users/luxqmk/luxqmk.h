@@ -55,8 +55,15 @@ enum logo_led_mode {
 };
 
 /**
- * Windows Key lock (Win Lock) indicator modes
+ * Lock status indicator modes (Caps Lock, Num Lock, Scroll Lock, Win Lock)
  */
+enum lock_indicator_mode {
+    LOCK_INDICATOR_MODE_ANIMATION = 0,   // Default: continue standard RGB animation (no lock override)
+    LOCK_INDICATOR_MODE_OFF,             // Turn off LED when locked
+    LOCK_INDICATOR_MODE_COLOR,           // Solid custom HSV color when locked
+    LOCK_INDICATOR_MODE_WHITE            // Solid white (255, 255, 255) when locked
+};
+
 enum win_lock_led_mode {
     WIN_LOCK_MODE_ANIMATION = 0,   // Default: continue standard RGB animation
     WIN_LOCK_MODE_OFF,             // Turn off Win key LED when locked
@@ -176,8 +183,8 @@ enum sidelight_effect_mode {
  */
 #define LUXQMK_VERSION_MAJOR             0
 #define LUXQMK_VERSION_MINOR             3
-#define LUXQMK_VERSION_PATCH             3
-#define LUXQMK_VERSION_STRING            "0.3.3"
+#define LUXQMK_VERSION_PATCH             4
+#define LUXQMK_VERSION_STRING            "0.3.4"
 
 #define LUXQMK_CAP_REACTIVE_OVERLAY      (1 << 0)
 #define LUXQMK_CAP_DIRECTION_REVERSE     (1 << 1)
@@ -242,6 +249,13 @@ typedef struct {
 #define USER_VAL_DIP_SWITCH_SET_POS      54
 #define USER_VAL_DIP_SWITCH_SAVE_EEPROM  55
 
+#define USER_VAL_CAPS_LOCK_MODE          56
+#define USER_VAL_CAPS_LOCK_COLOR         57
+#define USER_VAL_NUM_LOCK_MODE           58
+#define USER_VAL_NUM_LOCK_COLOR          59
+#define USER_VAL_SCROLL_LOCK_MODE        60
+#define USER_VAL_SCROLL_LOCK_COLOR       61
+
 #define USER_VAL_BOOTLOADER_JUMP         0xFE
 
 /**
@@ -258,6 +272,15 @@ extern layer_color_t g_logo_lock_colors[8];
 
 extern uint8_t g_win_lock_mode;
 extern layer_color_t g_win_lock_color;
+
+extern uint8_t g_caps_lock_mode;
+extern layer_color_t g_caps_lock_color;
+
+extern uint8_t g_num_lock_mode;
+extern layer_color_t g_num_lock_color;
+
+extern uint8_t g_scroll_lock_mode;
+extern layer_color_t g_scroll_lock_color;
 
 extern bool g_reactive_enable;
 extern uint8_t g_reactive_mode;
@@ -310,6 +333,9 @@ void board_init(void);
 void board_indicators_render(void);
 uint8_t board_get_logo_led_index(void);
 uint8_t board_get_win_led_index(void);
+uint8_t board_get_caps_led_index(void);
+uint8_t board_get_num_led_index(void);
+uint8_t board_get_scroll_led_index(void);
 bool board_has_sidelights(void);
 void board_calc_sidelight_coords(uint8_t led_idx, uint8_t ug_first, uint8_t ug_count, uint8_t density,
                                  uint8_t *y_scaled, uint8_t *dist_scaled, uint8_t *opt_step, bool *is_hidden);

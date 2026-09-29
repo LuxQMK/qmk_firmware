@@ -20,7 +20,19 @@ uint8_t gmmk3_board_get_logo_led_index(void) {
 }
 
 uint8_t gmmk3_board_get_win_led_index(void) {
-    return GMMK3_WIN_LED_INDEX;
+#if defined(DRIVER_LED_TOTAL)
+    #if DRIVER_LED_TOTAL >= 115
+        return 92; // GMMK 3 100% ANSI / ISO
+    #elif DRIVER_LED_TOTAL >= 95
+        return 72; // GMMK 3 75% ANSI / ISO
+    #elif DRIVER_LED_TOTAL >= 80
+        return 57; // GMMK 3 65% ANSI / ISO
+    #else
+        return 92;
+    #endif
+#else
+    return 92;
+#endif
 }
 
 void gmmk3_board_indicators_render(void) {
@@ -67,6 +79,47 @@ void gmmk3_board_indicators_render(void) {
             };
             RGB col = hsv_to_rgb(hsv);
             rgb_matrix_set_color(win_idx, col.r, col.g, col.b);
+        }
+    }
+
+    // 3. Render Status Lock Indicators (Caps Lock, Num Lock, Scroll Lock) if defined
+    led_t host_leds_status = host_keyboard_led_state();
+    uint8_t caps_idx = board_get_caps_led_index();
+    if (caps_idx != NO_LED && caps_idx < DRIVER_LED_TOTAL && host_leds_status.caps_lock) {
+        if (g_caps_lock_mode == LOCK_INDICATOR_MODE_OFF) {
+            rgb_matrix_set_color(caps_idx, 0, 0, 0);
+        } else if (g_caps_lock_mode == LOCK_INDICATOR_MODE_COLOR) {
+            uint8_t val = rgb_matrix_get_val();
+            if (val == 0) val = 255;
+            HSV hsv = { g_caps_lock_color.h, g_caps_lock_color.s, val };
+            RGB rgb = hsv_to_rgb(hsv);
+            rgb_matrix_set_color(caps_idx, rgb.r, rgb.g, rgb.b);
+        }
+    }
+
+    uint8_t num_idx = board_get_num_led_index();
+    if (num_idx != NO_LED && num_idx < DRIVER_LED_TOTAL && host_leds_status.num_lock) {
+        if (g_num_lock_mode == LOCK_INDICATOR_MODE_OFF) {
+            rgb_matrix_set_color(num_idx, 0, 0, 0);
+        } else if (g_num_lock_mode == LOCK_INDICATOR_MODE_COLOR) {
+            uint8_t val = rgb_matrix_get_val();
+            if (val == 0) val = 255;
+            HSV hsv = { g_num_lock_color.h, g_num_lock_color.s, val };
+            RGB rgb = hsv_to_rgb(hsv);
+            rgb_matrix_set_color(num_idx, rgb.r, rgb.g, rgb.b);
+        }
+    }
+
+    uint8_t scroll_idx = board_get_scroll_led_index();
+    if (scroll_idx != NO_LED && scroll_idx < DRIVER_LED_TOTAL && host_leds_status.scroll_lock) {
+        if (g_scroll_lock_mode == LOCK_INDICATOR_MODE_OFF) {
+            rgb_matrix_set_color(scroll_idx, 0, 0, 0);
+        } else if (g_scroll_lock_mode == LOCK_INDICATOR_MODE_COLOR) {
+            uint8_t val = rgb_matrix_get_val();
+            if (val == 0) val = 255;
+            HSV hsv = { g_scroll_lock_color.h, g_scroll_lock_color.s, val };
+            RGB rgb = hsv_to_rgb(hsv);
+            rgb_matrix_set_color(scroll_idx, rgb.r, rgb.g, rgb.b);
         }
     }
 #endif
@@ -125,6 +178,50 @@ uint8_t board_get_logo_led_index(void) {
 
 uint8_t board_get_win_led_index(void) {
     return gmmk3_board_get_win_led_index();
+}
+
+uint8_t board_get_caps_led_index(void) {
+#if defined(CAPS_LOCK_LED_INDEX)
+    return CAPS_LOCK_LED_INDEX;
+#elif defined(CAPS_LED_INDEX)
+    return CAPS_LED_INDEX;
+#elif defined(DRIVER_LED_TOTAL)
+    #if DRIVER_LED_TOTAL >= 115
+        return 58; // GMMK 3 100% ANSI / ISO
+    #elif DRIVER_LED_TOTAL >= 95
+        return 43; // GMMK 3 75% ANSI / ISO
+    #elif DRIVER_LED_TOTAL >= 80
+        return 28; // GMMK 3 65% ANSI / ISO
+    #else
+        return NO_LED;
+    #endif
+#else
+    return NO_LED;
+#endif
+}
+
+uint8_t board_get_num_led_index(void) {
+#if defined(NUM_LOCK_LED_INDEX)
+    return NUM_LOCK_LED_INDEX;
+#elif defined(NUM_LED_INDEX)
+    return NUM_LED_INDEX;
+#elif defined(DRIVER_LED_TOTAL) && (DRIVER_LED_TOTAL >= 115)
+    return 33; // GMMK 3 100% ANSI / ISO
+#else
+    return NO_LED;
+#endif
+}
+
+uint8_t board_get_scroll_led_index(void) {
+#if defined(SCROLL_LOCK_LED_INDEX)
+    return SCROLL_LOCK_LED_INDEX;
+#elif defined(SCROLL_LED_INDEX)
+    return SCROLL_LED_INDEX;
+#elif defined(DRIVER_LED_TOTAL) && (DRIVER_LED_TOTAL >= 115)
+    return 14; // GMMK 3 100% ANSI / ISO
+#else
+    return NO_LED;
+#endif
 }
 
 void board_calc_sidelight_coords(uint8_t led_idx, uint8_t ug_first, uint8_t ug_count, uint8_t density,
