@@ -195,7 +195,7 @@ EOF
           hcloud server create \
             --name "$SERVER_NAME" \
             --type "$SERVER_TYPE" \
-            --image "ubuntu-24.04" \
+            --image "ubuntu-26.04" \
             --location "fsn1" \
             --user-data-from-file "user-data.sh"
             
