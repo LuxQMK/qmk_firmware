@@ -211,12 +211,15 @@ jobs:
           usermod -aG docker runner
           echo "runner ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-          # Download and extract GitHub Actions Runner
+          # Download and extract latest GitHub Actions Runner (minimum required is 2.329.0+)
           RUNNER_DIR="/home/runner/actions-runner"
           mkdir -p "$RUNNER_DIR"
           cd "$RUNNER_DIR"
 
-          RUNNER_VER="2.322.0"
+          RUNNER_VER=$(curl -s https://api.github.com/repos/actions/runner/releases/latest | jq -r .tag_name | sed 's/^v//')
+          if [ -z "$RUNNER_VER" ] || [ "$RUNNER_VER" = "null" ]; then
+            RUNNER_VER="2.329.0"
+          fi
           ARCH="__RUNNER_ARCH__"
           curl -fsSL -o runner.tar.gz "https://github.com/actions/runner/releases/download/v${RUNNER_VER}/actions-runner-linux-${ARCH}-${RUNNER_VER}.tar.gz"
           tar -xzf runner.tar.gz
