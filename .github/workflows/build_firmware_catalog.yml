@@ -329,15 +329,33 @@ jobs:
           # Clean up any broken external third-party repo entries (e.g. outdated github-cli GPG keys in debian containers)
           (sudo rm -f /etc/apt/sources.list.d/github-cli.list /etc/apt/sources.list.d/*github*.list 2>/dev/null || rm -f /etc/apt/sources.list.d/github-cli.list /etc/apt/sources.list.d/*github*.list 2>/dev/null) || true
 
+          # Always ensure ccache is installed and configured
+          if ! command -v ccache &>/dev/null; then
+            echo ">>> Installing ccache..."
+            (command -v sudo >/dev/null && sudo apt-get update -y && sudo apt-get install -y ccache) || (apt-get update -y && apt-get install -y ccache) || true
+          fi
+
+          if command -v ccache &>/dev/null; then
+            echo ">>> Configuring ccache..."
+            mkdir -p /root/.cache/ccache
+            export CCACHE_DIR=/root/.cache/ccache
+            ccache -M 5G || true
+            if [ -d "/usr/lib/ccache" ]; then
+              export PATH="/usr/lib/ccache:$PATH"
+              echo "/usr/lib/ccache" >> $GITHUB_PATH
+            fi
+          fi
+
           if ! command -v qmk &>/dev/null || ! command -v arm-none-eabi-gcc &>/dev/null; then
             echo ">>> Installing Cross-Compilers and QMK CLI..."
-            (command -v sudo >/dev/null && sudo apt-get update -y && sudo apt-get install -y gcc-arm-none-eabi gcc-avr avr-libc binutils-arm-none-eabi libnewlib-arm-none-eabi gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf libnewlib-riscv64-unknown-elf dfu-util dfu-programmer avrdude ccache python3-pip pipx) || (apt-get update -y && apt-get install -y gcc-arm-none-eabi gcc-avr avr-libc binutils-arm-none-eabi libnewlib-arm-none-eabi gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf libnewlib-riscv64-unknown-elf dfu-util dfu-programmer avrdude ccache python3-pip pipx) || true
+            (command -v sudo >/dev/null && sudo apt-get update -y && sudo apt-get install -y gcc-arm-none-eabi gcc-avr avr-libc binutils-arm-none-eabi libnewlib-arm-none-eabi gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf libnewlib-riscv64-unknown-elf dfu-util dfu-programmer avrdude python3-pip pipx) || (apt-get update -y && apt-get install -y gcc-arm-none-eabi gcc-avr avr-libc binutils-arm-none-eabi libnewlib-arm-none-eabi gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf libnewlib-riscv64-unknown-elf dfu-util dfu-programmer avrdude python3-pip pipx) || true
             pipx install --force qmk || pip3 install --break-system-packages qmk || pip3 install qmk || true
             pipx ensurepath || true
           else
             echo ">>> Official QMK toolchain verified!"
             echo ">>> QMK version: $(qmk --version 2>/dev/null || echo 'ready')"
             echo ">>> ARM GCC: $(arm-none-eabi-gcc --version 2>/dev/null | head -n 1 || echo 'ready')"
+            echo ">>> ccache: $(ccache --version 2>/dev/null | head -n 1 || echo 'installed')"
           fi
 
           # Ensure RISC-V toolchain is available for RISC-V architectures (e.g. GD32VF103 / Sipeed Longan Nano)

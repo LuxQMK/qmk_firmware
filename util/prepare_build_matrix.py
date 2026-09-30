@@ -157,7 +157,7 @@ def get_job_weight(pool_name, runner_pool_choice):
             return 0.5  # 1 AMD vCPU
         return 8.0
     elif pool_name == "oci":
-        return 2.0  # 4 OCPU ARM dedicated
+        return 1.0  # 4 OCPU ARM dedicated (balanced to match 1 GitHub runner workload)
     else:  # github
         return 1.0
 
