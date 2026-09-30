@@ -994,7 +994,7 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
 
             case USER_VAL_ACTIVE_LAYER:
                 if (*command_id == id_custom_get_value) {
-                    data[3] = get_highest_layer(layer_state);
+                    data[3] = get_highest_layer(layer_state | default_layer_state);
                 }
                 return;
 
