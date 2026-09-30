@@ -230,14 +230,31 @@ jobs:
           sed -i "s|__SERVER_NAME__|${SERVER_NAME}|g" user-data.sh
           sed -i "s|__HCLOUD_TOKEN__|${{ secrets.HETZNER_API_TOKEN }}|g" user-data.sh
 
-          echo ">>> Launching Hetzner Cloud Server: $SERVER_NAME (Type: $SERVER_TYPE, Datacenter: fsn1 Falkenstein)..."
-          hcloud server create \
-            --name "$SERVER_NAME" \
-            --type "$SERVER_TYPE" \
-            --image "ubuntu-26.04" \
-            --location "fsn1" \
-            --label "role=luxqmk-builder" \
-            --user-data-from-file "user-data.sh"
+          LOCATIONS=("fsn1" "nbg1" "hel1")
+          SERVER_CREATED=0
+
+          for LOC in "${LOCATIONS[@]}"; do
+            echo ">>> Attempting to launch Hetzner Cloud Server: $SERVER_NAME (Type: $SERVER_TYPE, Datacenter: $LOC)..."
+            if hcloud server create \
+              --name "$SERVER_NAME" \
+              --type "$SERVER_TYPE" \
+              --image "ubuntu-26.04" \
+              --location "$LOC" \
+              --label "role=luxqmk-builder" \
+              --user-data-from-file "user-data.sh"; then
+                echo ">>> Server created successfully in datacenter: $LOC!"
+                SERVER_CREATED=1
+                break
+            else
+              echo ">>> Datacenter $LOC temporarily out of capacity (resource_unavailable) for $SERVER_TYPE. Trying next datacenter..."
+              sleep 2
+            fi
+          done
+
+          if [ "$SERVER_CREATED" -ne 1 ]; then
+            echo "::error::Failed to launch $SERVER_TYPE in all datacenters (fsn1, nbg1, hel1)."
+            exit 1
+          fi
             
           echo ">>> Server created successfully. Waiting for runner to connect to GitHub Actions..."
           for i in $(seq 1 30); do
