@@ -194,9 +194,9 @@ jobs:
           set -e
           export DEBIAN_FRONTEND=noninteractive
 
-          # Install Docker & system dependencies
+          # Install Docker & system dependencies (including .NET/runner runtime libraries)
           apt-get update -y
-          apt-get install -y docker.io curl jq tar sudo git
+          apt-get install -y docker.io curl jq tar sudo git libicu-dev liblttng-ust1
           systemctl enable --now docker
 
           # Install hcloud CLI on the VM for self-destruct watchdog
