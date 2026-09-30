@@ -12,9 +12,10 @@
  * Global configuration variables for lighting, layer colors, and logo mode
  */
 bool g_custom_rgb_reverse    = false;
-uint8_t g_layer_lighting_enable = 0x0B; // Bit 0: Master Enable, Bit 1: Layer 1, Bit 2: Layer 2, Bit 3: Layer 3 (Default: Master+L1+L3 enabled, L2 disabled for Mac base)
-uint8_t g_layer_dim_level    = 128; // 0..255 (128 = 50% background brightness)
-uint8_t g_layer_dim_levels[4] = { 128, 128, 255, 128 }; // Index 1: Layer 1, Index 2: Layer 2 (default 255 no dimming), Index 3: Layer 3
+uint8_t g_layer_lighting_enable = 0x0B; // Bitmask for active keys color highlight (Bit 0: Master, Bit 1: L1, Bit 2: L2, Bit 3: L3)
+uint8_t g_layer_dim_enable      = 0x0B; // Bitmask for background dimming (Bit 0: Master, Bit 1: L1, Bit 2: L2, Bit 3: L3)
+uint8_t g_layer_dim_level       = 128;  // 0..255 (128 = 50% background brightness)
+uint8_t g_layer_dim_levels[4]   = { 128, 128, 255, 128 }; // Index 1: Layer 1, Index 2: Layer 2 (default 255 no dimming), Index 3: Layer 3
 layer_color_t g_layer_colors[4] = {
     { 0, 0 },       // Layer 0 (Base - default RGB effects)
     { 28, 255 },    // Layer 1 (Fn / Media) -> Amber / Gold
@@ -507,9 +508,10 @@ void luxqmk_eeprom_save(void) {
     header[141] = g_scroll_lock_color.h;
     header[142] = g_scroll_lock_color.s;
 
-    // Per-Layer Dimming Levels (bytes 143..144)
+    // Per-Layer Dimming Levels (bytes 143..144) & Dimming Enable Bitmask (byte 145)
     header[143] = g_layer_dim_levels[2];
     header[144] = g_layer_dim_levels[3];
+    header[145] = g_layer_dim_enable;
 
     via_update_custom_config(header, 0, sizeof(header));
     via_update_custom_config(g_eeprom_per_key_profiles, 160, sizeof(g_eeprom_per_key_profiles));
@@ -562,6 +564,7 @@ void luxqmk_eeprom_load(void) {
         // Uninitialized EEPROM defaults
         g_custom_rgb_reverse    = false;
         g_layer_lighting_enable = 0x0B;
+        g_layer_dim_enable      = 0x0B;
         g_layer_dim_level       = 128;
         g_layer_dim_levels[1]   = 128;
         g_layer_dim_levels[2]   = 255;
@@ -619,6 +622,8 @@ void luxqmk_eeprom_load(void) {
     } else {
         g_custom_rgb_reverse    = (rev != 0);
         g_layer_lighting_enable = (enable == 1) ? 0x0B : enable;
+        uint8_t dim_en          = header[145];
+        g_layer_dim_enable      = (dim_en == 0xFF || dim_en == 1) ? 0x0B : dim_en;
         g_layer_dim_level       = dim;
         g_layer_dim_levels[1]   = dim;
         uint8_t dim2            = header[143];
@@ -929,6 +934,14 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
                     data[3] = g_layer_lighting_enable;
                 } else if (*command_id == id_custom_set_value) {
                     g_layer_lighting_enable = (data[3] == 1) ? 0x0B : data[3];
+                }
+                return;
+
+            case USER_VAL_LAYER_DIM_ENABLE:
+                if (*command_id == id_custom_get_value) {
+                    data[3] = g_layer_dim_enable;
+                } else if (*command_id == id_custom_set_value) {
+                    g_layer_dim_enable = (data[3] == 1) ? 0x0B : data[3];
                 }
                 return;
 
@@ -2170,10 +2183,18 @@ bool rgb_matrix_indicators_user(void) {
         }
     }
 
-    // 2. Active Layer Key Lighting Overlay (Highlights modifier/Fn layers, or active custom layers enabled by user)
-    if ((g_layer_lighting_enable & 0x01) != 0) {
-        uint8_t current_layer = get_highest_layer(layer_state | default_layer_state);
-        if (current_layer > 0 && current_layer < 4 && (g_layer_lighting_enable & (1 << current_layer)) != 0) {
+    // 2. Active Layer Key Lighting & Dimming Overlay (Completely decoupled)
+    uint8_t current_layer = get_highest_layer(layer_state | default_layer_state);
+    if (current_layer > 0 && current_layer < 4) {
+        bool dim_master   = (g_layer_dim_enable & 0x01) != 0;
+        bool dim_layer    = (g_layer_dim_enable & (1 << current_layer)) != 0;
+        bool do_dim       = dim_master && dim_layer;
+
+        bool color_master = (g_layer_lighting_enable & 0x01) != 0;
+        bool color_layer  = (g_layer_lighting_enable & (1 << current_layer)) != 0;
+        bool do_color     = color_master && color_layer;
+
+        if (do_dim || do_color) {
             uint8_t hue = g_layer_colors[current_layer].h;
             uint8_t sat = g_layer_colors[current_layer].s;
             uint8_t dim = g_layer_dim_levels[current_layer];
@@ -2197,20 +2218,24 @@ bool rgb_matrix_indicators_user(void) {
                     uint16_t keycode = keymap_key_to_keycode(current_layer, (keypos_t){ .row = r, .col = c });
 #endif
                     if (keycode == KC_TRNS || keycode == KC_NO) {
-                        if (dim == 0) {
-                            rgb_matrix_set_color(led, 0, 0, 0);
-                        } else if (dim < 255) {
-                            uint8_t red = 0, green = 0, blue = 0;
+                        if (do_dim) {
+                            if (dim == 0) {
+                                rgb_matrix_set_color(led, 0, 0, 0);
+                            } else if (dim < 255) {
+                                uint8_t red = 0, green = 0, blue = 0;
 #if defined(AW20216S_LED_COUNT)
-                            aw20216s_get_color(led, &red, &green, &blue);
+                                aw20216s_get_color(led, &red, &green, &blue);
 #endif
-                            uint8_t r_dim = ((uint16_t)red * dim) / 255;
-                            uint8_t g_dim = ((uint16_t)green * dim) / 255;
-                            uint8_t b_dim = ((uint16_t)blue * dim) / 255;
-                            rgb_matrix_set_color(led, r_dim, g_dim, b_dim);
+                                uint8_t r_dim = ((uint16_t)red * dim) / 255;
+                                uint8_t g_dim = ((uint16_t)green * dim) / 255;
+                                uint8_t b_dim = ((uint16_t)blue * dim) / 255;
+                                rgb_matrix_set_color(led, r_dim, g_dim, b_dim);
+                            }
                         }
                     } else {
-                        rgb_matrix_set_color(led, active_rgb.r, active_rgb.g, active_rgb.b);
+                        if (do_color) {
+                            rgb_matrix_set_color(led, active_rgb.r, active_rgb.g, active_rgb.b);
+                        }
                     }
                 }
             }

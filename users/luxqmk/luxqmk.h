@@ -221,6 +221,7 @@ typedef struct {
 #define USER_VAL_DEBOUNCE_TIME           27
 #define USER_VAL_DIRECT_LIGHTING_ENABLE  28
 #define USER_VAL_DIRECT_LIGHTING_BLOCK   29
+#define USER_VAL_LAYER_DIM_ENABLE        30
 
 #define USER_VAL_GRADIENT_PRESET         33
 #define USER_VAL_GRADIENT_CUSTOM_COUNT   34
@@ -264,6 +265,7 @@ typedef struct {
 extern uint8_t g_debounce_time;
 extern bool g_custom_rgb_reverse;
 extern uint8_t g_layer_lighting_enable;
+extern uint8_t g_layer_dim_enable;
 extern uint8_t g_layer_dim_level;
 extern uint8_t g_layer_dim_levels[4];
 extern layer_color_t g_layer_colors[4];
