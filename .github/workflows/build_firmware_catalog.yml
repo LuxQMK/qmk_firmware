@@ -210,6 +210,7 @@ jobs:
           ARCH="__RUNNER_ARCH__"
           curl -fsSL -o runner.tar.gz "https://github.com/actions/runner/releases/download/v${RUNNER_VER}/actions-runner-linux-${ARCH}-${RUNNER_VER}.tar.gz"
           tar -xzf runner.tar.gz
+          ./bin/installdependencies.sh || true
           chown -R runner:runner /home/runner
 
           # Configure as persistent background service for the duration of the 55-minute session
@@ -218,11 +219,15 @@ jobs:
             --token "__RUNNER_TOKEN__" \
             --name "__SERVER_NAME__" \
             --labels "hetzner-builder" \
-            --unattended
+            --unattended \
+            --replace
 
           ./svc.sh install runner
           ./svc.sh start
           EOF
+
+          # Strip leading indentation so shebang and bash script start at column 1
+          sed -i 's/^[ \t]*//' user-data.sh
 
           sed -i "s|__RUNNER_ARCH__|${RUNNER_ARCH}|g" user-data.sh
           sed -i "s|__REPO__|${{ github.repository }}|g" user-data.sh
@@ -257,7 +262,7 @@ jobs:
           fi
             
           echo ">>> Server created successfully. Waiting for runner to connect to GitHub Actions..."
-          for i in $(seq 1 30); do
+          for i in $(seq 1 40); do
             STATUS=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_RUNNER_PAT }}" \
               -H "Accept: application/vnd.github+json" \
               https://api.github.com/repos/${{ github.repository }}/actions/runners | jq -r ".runners[] | select(.name==\"$SERVER_NAME\") | .status" || echo "")
@@ -266,9 +271,14 @@ jobs:
               echo ">>> Runner $SERVER_NAME is ONLINE and ready!"
               break
             fi
-            echo ">>> Waiting for runner to register... ($i/30)"
+            echo ">>> Waiting for runner to register... ($i/40)"
             sleep 5
           done
+
+          if [ "$STATUS" != "online" ]; then
+            echo "::error::Runner $SERVER_NAME did not report online in time."
+            exit 1
+          fi
 
   # ---------------------------------------------------------------------------
   # 2. Parallel Firmware Compilation (with Ccache & Multithreading)
