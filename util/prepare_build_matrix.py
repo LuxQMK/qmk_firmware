@@ -34,20 +34,43 @@ GMMK2_TARGETS = [
 ]
 
 KEYCHRON_TARGETS = [
-    {"mode": "single", "kb": "keychron/v1/ansi_encoder", "km": "via", "name": "keychron-v1-ansi-encoder"},
-    {"mode": "single", "kb": "keychron/v1/iso_encoder", "km": "via", "name": "keychron-v1-iso-encoder"},
-    {"mode": "single", "kb": "keychron/v2/ansi_encoder", "km": "via", "name": "keychron-v2-ansi-encoder"},
-    {"mode": "single", "kb": "keychron/v3/ansi_encoder", "km": "via", "name": "keychron-v3-ansi-encoder"},
-    {"mode": "single", "kb": "keychron/v4/ansi", "km": "via", "name": "keychron-v4-ansi"},
-    {"mode": "single", "kb": "keychron/v5/ansi_encoder", "km": "via", "name": "keychron-v5-ansi-encoder"},
-    {"mode": "single", "kb": "keychron/v6/ansi_encoder", "km": "via", "name": "keychron-v6-ansi-encoder"},
-    {"mode": "single", "kb": "keychron/v6/iso_encoder", "km": "via", "name": "keychron-v6-iso-encoder"},
-    {"mode": "single", "kb": "keychron/q1v2/ansi_encoder", "km": "via", "name": "keychron-q1v2-ansi-encoder"},
-    {"mode": "single", "kb": "keychron/q2/ansi_encoder", "km": "via", "name": "keychron-q2-ansi-encoder"},
-    {"mode": "single", "kb": "keychron/q3/ansi_encoder", "km": "via", "name": "keychron-q3-ansi-encoder"},
-    {"mode": "single", "kb": "keychron/q5/ansi_encoder", "km": "via", "name": "keychron-q5-ansi-encoder"},
-    {"mode": "single", "kb": "keychron/q6/ansi_encoder", "km": "via", "name": "keychron-q6-ansi-encoder"},
-    {"mode": "single", "kb": "keychron/q6/iso_encoder", "km": "via", "name": "keychron-q6-iso-encoder"},
+    # Keychron V Series
+    {"mode": "single", "kb": "keychron/v1/ansi_encoder", "km": "default", "name": "keychron-v1-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/v1/iso_encoder", "km": "default", "name": "keychron-v1-iso-encoder"},
+    {"mode": "single", "kb": "keychron/v2/ansi_encoder", "km": "default", "name": "keychron-v2-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/v2/iso_encoder", "km": "default", "name": "keychron-v2-iso-encoder"},
+    {"mode": "single", "kb": "keychron/v3/ansi_encoder", "km": "default", "name": "keychron-v3-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/v3/iso_encoder", "km": "default", "name": "keychron-v3-iso-encoder"},
+    {"mode": "single", "kb": "keychron/v4/ansi", "km": "default", "name": "keychron-v4-ansi"},
+    {"mode": "single", "kb": "keychron/v4/iso", "km": "default", "name": "keychron-v4-iso"},
+    {"mode": "single", "kb": "keychron/v5/ansi_encoder", "km": "default", "name": "keychron-v5-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/v5/iso_encoder", "km": "default", "name": "keychron-v5-iso-encoder"},
+    {"mode": "single", "kb": "keychron/v6/ansi_encoder", "km": "default", "name": "keychron-v6-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/v6/iso_encoder", "km": "default", "name": "keychron-v6-iso-encoder"},
+    {"mode": "single", "kb": "keychron/v10/ansi_encoder", "km": "default", "name": "keychron-v10-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/v10/iso_encoder", "km": "default", "name": "keychron-v10-iso-encoder"},
+
+    # Keychron Q Series
+    {"mode": "single", "kb": "keychron/q1v1/ansi_encoder", "km": "default", "name": "keychron-q1v1-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/q1v1/iso_encoder", "km": "default", "name": "keychron-q1v1-iso-encoder"},
+    {"mode": "single", "kb": "keychron/q1v2/ansi_encoder", "km": "default", "name": "keychron-q1v2-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/q1v2/iso_encoder", "km": "default", "name": "keychron-q1v2-iso-encoder"},
+    {"mode": "single", "kb": "keychron/q2/ansi_encoder", "km": "default", "name": "keychron-q2-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/q2/iso_encoder", "km": "default", "name": "keychron-q2-iso-encoder"},
+    {"mode": "single", "kb": "keychron/q3/ansi_encoder", "km": "default", "name": "keychron-q3-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/q3/iso_encoder", "km": "default", "name": "keychron-q3-iso-encoder"},
+    {"mode": "single", "kb": "keychron/q5/ansi_encoder", "km": "default", "name": "keychron-q5-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/q5/iso_encoder", "km": "default", "name": "keychron-q5-iso-encoder"},
+    {"mode": "single", "kb": "keychron/q6/ansi_encoder", "km": "default", "name": "keychron-q6-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/q6/iso_encoder", "km": "default", "name": "keychron-q6-iso-encoder"},
+    {"mode": "single", "kb": "keychron/q10/ansi_encoder", "km": "default", "name": "keychron-q10-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/q11/ansi_encoder", "km": "default", "name": "keychron-q11-ansi-encoder"},
+    {"mode": "single", "kb": "keychron/q12/ansi_encoder", "km": "default", "name": "keychron-q12-ansi-encoder"},
+
+    # Keychron C Pro Series
+    {"mode": "single", "kb": "keychron/c1_pro/ansi/rgb", "km": "default", "name": "keychron-c1-pro-ansi-rgb"},
+    {"mode": "single", "kb": "keychron/c2_pro/ansi/rgb", "km": "default", "name": "keychron-c2-pro-ansi-rgb"},
+    {"mode": "single", "kb": "keychron/c3_pro/ansi/rgb", "km": "default", "name": "keychron-c3-pro-ansi-rgb"},
 ]
 
 TIER1_TARGETS = GMMK3_TARGETS + GMMK2_TARGETS + KEYCHRON_TARGETS

@@ -130,50 +130,373 @@ KNOWN_BOARDS = {
         "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "sidelights"]
     },
 
-    # Keychron Series (Tier 1 Enhanced)
-    "keychron_q1_ansi_via": {
-        "name": "Keychron Q1 (ANSI VIA)",
+    # Keychron V Series (Tier 1 Enhanced)
+    "keychron_v1_ansi_encoder_default": {
+        "name": "Keychron V1 (75% ANSI Encoder)",
         "vendor_id": "0x3434",
-        "product_id": "0x0101",
+        "product_id": "0x0311",
         "mcu": "STM32L432",
         "flasher": "dfu-util",
-        "layout": "75%",
+        "layout": "75% ANSI",
         "tier": "luxqmk_enhanced",
         "via": True,
         "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
     },
-    "keychron_q2_ansi_via": {
-        "name": "Keychron Q2 (ANSI VIA)",
+    "keychron_v1_iso_encoder_default": {
+        "name": "Keychron V1 (75% ISO Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0313",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "75% ISO",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+    "keychron_v2_ansi_encoder_default": {
+        "name": "Keychron V2 (65% ANSI Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0321",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "65% ANSI",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+    "keychron_v2_iso_encoder_default": {
+        "name": "Keychron V2 (65% ISO Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0323",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "65% ISO",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+    "keychron_v3_ansi_encoder_default": {
+        "name": "Keychron V3 (80% TKL ANSI Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0331",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "80% TKL ANSI",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+    "keychron_v3_iso_encoder_default": {
+        "name": "Keychron V3 (80% TKL ISO Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0333",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "80% TKL ISO",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+    "keychron_v4_ansi_default": {
+        "name": "Keychron V4 (60% ANSI)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0340",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "60% ANSI",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers"]
+    },
+    "keychron_v4_iso_default": {
+        "name": "Keychron V4 (60% ISO)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0342",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "60% ISO",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers"]
+    },
+    "keychron_v5_ansi_encoder_default": {
+        "name": "Keychron V5 (1800 Compact ANSI Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0351",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "96% ANSI",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+    "keychron_v5_iso_encoder_default": {
+        "name": "Keychron V5 (1800 Compact ISO Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0353",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "96% ISO",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+    "keychron_v6_ansi_encoder_default": {
+        "name": "Keychron V6 (100% Full ANSI Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0361",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "100% Full ANSI",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+    "keychron_v6_iso_encoder_default": {
+        "name": "Keychron V6 (100% Full ISO Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0363",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "100% Full ISO",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+    "keychron_v10_ansi_encoder_default": {
+        "name": "Keychron V10 (Alice 75% ANSI Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x03A1",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "75% Alice ANSI",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+    "keychron_v10_iso_encoder_default": {
+        "name": "Keychron V10 (Alice 75% ISO Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x03A3",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "75% Alice ISO",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+
+    # Keychron Q Series (Tier 1 Enhanced)
+    "keychron_q1v1_ansi_encoder_default": {
+        "name": "Keychron Q1 v1 (75% ANSI Encoder)",
         "vendor_id": "0x3434",
         "product_id": "0x0103",
         "mcu": "STM32L432",
         "flasher": "dfu-util",
-        "layout": "65%",
+        "layout": "75% ANSI",
         "tier": "luxqmk_enhanced",
         "via": True,
         "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
     },
-    "keychron_q3_ansi_via": {
-        "name": "Keychron Q3 (ANSI VIA)",
+    "keychron_q1v1_iso_encoder_default": {
+        "name": "Keychron Q1 v1 (75% ISO Encoder)",
         "vendor_id": "0x3434",
         "product_id": "0x0105",
         "mcu": "STM32L432",
         "flasher": "dfu-util",
-        "layout": "80% TKL",
+        "layout": "75% ISO",
         "tier": "luxqmk_enhanced",
         "via": True,
         "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
     },
-    "keychron_v1_ansi_via": {
-        "name": "Keychron V1 (ANSI VIA)",
+    "keychron_q1v2_ansi_encoder_default": {
+        "name": "Keychron Q1 v2 (75% ANSI Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0107",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "75% ANSI",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+    "keychron_q1v2_iso_encoder_default": {
+        "name": "Keychron Q1 v2 (75% ISO Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0109",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "75% ISO",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+    "keychron_q2_ansi_encoder_default": {
+        "name": "Keychron Q2 (65% ANSI Encoder)",
         "vendor_id": "0x3434",
         "product_id": "0x0111",
         "mcu": "STM32L432",
         "flasher": "dfu-util",
-        "layout": "75%",
+        "layout": "65% ANSI",
         "tier": "luxqmk_enhanced",
         "via": True,
         "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+    "keychron_q2_iso_encoder_default": {
+        "name": "Keychron Q2 (65% ISO Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0113",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "65% ISO",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+    "keychron_q3_ansi_encoder_default": {
+        "name": "Keychron Q3 (80% TKL ANSI Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0121",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "80% TKL ANSI",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+    "keychron_q3_iso_encoder_default": {
+        "name": "Keychron Q3 (80% TKL ISO Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0123",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "80% TKL ISO",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+    "keychron_q4_ansi_v1_default": {
+        "name": "Keychron Q4 (60% ANSI)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0140",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "60% ANSI",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers"]
+    },
+    "keychron_q5_ansi_encoder_default": {
+        "name": "Keychron Q5 (1800 Compact ANSI Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0151",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "96% ANSI",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+    "keychron_q5_iso_encoder_default": {
+        "name": "Keychron Q5 (1800 Compact ISO Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0153",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "96% ISO",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+    "keychron_q6_ansi_encoder_default": {
+        "name": "Keychron Q6 (100% Full ANSI Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0161",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "100% Full ANSI",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+    "keychron_q6_iso_encoder_default": {
+        "name": "Keychron Q6 (100% Full ISO Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0163",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "100% Full ISO",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+    "keychron_q10_ansi_encoder_default": {
+        "name": "Keychron Q10 (Alice 75% ANSI Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x01A1",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "75% Alice ANSI",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+    "keychron_q11_ansi_encoder_default": {
+        "name": "Keychron Q11 (Split 75% ANSI Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x01B1",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "75% Split ANSI",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+    "keychron_q12_ansi_encoder_default": {
+        "name": "Keychron Q12 (Southpaw 100% ANSI Encoder)",
+        "vendor_id": "0x3434",
+        "product_id": "0x01C1",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "100% Southpaw ANSI",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
+    },
+
+    # Keychron C Pro Series (Tier 1 Enhanced)
+    "keychron_c1_pro_ansi_rgb_default": {
+        "name": "Keychron C1 Pro (80% TKL ANSI RGB)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0510",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "80% TKL ANSI",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers"]
+    },
+    "keychron_c2_pro_ansi_rgb_default": {
+        "name": "Keychron C2 Pro (100% Full ANSI RGB)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0520",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "100% Full ANSI",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers"]
+    },
+    "keychron_c3_pro_ansi_rgb_default": {
+        "name": "Keychron C3 Pro (80% TKL ANSI RGB)",
+        "vendor_id": "0x3434",
+        "product_id": "0x0530",
+        "mcu": "STM32L432",
+        "flasher": "dfu-util",
+        "layout": "80% TKL ANSI",
+        "tier": "luxqmk_enhanced",
+        "via": True,
+        "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers"]
     },
     "dz60_via": {
         "name": "DZ60 (60% Universal VIA)",
