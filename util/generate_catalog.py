@@ -130,7 +130,7 @@ KNOWN_BOARDS = {
         "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "sidelights"]
     },
 
-    # Universal QMK & Keychron Reference Boards
+    # Keychron Series (Tier 1 Enhanced)
     "keychron_q1_ansi_via": {
         "name": "Keychron Q1 (ANSI VIA)",
         "vendor_id": "0x3434",
@@ -138,7 +138,7 @@ KNOWN_BOARDS = {
         "mcu": "STM32L432",
         "flasher": "dfu-util",
         "layout": "75%",
-        "tier": "luxqmk_generic",
+        "tier": "luxqmk_enhanced",
         "via": True,
         "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
     },
@@ -149,7 +149,7 @@ KNOWN_BOARDS = {
         "mcu": "STM32L432",
         "flasher": "dfu-util",
         "layout": "65%",
-        "tier": "luxqmk_generic",
+        "tier": "luxqmk_enhanced",
         "via": True,
         "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
     },
@@ -160,7 +160,7 @@ KNOWN_BOARDS = {
         "mcu": "STM32L432",
         "flasher": "dfu-util",
         "layout": "80% TKL",
-        "tier": "luxqmk_generic",
+        "tier": "luxqmk_enhanced",
         "via": True,
         "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
     },
@@ -171,7 +171,7 @@ KNOWN_BOARDS = {
         "mcu": "STM32L432",
         "flasher": "dfu-util",
         "layout": "75%",
-        "tier": "luxqmk_generic",
+        "tier": "luxqmk_enhanced",
         "via": True,
         "features": ["nkro", "debounce", "via", "rgb_matrix", "reactive_layers", "encoder"]
     },
@@ -243,14 +243,16 @@ def find_keyboard_metadata(stem, kb_lookup, artifacts_meta=None):
                 matched_dir = kb_lookup[cand]
                 break
                 
+    is_enhanced = clean_stem.startswith("keychron_") or clean_stem.startswith("gmmk_") or clean_stem.startswith("gmmk2_") or clean_stem.startswith("gmmk3_")
+
     meta = {
         "name": clean_stem.replace("_", " ").title(),
-        "vendor_id": None,
+        "vendor_id": "0x3434" if clean_stem.startswith("keychron_") else None,
         "product_id": None,
         "mcu": "ARM Cortex / AVR",
         "bootloader": None,
         "layout": "Universal",
-        "tier": "luxqmk_generic",
+        "tier": "luxqmk_enhanced" if is_enhanced else "luxqmk_generic",
         "flasher": "dfu-util",
         "via": True,
         "features": ["nkro", "debounce", "via"]
