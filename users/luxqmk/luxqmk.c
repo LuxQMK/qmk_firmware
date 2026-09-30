@@ -14,6 +14,7 @@
 bool g_custom_rgb_reverse    = false;
 uint8_t g_layer_lighting_enable = 0x0B; // Bit 0: Master Enable, Bit 1: Layer 1, Bit 2: Layer 2, Bit 3: Layer 3 (Default: Master+L1+L3 enabled, L2 disabled for Mac base)
 uint8_t g_layer_dim_level    = 128; // 0..255 (128 = 50% background brightness)
+uint8_t g_layer_dim_levels[4] = { 128, 128, 255, 128 }; // Index 1: Layer 1, Index 2: Layer 2 (default 255 no dimming), Index 3: Layer 3
 layer_color_t g_layer_colors[4] = {
     { 0, 0 },       // Layer 0 (Base - default RGB effects)
     { 28, 255 },    // Layer 1 (Fn / Media) -> Amber / Gold
@@ -506,6 +507,10 @@ void luxqmk_eeprom_save(void) {
     header[141] = g_scroll_lock_color.h;
     header[142] = g_scroll_lock_color.s;
 
+    // Per-Layer Dimming Levels (bytes 143..144)
+    header[143] = g_layer_dim_levels[2];
+    header[144] = g_layer_dim_levels[3];
+
     via_update_custom_config(header, 0, sizeof(header));
     via_update_custom_config(g_eeprom_per_key_profiles, 160, sizeof(g_eeprom_per_key_profiles));
 #endif
@@ -558,6 +563,9 @@ void luxqmk_eeprom_load(void) {
         g_custom_rgb_reverse    = false;
         g_layer_lighting_enable = 0x0B;
         g_layer_dim_level       = 128;
+        g_layer_dim_levels[1]   = 128;
+        g_layer_dim_levels[2]   = 255;
+        g_layer_dim_levels[3]   = 128;
         g_layer_colors[1]       = (layer_color_t){ 28, 255 };
         g_layer_colors[2]       = (layer_color_t){ 128, 255 };
         g_layer_colors[3]       = (layer_color_t){ 200, 255 };
@@ -612,6 +620,11 @@ void luxqmk_eeprom_load(void) {
         g_custom_rgb_reverse    = (rev != 0);
         g_layer_lighting_enable = (enable == 1) ? 0x0B : enable;
         g_layer_dim_level       = dim;
+        g_layer_dim_levels[1]   = dim;
+        uint8_t dim2            = header[143];
+        uint8_t dim3            = header[144];
+        g_layer_dim_levels[2]   = (dim2 == 0xFF) ? 255 : dim2;
+        g_layer_dim_levels[3]   = (dim3 == 0xFF) ? dim : dim3;
         g_layer_colors[1]       = (layer_color_t){ l1_h, l1_s };
         g_layer_colors[2]       = (layer_color_t){ l2_h, l2_s };
         g_layer_colors[3]       = (layer_color_t){ l3_h, l3_s };
@@ -921,9 +934,21 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
 
             case USER_VAL_LAYER_DIM_LEVEL:
                 if (*command_id == id_custom_get_value) {
-                    data[3] = g_layer_dim_level;
+                    data[3] = g_layer_dim_levels[1];
+                    data[4] = g_layer_dim_levels[2];
+                    data[5] = g_layer_dim_levels[3];
                 } else if (*command_id == id_custom_set_value) {
-                    g_layer_dim_level = data[3];
+                    if (data[5] == 0xAA && data[3] >= 1 && data[3] <= 3) {
+                        g_layer_dim_levels[data[3]] = data[4];
+                        if (data[3] == 1) {
+                            g_layer_dim_level = data[4];
+                        }
+                    } else {
+                        g_layer_dim_levels[1] = data[3];
+                        g_layer_dim_level     = data[3];
+                        g_layer_dim_levels[2] = data[4];
+                        g_layer_dim_levels[3] = data[5];
+                    }
                 }
                 return;
 
@@ -2151,6 +2176,7 @@ bool rgb_matrix_indicators_user(void) {
         if (current_layer > 0 && current_layer < 4 && (g_layer_lighting_enable & (1 << current_layer)) != 0) {
             uint8_t hue = g_layer_colors[current_layer].h;
             uint8_t sat = g_layer_colors[current_layer].s;
+            uint8_t dim = g_layer_dim_levels[current_layer];
             uint8_t val = rgb_matrix_get_val();
             if (val == 0) {
                 val = 255;
@@ -2171,16 +2197,16 @@ bool rgb_matrix_indicators_user(void) {
                     uint16_t keycode = keymap_key_to_keycode(current_layer, (keypos_t){ .row = r, .col = c });
 #endif
                     if (keycode == KC_TRNS || keycode == KC_NO) {
-                        if (g_layer_dim_level == 0) {
+                        if (dim == 0) {
                             rgb_matrix_set_color(led, 0, 0, 0);
-                        } else if (g_layer_dim_level < 255) {
+                        } else if (dim < 255) {
                             uint8_t red = 0, green = 0, blue = 0;
 #if defined(AW20216S_LED_COUNT)
                             aw20216s_get_color(led, &red, &green, &blue);
 #endif
-                            uint8_t r_dim = ((uint16_t)red * g_layer_dim_level) / 255;
-                            uint8_t g_dim = ((uint16_t)green * g_layer_dim_level) / 255;
-                            uint8_t b_dim = ((uint16_t)blue * g_layer_dim_level) / 255;
+                            uint8_t r_dim = ((uint16_t)red * dim) / 255;
+                            uint8_t g_dim = ((uint16_t)green * dim) / 255;
+                            uint8_t b_dim = ((uint16_t)blue * dim) / 255;
                             rgb_matrix_set_color(led, r_dim, g_dim, b_dim);
                         }
                     } else {

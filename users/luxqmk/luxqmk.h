@@ -265,6 +265,7 @@ extern uint8_t g_debounce_time;
 extern bool g_custom_rgb_reverse;
 extern uint8_t g_layer_lighting_enable;
 extern uint8_t g_layer_dim_level;
+extern uint8_t g_layer_dim_levels[4];
 extern layer_color_t g_layer_colors[4];
 
 extern uint8_t g_logo_mode;
