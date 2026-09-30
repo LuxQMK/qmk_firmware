@@ -153,10 +153,20 @@ jobs:
         run: |
           EXISTING_SERVER=$(hcloud server list --selector "role=luxqmk-builder" -o json | jq -r '.[0].name // empty')
           if [ -n "$EXISTING_SERVER" ]; then
-            echo ">>> Active Hetzner builder server already exists: $EXISTING_SERVER"
-            echo ">>> Reusing existing runner within current paid hour window!"
-            echo "server_name=$EXISTING_SERVER" >> $GITHUB_OUTPUT
-            exit 0
+            STATUS=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_RUNNER_PAT }}" \
+              -H "Accept: application/vnd.github+json" \
+              https://api.github.com/repos/${{ github.repository }}/actions/runners | jq -r ".runners[] | select(.name==\"$EXISTING_SERVER\") | .status" || echo "")
+            
+            if [ "$STATUS" = "online" ]; then
+              echo ">>> Active Hetzner builder server already exists and is ONLINE: $EXISTING_SERVER"
+              echo ">>> Reusing existing runner within current paid hour window!"
+              echo "server_name=$EXISTING_SERVER" >> $GITHUB_OUTPUT
+              exit 0
+            else
+              echo ">>> Found stale Hetzner server $EXISTING_SERVER (status: '$STATUS'). Deleting to provision fresh working instance..."
+              hcloud server delete "$EXISTING_SERVER" || true
+              sleep 3
+            fi
           fi
 
           SERVER_NAME="luxqmk-hetzner-builder"
