@@ -1,4 +1,4 @@
-# LuxQMK Userspace Engine (v0.3.4)
+# LuxQMK Userspace Engine (v0.3.5)
 
 Dedicated QMK Userspace architecture for **LuxQMK**, providing native out-of-the-box VIA support (`VIA_ENABLE = yes`), modular hardware abstraction, dual-layer reactive RGB matrix lighting, custom VIA/WebHID channels, multi-stop gradient sampling, real-time configurable debouncing, forced boot NKRO, and atomic direct lighting double-buffering.
 
@@ -40,7 +40,10 @@ LuxQMK introduces a hardware-accelerated **Dual-Layer Compositing Engine**:
 4. **Hardware Sidelight Isolation (13 Modes)**: Dedicated side diffuser strips (`g_sidelight_mode`) operate with independent Hue, Saturation, Brightness, Speed, Gradient preset, and Direction Reverse.
 5. **Dedicated Logo / Badge LED**: Supports 3 modes and **7 distinct lock state combinations** (Caps Lock, Num Lock, Caps+Num, Scroll Lock, Caps+Scroll, Num+Scroll, and Caps+Num+Scroll) for keyboards equipped with a dedicated logo or status LED (such as GMMK 3 magnetic badge or other hardware logo diffusers via `LUXQMK_CAP_LOGO_LED`).
 6. **Win Lock Indicator**: Special override for Windows Key lock indicator (LED index 92 on GMMK 3).
-7. **Active Layer Dimming (`g_layer_dim_level`)**: Highlights active key bindings on layers 1–3 while dimming transparent keys (`KC_TRNS`/`KC_NO`) from 0% (black) to 100% (ambient).
+7. **Decoupled Layer Lighting & Background Dimming**:
+   - **Layer Key Highlighting** (`g_layer_lighting_enable` 4-bit mask, `g_layer_colors[4]`): Highlights active keys on layers 0..3 with dedicated HSV accent colors.
+   - **Per-Layer Background Dimming** (`g_layer_dim_enable` 4-bit mask, `g_layer_dim_levels[4]`): Dims transparent / unmapped keys (`KC_TRNS` / `KC_NO`) from 0 (complete blackout) to 255 (100% full ambient brightness, no dimming).
+   - **Default macOS Base Transparency**: Layer 2 (macOS Base) has dimming and layer color disabled by default (`0x0B` enable bitmasks) to maintain pristine ambient backlighting in Mac mode.
 8. **3 Per-Key Gaming Profiles**: Pre-programmed FPS, MOBA, and MMO/RPG presets stored in hardware EEPROM (1296 bytes).
 
 ---
@@ -54,7 +57,7 @@ LuxQMK introduces a hardware-accelerated **Dual-Layer Compositing Engine**:
   - **Latency Windows**: 0ms (Hall-Effect/Optical), 2ms, 5ms, 8ms, 16ms.
 - **Permanent Boot NKRO**: `FORCE_NKRO` and `keymap_config.nkro = 1` enforced upon MCU boot with 1000Hz (1ms) USB polling rate.
 - **Dedicated EEPROM Partition (1408 Bytes)**:
-  - `0x00 - 0x6F` (112 Bytes): System configuration header (Reverse, Layer lighting, Dim level, Layer 1-3 colors, Logo modes/colors, Win lock, Reactive mode/blend, Debounce time, Gradient presets, Sidelights).
+  - `0x00 - 0x6F` (112 Bytes): System configuration header (Reverse, Layer lighting enable bitmask, Layer dimming enable bitmask, Per-layer dim levels 0..3, Layer 0..3 colors, Logo modes/colors, Win lock, Reactive mode/blend, Debounce time, Gradient presets, Sidelights).
   - `0x70 - 0x57F` (1296 Bytes): 3 Per-Key Gaming Profiles &times; 144 LEDs &times; 3 Bytes (RGB).
 
 ---
