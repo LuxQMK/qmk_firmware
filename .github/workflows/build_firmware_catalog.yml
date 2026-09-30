@@ -26,26 +26,36 @@ on:
         required: false
         type: choice
         options:
+          - '22'              # Multi-Cloud Swarm: 1x Hetzner + 1x OCI (4-thread) + 20x GitHub Actions
           - '21'              # Hybrid Pool: 1x OCI (4-thread) + 20x GitHub Actions (2-thread)
           - '20'              # GitHub Only Pool: 20x Parallel ubuntu-latest
           - '16'
           - '12'
           - '8'
           - '4'
-          - '1'               # Single Runner (Recommended for Hetzner On-Demand CPX / Single OCI Node)
-        default: '21'
+          - '1'               # Single Runner (Recommended for Hetzner Standalone / Single OCI Node)
+        default: '22'
       runner_pool:
         description: 'Runner Execution Pool'
         required: true
         type: choice
         options:
-          - 'hetzner_cpx62'   # On-Demand Hetzner Cloud: 16 vCPU AMD EPYC / 32GB RAM (FSN1 Falkenstein) - Maximum 16-Thread Power
-          - 'hetzner_cpx52'   # On-Demand Hetzner Cloud: 12 vCPU AMD EPYC / 24GB RAM (FSN1 Falkenstein) - 12-Thread Power
-          - 'hetzner_cpx42'   # On-Demand Hetzner Cloud: 8 vCPU AMD EPYC / 16GB RAM (FSN1 Falkenstein) - 8-Thread Power
-          - 'hybrid'          # Hybrid: OCI Dedicated Node (1x 4-thread) + GitHub Actions (20x Parallel) - 21 Shards
-          - 'github_only'     # GitHub-Hosted Runners (20x Parallel ubuntu-latest - 100% Free)
-          - 'oci_only'        # Dedicated OCI Cloud Node only (1x 4-thread)
-        default: 'hetzner_cpx62'
+          - 'hybrid_hetzner_cpx62'  # Multi-Cloud Swarm: Hetzner CPX62 (16 vCPU) + 1x OCI (4-thread) + 20x GitHub (22 Shards)
+          - 'hybrid_hetzner_cpx52'  # Multi-Cloud Swarm: Hetzner CPX52 (12 vCPU) + 1x OCI (4-thread) + 20x GitHub (22 Shards)
+          - 'hybrid_hetzner_cpx42'  # Multi-Cloud Swarm: Hetzner CPX42 (8 vCPU) + 1x OCI (4-thread) + 20x GitHub (22 Shards)
+          - 'hybrid_hetzner_cpx32'  # Multi-Cloud Swarm: Hetzner CPX32 (4 vCPU) + 1x OCI (4-thread) + 20x GitHub (22 Shards)
+          - 'hybrid_hetzner_cpx22'  # Multi-Cloud Swarm: Hetzner CPX22 (2 vCPU) + 1x OCI (4-thread) + 20x GitHub (22 Shards)
+          - 'hybrid_hetzner_cpx12'  # Multi-Cloud Swarm: Hetzner CPX12 (1 vCPU) + 1x OCI (4-thread) + 20x GitHub (22 Shards)
+          - 'hetzner_cpx62'         # Standalone Hetzner: 16 vCPU AMD EPYC / 32GB RAM (FSN1 Falkenstein) - 1 Shard
+          - 'hetzner_cpx52'         # Standalone Hetzner: 12 vCPU AMD EPYC / 24GB RAM (FSN1 Falkenstein) - 1 Shard
+          - 'hetzner_cpx42'         # Standalone Hetzner: 8 vCPU AMD EPYC / 16GB RAM (FSN1 Falkenstein) - 1 Shard
+          - 'hetzner_cpx32'         # Standalone Hetzner: 4 vCPU AMD EPYC / 8GB RAM (FSN1 Falkenstein) - 1 Shard
+          - 'hetzner_cpx22'         # Standalone Hetzner: 2 vCPU AMD EPYC / 4GB RAM (FSN1 Falkenstein) - 1 Shard
+          - 'hetzner_cpx12'         # Standalone Hetzner: 1 vCPU AMD EPYC / 2GB RAM (FSN1 Falkenstein) - 1 Shard
+          - 'hybrid'                # Hybrid Free: 1x OCI (4-thread) + 20x GitHub Actions (21 Shards)
+          - 'github_only'           # GitHub-Hosted Runners (20x Parallel ubuntu-latest - 100% Free)
+          - 'oci_only'              # Dedicated OCI Cloud Node only (1x 4-thread)
+        default: 'hybrid_hetzner_cpx62'
       firmware_tag:
         description: 'Firmware Version Tag (e.g. v0.3.4)'
         required: true
@@ -110,7 +120,7 @@ jobs:
   start-hetzner-runner:
     name: Provision On-Demand Hetzner Runner (FSN1)
     needs: [prepare-matrix]
-    if: startsWith(inputs.runner_pool, 'hetzner')
+    if: startsWith(inputs.runner_pool, 'hetzner') || startsWith(inputs.runner_pool, 'hybrid_hetzner')
     runs-on: ubuntu-latest
     outputs:
       server_name: ${{ steps.spawn.outputs.server_name }}
@@ -153,12 +163,18 @@ jobs:
           SERVER_TYPE="cpx62"
           RUNNER_ARCH="x64"
           
-          if [ "${{ inputs.runner_pool }}" = "hetzner_cpx52" ]; then
-            SERVER_TYPE="cpx52"
-            RUNNER_ARCH="x64"
-          elif [ "${{ inputs.runner_pool }}" = "hetzner_cpx42" ]; then
+          if [[ "${{ inputs.runner_pool }}" =~ cpx12 ]]; then
+            SERVER_TYPE="cpx12"
+          elif [[ "${{ inputs.runner_pool }}" =~ cpx22 ]]; then
+            SERVER_TYPE="cpx22"
+          elif [[ "${{ inputs.runner_pool }}" =~ cpx32 ]]; then
+            SERVER_TYPE="cpx32"
+          elif [[ "${{ inputs.runner_pool }}" =~ cpx42 ]]; then
             SERVER_TYPE="cpx42"
-            RUNNER_ARCH="x64"
+          elif [[ "${{ inputs.runner_pool }}" =~ cpx52 ]]; then
+            SERVER_TYPE="cpx52"
+          elif [[ "${{ inputs.runner_pool }}" =~ cpx62 ]]; then
+            SERVER_TYPE="cpx62"
           fi
           
           echo "server_name=$SERVER_NAME" >> $GITHUB_OUTPUT
@@ -337,14 +353,20 @@ jobs:
             
           target_count=$(wc -w < shard_targets.txt 2>/dev/null || echo "0")
           parallel_threads=2
-          if [ "${{ inputs.runner_pool }}" = "hetzner_cpx62" ]; then
-            parallel_threads=16
-          elif [ "${{ inputs.runner_pool }}" = "hetzner_cpx52" ]; then
-            parallel_threads=12
-          elif [ "${{ inputs.runner_pool }}" = "hetzner_cpx42" ]; then
-            parallel_threads=8
-          elif [ "${{ matrix.pool }}" = "hetzner" ]; then
-            parallel_threads=16
+          if [ "${{ matrix.pool }}" = "hetzner" ]; then
+            if [[ "${{ inputs.runner_pool }}" =~ cpx12 ]]; then
+              parallel_threads=1
+            elif [[ "${{ inputs.runner_pool }}" =~ cpx22 ]]; then
+              parallel_threads=2
+            elif [[ "${{ inputs.runner_pool }}" =~ cpx32 ]]; then
+              parallel_threads=4
+            elif [[ "${{ inputs.runner_pool }}" =~ cpx42 ]]; then
+              parallel_threads=8
+            elif [[ "${{ inputs.runner_pool }}" =~ cpx52 ]]; then
+              parallel_threads=12
+            else
+              parallel_threads=16
+            fi
           elif [ "${{ matrix.pool }}" = "oci" ]; then
             parallel_threads=4
           fi

@@ -137,25 +137,49 @@ def get_deterministic_targets(scope, custom_targets=None):
     else:
         return [f"{t['kb']}:{t['km']}" for t in TIER1_TARGETS]
 
-MAX_OCI_WORKERS = 1
-OCI_WEIGHT = 2.0  # OCI 4-thread dedicated ARM node receives 2x the load of a 2-vCPU GitHub runner
-GH_WEIGHT = 1.0
+def get_job_weight(pool_name, runner_pool_choice):
+    """
+    Calculates relative workload weight based on hardware threads.
+    GitHub 2-vCPU runner = 1.0 baseline.
+    """
+    if pool_name == "hetzner":
+        if "cpx62" in runner_pool_choice:
+            return 8.0  # 16 AMD vCPUs
+        elif "cpx52" in runner_pool_choice:
+            return 6.0  # 12 AMD vCPUs
+        elif "cpx42" in runner_pool_choice:
+            return 4.0  # 8 AMD vCPUs
+        elif "cpx32" in runner_pool_choice:
+            return 2.0  # 4 AMD vCPUs
+        elif "cpx22" in runner_pool_choice:
+            return 1.0  # 2 AMD vCPUs
+        elif "cpx12" in runner_pool_choice:
+            return 0.5  # 1 AMD vCPU
+        return 8.0
+    elif pool_name == "oci":
+        return 2.0  # 4 OCPU ARM dedicated
+    else:  # github
+        return 1.0
 
-def get_runner_for_job(idx, pool="hybrid", max_oci_workers=MAX_OCI_WORKERS):
+def get_runner_for_job(idx, pool="hybrid"):
     """
     Returns runner labels and pool identifier based on allocation strategy.
-    In hybrid mode:
-    - First job (idx=1) is allocated to the dedicated 4-thread OCI cloud node.
-    - All remaining jobs (up to 20) are allocated to GitHub-hosted runners (ubuntu-latest).
     """
-    if pool in ("hetzner_cpx62", "hetzner_cpx52", "hetzner_cpx42", "hetzner_only"):
+    if pool.startswith("hybrid_hetzner_"):
+        if idx == 1:
+            return ["self-hosted", "hetzner-builder"], "hetzner"
+        elif idx == 2:
+            return ["self-hosted", "oci-builder"], "oci"
+        else:
+            return ["ubuntu-latest"], "github"
+    elif pool.startswith("hetzner_") or pool == "hetzner_only":
         return ["self-hosted", "hetzner-builder"], "hetzner"
     elif pool == "oci_only":
         return ["self-hosted", "oci-builder"], "oci"
     elif pool == "github_only":
         return ["ubuntu-latest"], "github"
-    else:  # hybrid
-        if idx <= max_oci_workers:
+    else:  # standard hybrid (1 OCI + 20 GitHub)
+        if idx == 1:
             return ["self-hosted", "oci-builder"], "oci"
         else:
             return ["ubuntu-latest"], "github"
@@ -163,15 +187,11 @@ def get_runner_for_job(idx, pool="hybrid", max_oci_workers=MAX_OCI_WORKERS):
 def get_weighted_shard_bounds(total_items, shard_count, shard_id, runner_pool="hybrid"):
     """
     Calculates deterministic start and end slice indices for a shard using weighted load balancing.
-    OCI shards get weight 0.25 (quarter load), while GitHub runners get weight 1.0.
     """
     weights = []
     for i in range(1, shard_count + 1):
-        _, pool = get_runner_for_job(i, runner_pool)
-        if pool == "oci":
-            weights.append(OCI_WEIGHT)
-        else:
-            weights.append(GH_WEIGHT)
+        _, pool_name = get_runner_for_job(i, runner_pool)
+        weights.append(get_job_weight(pool_name, runner_pool))
 
     total_weight = sum(weights)
     shard_idx = shard_id - 1
@@ -272,7 +292,11 @@ def main():
     parser.add_argument("--scope", default="tier1_all", choices=["tier1_all", "tier1_only", "gmmk3_only", "gmmk2_only", "keychron_only", "all_via", "all_keyboards", "custom"], help="Target scope")
     parser.add_argument("--custom-targets", default=None, help="Custom targets comma/space separated (e.g. gmmk/gmmk3/p75/ansi:via)")
     parser.add_argument("--shards", default=16, type=int, help="Number of shards for mass compilation")
-    parser.add_argument("--runner-pool", default="hetzner_cpx62", choices=["hybrid", "oci_only", "github_only", "hetzner_cpx62", "hetzner_cpx52", "hetzner_cpx42", "hetzner_only"], help="Runner execution pool strategy")
+    parser.add_argument("--runner-pool", default="hetzner_cpx62", choices=[
+        "hybrid", "oci_only", "github_only", "hetzner_only",
+        "hetzner_cpx62", "hetzner_cpx52", "hetzner_cpx42", "hetzner_cpx32", "hetzner_cpx22", "hetzner_cpx12",
+        "hybrid_hetzner_cpx62", "hybrid_hetzner_cpx52", "hybrid_hetzner_cpx42", "hybrid_hetzner_cpx32", "hybrid_hetzner_cpx22", "hybrid_hetzner_cpx12"
+    ], help="Runner execution pool strategy")
     parser.add_argument("--github-output", default=None, help="Path to GITHUB_OUTPUT file")
     parser.add_argument("--output-json", default=None, help="Optional output JSON file")
     parser.add_argument("--get-shard-targets", action="store_true", help="Retrieve targets for a specific shard ID")
