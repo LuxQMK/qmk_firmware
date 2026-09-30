@@ -12,7 +12,7 @@
  * Global configuration variables for lighting, layer colors, and logo mode
  */
 bool g_custom_rgb_reverse    = false;
-bool g_layer_lighting_enable = true;
+uint8_t g_layer_lighting_enable = 0x0F; // Bit 0: Master Enable, Bit 1: Layer 1, Bit 2: Layer 2, Bit 3: Layer 3
 uint8_t g_layer_dim_level    = 128; // 0..255 (128 = 50% background brightness)
 layer_color_t g_layer_colors[4] = {
     { 0, 0 },       // Layer 0 (Base - default RGB effects)
@@ -421,7 +421,7 @@ void luxqmk_eeprom_save(void) {
     memset(header, 0, sizeof(header));
 
     header[0] = g_custom_rgb_reverse ? 1 : 0;
-    header[1] = g_layer_lighting_enable ? 1 : 0;
+    header[1] = g_layer_lighting_enable;
     header[2] = g_layer_dim_level;
     header[3] = g_layer_colors[1].h;
     header[4] = g_layer_colors[1].s;
@@ -556,7 +556,7 @@ void luxqmk_eeprom_load(void) {
     if (enable == 0xFF) {
         // Uninitialized EEPROM defaults
         g_custom_rgb_reverse    = false;
-        g_layer_lighting_enable = true;
+        g_layer_lighting_enable = 0x0F;
         g_layer_dim_level       = 128;
         g_layer_colors[1]       = (layer_color_t){ 28, 255 };
         g_layer_colors[2]       = (layer_color_t){ 128, 255 };
@@ -610,7 +610,7 @@ void luxqmk_eeprom_load(void) {
         luxqmk_eeprom_save();
     } else {
         g_custom_rgb_reverse    = (rev != 0);
-        g_layer_lighting_enable = (enable != 0);
+        g_layer_lighting_enable = (enable == 1) ? 0x0F : enable;
         g_layer_dim_level       = dim;
         g_layer_colors[1]       = (layer_color_t){ l1_h, l1_s };
         g_layer_colors[2]       = (layer_color_t){ l2_h, l2_s };
@@ -913,9 +913,9 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
 
             case USER_VAL_LAYER_LIGHTING_ENABLE:
                 if (*command_id == id_custom_get_value) {
-                    data[3] = g_layer_lighting_enable ? 1 : 0;
+                    data[3] = g_layer_lighting_enable;
                 } else if (*command_id == id_custom_set_value) {
-                    g_layer_lighting_enable = (data[3] != 0);
+                    g_layer_lighting_enable = (data[3] == 1) ? 0x0F : data[3];
                 }
                 return;
 
@@ -2145,10 +2145,11 @@ bool rgb_matrix_indicators_user(void) {
         }
     }
 
-    // 2. Active Layer Key Lighting Overlay
-    if (g_layer_lighting_enable) {
+    // 2. Active Layer Key Lighting Overlay (Highlights modifier/Fn layers, ignores base layer e.g. Mac/Win)
+    if ((g_layer_lighting_enable & 0x01) != 0) {
         uint8_t current_layer = get_highest_layer(layer_state);
-        if (current_layer > 0 && current_layer < 4) {
+        uint8_t base_layer = get_highest_layer(default_layer_state);
+        if (current_layer > 0 && current_layer < 4 && current_layer != base_layer && (g_layer_lighting_enable & (1 << current_layer)) != 0) {
             uint8_t hue = g_layer_colors[current_layer].h;
             uint8_t sat = g_layer_colors[current_layer].s;
             uint8_t val = rgb_matrix_get_val();
