@@ -183,8 +183,8 @@ enum sidelight_effect_mode {
  */
 #define LUXQMK_VERSION_MAJOR             0
 #define LUXQMK_VERSION_MINOR             3
-#define LUXQMK_VERSION_PATCH             4
-#define LUXQMK_VERSION_STRING            "0.3.4"
+#define LUXQMK_VERSION_PATCH             5
+#define LUXQMK_VERSION_STRING            "0.3.5"
 
 #define LUXQMK_CAP_REACTIVE_OVERLAY      (1 << 0)
 #define LUXQMK_CAP_DIRECTION_REVERSE     (1 << 1)
