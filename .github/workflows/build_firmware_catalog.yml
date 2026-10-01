@@ -57,9 +57,9 @@ on:
           - 'oci_only'              # Dedicated OCI Cloud Node only (1x 4-thread)
         default: 'hybrid_hetzner_cpx62'
       firmware_tag:
-        description: 'Firmware Version Tag (e.g. v0.3.4)'
+        description: 'Firmware Version Tag (e.g. v0.3.5)'
         required: true
-        default: 'v0.3.4'
+        default: 'v0.3.5'
       hetzner_teardown:
         description: 'Hetzner Runner Teardown Strategy'
         required: true
