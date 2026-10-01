@@ -107,25 +107,25 @@ The Hardware Abstraction Layer (`users/luxqmk/boards/`) handles board-specific p
   - Custom **Lock LED Indicators** (Caps Lock, Num Lock, Scroll Lock) rendered directly on dedicated switch LEDs or RGB matrix positions.
   - Native rotary encoder decoding across all knob-equipped models (Q1, Q2, Q3, Q5, Q6, Q10, V1, V2, V3, V5, V6, etc.).
   - High-performance STM32 ARM Cortex-M4 architecture integration.
-- **Compilation Commands (Examples)**:
+- **Compilation Commands (Keychron uses `-km default` with native VIA integration)**:
   ```bash
   # Keychron Q1 ANSI / ISO (Knob & Non-Knob)
-  qmk compile -kb keychron/q1/rev_0100 -km via
-  qmk compile -kb keychron/q1/iso_encoder -km via
+  qmk compile -kb keychron/q1/rev_0100 -km default
+  qmk compile -kb keychron/q1/iso_encoder -km default
 
   # Keychron Q3 / Q5 / Q6 ANSI
-  qmk compile -kb keychron/q3/ansi_encoder -km via
-  qmk compile -kb keychron/q5/ansi_encoder -km via
-  qmk compile -kb keychron/q6/ansi_encoder -km via
+  qmk compile -kb keychron/q3/ansi_encoder -km default
+  qmk compile -kb keychron/q5/ansi_encoder -km default
+  qmk compile -kb keychron/q6/ansi_encoder -km default
 
   # Keychron V1 / V3 / V6 ANSI
-  qmk compile -kb keychron/v1/ansi_encoder -km via
-  qmk compile -kb keychron/v3/ansi_encoder -km via
-  qmk compile -kb keychron/v6/ansi_encoder -km via
+  qmk compile -kb keychron/v1/ansi_encoder -km default
+  qmk compile -kb keychron/v3/ansi_encoder -km default
+  qmk compile -kb keychron/v6/ansi_encoder -km default
 
   # Keychron C1 Pro / C2 Pro
-  qmk compile -kb keychron/c1_pro/ansi_white -km via
-  qmk compile -kb keychron/c2_pro/ansi_rgb -km via
+  qmk compile -kb keychron/c1_pro/ansi_white -km default
+  qmk compile -kb keychron/c2_pro/ansi_rgb -km default
   ```
 
 ---
