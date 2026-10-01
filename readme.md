@@ -1,7 +1,7 @@
 # LuxQMK Firmware Engine
 
-[![LuxQMK Version](https://img.shields.io/badge/Firmware-LuxQMK%20v0.3.5-8a2be2.svg?style=flat)](https://github.com/LuxQMK/qmk_firmware/releases)
-[![LuxQMK Studio](https://img.shields.io/badge/Companion%20App-LuxQMK%20Studio%20v1.4.4-00b4d8.svg?style=flat)](https://github.com/LuxQMK/luxqmk_studio)
+[![LuxQMK Version](https://img.shields.io/badge/Firmware-LuxQMK%20v0.3.6-8a2be2.svg?style=flat)](https://github.com/LuxQMK/qmk_firmware/releases)
+[![LuxQMK Studio](https://img.shields.io/badge/Companion%20App-LuxQMK%20Studio%20v1.4.5-00b4d8.svg?style=flat)](https://github.com/LuxQMK/luxqmk_studio)
 [![Web App](https://img.shields.io/badge/Web%20App-studio.luxqmk.click-00f0ff.svg?style=flat)](https://studio.luxqmk.click)
 [![Website](https://img.shields.io/badge/Website-luxqmk.click-3b82f6.svg?style=flat)](https://luxqmk.click)
 [![QMK Base](https://img.shields.io/badge/QMK%20Base-v0.34.4-blue.svg?style=flat)](https://github.com/qmk/qmk_firmware)
@@ -58,9 +58,9 @@ qmk_firmware/
 
 ## ⌨️ Hardware Support
 
-LuxQMK includes dedicated hardware drivers for **Glorious GMMK 3** (100%, 75%, 65%), **Glorious GMMK 2** (96%, 65%), and a universal fallback for standard QMK / VIA keyboards.
+LuxQMK includes dedicated hardware drivers for **Glorious GMMK 3** (100%, 75%, 65%), **Glorious GMMK 2** (96%, 65%), **Keychron Wired Keyboards** (Q series, V series, C/K Pro wired), and a universal fallback for standard QMK / VIA keyboards.
 
-👉 For the full breakdown of supported models, hardware verification status, and compilation targets, see **[Supported Keyboards & Hardware Status](docs/supported_keyboards.md)**.
+👉 For the full breakdown of supported models, hardware verification status, and compilation targets, see **[Supported Keyboards & Hardware Status](docs/luxqmk/supported_keyboards.md)** (or the **[LuxQMK Docs Hub](docs/luxqmk/README.md)**).
 
 ---
 
@@ -74,9 +74,12 @@ qmk compile -kb <keyboard_path> -km <keymap>
 
 # Example: Glorious GMMK 3 100% ANSI (via keymap)
 qmk compile -kb gmmk/gmmk3/p100/ansi -km via
+
+# Example: Keychron V1 ANSI Knob (default keymap with native VIA)
+qmk compile -kb keychron/v1/ansi_encoder -km default
 ```
 
-*(See [Supported Keyboards Matrix](docs/supported_keyboards.md) for all board paths and keymap names).*
+*(See [Supported Keyboards Matrix](docs/luxqmk/supported_keyboards.md) for all board paths and keymap names).*
 
 Compiled `.bin` or `.hex` firmware binaries can be flashed directly using **[LuxQMK Studio](https://github.com/LuxQMK/luxqmk_studio)** (integrated Smart Flasher with automatic backup & restore) or via `wb32-dfu-updater_cli` / `dfu-util`.
 
