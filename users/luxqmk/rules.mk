@@ -1,5 +1,9 @@
 # LuxQMK Core Engine
-SRC += luxqmk.c
+SRC += luxqmk.c \
+       luxqmk_gradients.c \
+       luxqmk_eeprom.c \
+       luxqmk_protocol.c \
+       luxqmk_reactive.c
 
 # Enable VIA Dynamic Keymap & WebHID Protocol across all LuxQMK builds
 VIA_ENABLE ?= yes

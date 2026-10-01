@@ -64,6 +64,24 @@ enum lock_indicator_mode {
     LOCK_INDICATOR_MODE_WHITE            // Solid white (255, 255, 255) when locked
 };
 
+#if defined(CAPS_LOCK_LED_INDEX) || defined(CAPS_LED_INDEX)
+#    define LUXQMK_DEFAULT_CAPS_LOCK_MODE LOCK_INDICATOR_MODE_COLOR
+#else
+#    define LUXQMK_DEFAULT_CAPS_LOCK_MODE LOCK_INDICATOR_MODE_ANIMATION
+#endif
+
+#if defined(NUM_LOCK_LED_INDEX) || defined(NUM_LED_INDEX)
+#    define LUXQMK_DEFAULT_NUM_LOCK_MODE LOCK_INDICATOR_MODE_COLOR
+#else
+#    define LUXQMK_DEFAULT_NUM_LOCK_MODE LOCK_INDICATOR_MODE_ANIMATION
+#endif
+
+#if defined(SCROLL_LOCK_LED_INDEX) || defined(SCROLL_LED_INDEX)
+#    define LUXQMK_DEFAULT_SCROLL_LOCK_MODE LOCK_INDICATOR_MODE_COLOR
+#else
+#    define LUXQMK_DEFAULT_SCROLL_LOCK_MODE LOCK_INDICATOR_MODE_ANIMATION
+#endif
+
 enum win_lock_led_mode {
     WIN_LOCK_MODE_ANIMATION = 0,   // Default: continue standard RGB animation
     WIN_LOCK_MODE_OFF,             // Turn off Win key LED when locked
@@ -326,6 +344,9 @@ void luxqmk_eeprom_reload(void);
 bool process_record_user_custom(uint16_t keycode, keyrecord_t *record);
 
 RGB luxqmk_sample_gradient(uint8_t gradient_id, uint8_t phase);
+bool luxqmk_is_rainbow_effect(uint8_t mode);
+uint8_t luxqmk_fast_rgb_to_hue(uint8_t r, uint8_t g, uint8_t b);
+void luxqmk_init_default_perkey_profiles(void);
 void luxqmk_dip_switch_apply(uint8_t index, bool active);
 void luxqmk_dip_switch_init(void);
 

@@ -9,7 +9,11 @@ Dedicated QMK Userspace architecture for **LuxQMK**, providing native out-of-the
 ```text
 users/luxqmk/
 ├── luxqmk.h               # Central protocol definitions, custom keycodes, structs & EEPROM layout
-├── luxqmk.c               # Core runtime: EEPROM, WebHID dispatch, NKRO, reactive overlay, debounce
+├── luxqmk.c               # Core orchestrator: lifecycle hooks, NKRO boot init, debounce engine, key events
+├── luxqmk_gradients.c     # Multi-stop gradient shaders, color tables & real-time interpolation sampler
+├── luxqmk_eeprom.c        # Persistent EEPROM load/save/reload, defaults & DIP switch configuration
+├── luxqmk_protocol.c      # VIA / WebHID raw custom channel packet dispatcher & live value handlers
+├── luxqmk_reactive.c      # Dual-layer reactive overlay, sidelights rendering & layer highlight compositor
 ├── config.h               # Performance tuning (FORCE_NKRO, DEBOUNCE, VIA_EEPROM_CUSTOM_CONFIG_SIZE 1408)
 ├── rules.mk               # Build rules and automated hardware module selection
 ├── rgb_matrix_user.inc    # Custom RGB matrix effect registrations
