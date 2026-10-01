@@ -314,8 +314,8 @@ def main():
     parser = argparse.ArgumentParser(description="Generate GitHub Actions matrix for LuxQMK Firmware builds")
     parser.add_argument("--scope", default="tier1_all", choices=["tier1_all", "tier1_only", "gmmk3_only", "gmmk2_only", "keychron_only", "all_via", "all_keyboards", "custom"], help="Target scope")
     parser.add_argument("--custom-targets", default=None, help="Custom targets comma/space separated (e.g. gmmk/gmmk3/p75/ansi:via)")
-    parser.add_argument("--shards", default=16, type=int, help="Number of shards for mass compilation")
-    parser.add_argument("--runner-pool", default="hetzner_cpx62", choices=[
+    parser.add_argument("--shards", default=21, type=int, help="Number of shards for mass compilation")
+    parser.add_argument("--runner-pool", default="hybrid", choices=[
         "hybrid", "oci_only", "github_only", "hetzner_only",
         "hetzner_cpx62", "hetzner_cpx52", "hetzner_cpx42", "hetzner_cpx32", "hetzner_cpx22", "hetzner_cpx12",
         "hybrid_hetzner_cpx62", "hybrid_hetzner_cpx52", "hybrid_hetzner_cpx42", "hybrid_hetzner_cpx32", "hybrid_hetzner_cpx22", "hybrid_hetzner_cpx12"

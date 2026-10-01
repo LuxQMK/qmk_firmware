@@ -26,20 +26,22 @@ on:
         required: false
         type: choice
         options:
-          - '22'              # Multi-Cloud Swarm: 1x Hetzner + 1x OCI (4-thread) + 20x GitHub Actions
-          - '21'              # Hybrid Pool: 1x OCI (4-thread) + 20x GitHub Actions (2-thread)
-          - '20'              # GitHub Only Pool: 20x Parallel ubuntu-latest
+          - '21'              # Hybrid Free Pool: 1x OCI (4-thread) + 20x GitHub Actions (2-thread) [Recommended]
+          - '20'              # GitHub Only Pool: 20x Parallel ubuntu-latest (100% Free)
+          - '22'              # Multi-Cloud Swarm: 1x Hetzner + 1x OCI + 20x GitHub Actions
           - '16'
           - '12'
           - '8'
           - '4'
-          - '1'               # Single Runner (Recommended for Hetzner Standalone / Single OCI Node)
-        default: '22'
+          - '1'               # Single Runner (Standalone Hetzner / Single OCI Node)
+        default: '21'
       runner_pool:
         description: 'Runner Execution Pool'
         required: true
         type: choice
         options:
+          - 'hybrid'                # Hybrid Free: 1x OCI (4-thread) + 20x GitHub Actions (21 Shards) [Recommended]
+          - 'github_only'           # GitHub-Hosted Runners (20x Parallel ubuntu-latest - 100% Free)
           - 'hybrid_hetzner_cpx62'  # Multi-Cloud Swarm: Hetzner CPX62 (16 vCPU) + 1x OCI (4-thread) + 20x GitHub (22 Shards)
           - 'hybrid_hetzner_cpx52'  # Multi-Cloud Swarm: Hetzner CPX52 (12 vCPU) + 1x OCI (4-thread) + 20x GitHub (22 Shards)
           - 'hybrid_hetzner_cpx42'  # Multi-Cloud Swarm: Hetzner CPX42 (8 vCPU) + 1x OCI (4-thread) + 20x GitHub (22 Shards)
@@ -52,10 +54,8 @@ on:
           - 'hetzner_cpx32'         # Standalone Hetzner: 4 vCPU AMD EPYC / 8GB RAM (FSN1 Falkenstein) - 1 Shard
           - 'hetzner_cpx22'         # Standalone Hetzner: 2 vCPU AMD EPYC / 4GB RAM (FSN1 Falkenstein) - 1 Shard
           - 'hetzner_cpx12'         # Standalone Hetzner: 1 vCPU AMD EPYC / 2GB RAM (FSN1 Falkenstein) - 1 Shard
-          - 'hybrid'                # Hybrid Free: 1x OCI (4-thread) + 20x GitHub Actions (21 Shards)
-          - 'github_only'           # GitHub-Hosted Runners (20x Parallel ubuntu-latest - 100% Free)
           - 'oci_only'              # Dedicated OCI Cloud Node only (1x 4-thread)
-        default: 'hybrid_hetzner_cpx62'
+        default: 'hybrid'
       firmware_tag:
         description: 'Firmware Version Tag (e.g. v0.3.5)'
         required: true
