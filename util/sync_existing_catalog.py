@@ -12,22 +12,37 @@ import urllib.request
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-CDN_CATALOG_URL = "https://files.luxqmk.click/firmware/catalog.json"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+FALLBACK_CATALOG_URLS = [
+    "https://files.luxqmk.click/firmware/catalog.json",
+    "https://files.luxqmk.click/catalog.json",
+    "https://files.luxqmk.click/firmware/latest/catalog.json"
+]
 CDN_BASE_LATEST = "https://files.luxqmk.click/firmware/latest"
 
-def sync_catalog_and_binaries(output_dir, catalog_url=CDN_CATALOG_URL, max_workers=32):
+def sync_catalog_and_binaries(output_dir, catalog_url=None, max_workers=32):
     os.makedirs(output_dir, exist_ok=True)
-    print(f"[+] Fetching remote catalog from {catalog_url}...")
+    urls_to_try = [catalog_url] if catalog_url else FALLBACK_CATALOG_URLS
     
-    try:
-        req = urllib.request.Request(catalog_url, headers={"User-Agent": "LuxQMK-Sync-Tool"})
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            if resp.status != 200:
-                print(f"[!] Warning: HTTP {resp.status} when fetching catalog. Skipping delta sync.")
-                return 0
-            catalog_data = json.loads(resp.read().decode("utf-8"))
-    except Exception as e:
-        print(f"[!] Warning: Could not download remote catalog ({e}). Starting fresh.")
+    catalog_data = None
+    for url in urls_to_try:
+        if not url:
+            continue
+        print(f"[+] Attempting to fetch remote catalog from {url}...")
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                if resp.status == 200:
+                    loaded = json.loads(resp.read().decode("utf-8"))
+                    if loaded.get("keyboards") and len(loaded["keyboards"]) > 0:
+                        catalog_data = loaded
+                        print(f"[+] Successfully retrieved remote catalog ({len(catalog_data['keyboards'])} keyboards).")
+                        break
+        except Exception as e:
+            print(f"[!] Warning: Could not fetch from {url} ({e}).")
+
+    if not catalog_data:
+        print("[!] Warning: Remote catalog could not be retrieved or is empty.")
         return 0
 
     keyboards = catalog_data.get("keyboards", [])
@@ -53,7 +68,7 @@ def sync_catalog_and_binaries(output_dir, catalog_url=CDN_CATALOG_URL, max_worke
     def download_one(item):
         fname, url, dest = item
         try:
-            r = urllib.request.Request(url, headers={"User-Agent": "LuxQMK-Sync-Tool"})
+            r = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
             with urllib.request.urlopen(r, timeout=20) as u:
                 content = u.read()
                 if content:
@@ -76,7 +91,7 @@ def sync_catalog_and_binaries(output_dir, catalog_url=CDN_CATALOG_URL, max_worke
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Sync existing catalog and binaries from CDN")
     parser.add_argument("--output-dir", required=True, help="Directory to download existing binaries to")
-    parser.add_argument("--catalog-url", default=CDN_CATALOG_URL, help="Catalog JSON endpoint")
+    parser.add_argument("--catalog-url", default=None, help="Catalog JSON endpoint")
     parser.add_argument("--threads", default=32, type=int, help="Concurrent download threads")
     args = parser.parse_args()
 

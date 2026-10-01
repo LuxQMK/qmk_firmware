@@ -578,8 +578,13 @@ jobs:
           find all_binaries -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" -o -name "*.meta.json" \) -exec cp -f {} dist/firmware/${TAG}/ \; 2>/dev/null || true
           cp -rf dist/firmware/${TAG}/* dist/firmware/latest/ 2>/dev/null || true
           
-          TOTAL_BINARIES=$(ls -1 dist/firmware/${TAG}/ 2>/dev/null | wc -l)
+          TOTAL_BINARIES=$(find dist/firmware/${TAG} -type f \( -name "*.bin" -o -name "*.hex" -o -name "*.uf2" \) 2>/dev/null | wc -l)
           echo "Total catalog binaries ready: $TOTAL_BINARIES"
+
+          if [ "$TOTAL_BINARIES" -eq 0 ]; then
+            echo "::error::CRITICAL: 0 binaries found in dist/firmware/${TAG}! Halting workflow to protect production CDN from being wiped."
+            exit 1
+          fi
 
           # 4. Generate catalog.json inside dist/firmware/
           python3 util/generate_catalog.py \
@@ -648,6 +653,11 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          TOTAL_KBS=$(jq -r '.total_keyboards // 0' dist/firmware/catalog.json 2>/dev/null || echo "0")
+          if [ "$TOTAL_KBS" -le 0 ]; then
+            echo "::error::CRITICAL ABORT: catalog.json contains $TOTAL_KBS keyboards! Refusing to deploy empty catalog to Cloudflare Pages."
+            exit 1
+          fi
           npx wrangler pages project create luxqmk-files --production-branch=main || true
           npx wrangler pages deploy dist --project-name=luxqmk-files --branch=main --commit-dirty=true
 

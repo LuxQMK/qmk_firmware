@@ -812,6 +812,12 @@ def generate_catalog(artifacts_dir, output_dir, tag_version, repo_slug, base_url
         }
         entries.append(entry)
 
+    # CRITICAL SAFETY CHECK: Refuse to generate an empty catalog
+    if len(entries) == 0:
+        print("[!] ERROR: CRITICAL SAFETY CHECK FAILED: Found 0 firmware binaries in artifacts directory!")
+        print("[!] Refusing to write empty catalog.json to protect production portal from being wiped.")
+        sys.exit(1)
+
     # Sort entries: LuxQMK Enhanced first, then alphabetical
     entries.sort(key=lambda x: (0 if x["tier"] == "luxqmk_enhanced" else 1, x["name"]))
 
