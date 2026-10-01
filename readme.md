@@ -58,9 +58,9 @@ qmk_firmware/
 
 ## ⌨️ Hardware Support
 
-LuxQMK includes dedicated hardware drivers for **Glorious GMMK 3** (100%, 75%, 65%), **Glorious GMMK 2** (96%, 65%), and a universal fallback for standard QMK / VIA keyboards.
+LuxQMK includes dedicated hardware drivers for **Glorious GMMK 3** (100%, 75%, 65%), **Glorious GMMK 2** (96%, 65%), **Keychron Wired Keyboards** (Q series, V series, C/K Pro wired), and a universal fallback for standard QMK / VIA keyboards.
 
-👉 For the full breakdown of supported models, hardware verification status, and compilation targets, see **[Supported Keyboards & Hardware Status](docs/supported_keyboards.md)**.
+👉 For the full breakdown of supported models, hardware verification status, and compilation targets, see **[Supported Keyboards & Hardware Status](docs/luxqmk/supported_keyboards.md)** (or the **[LuxQMK Docs Hub](docs/luxqmk/README.md)**).
 
 ---
 
@@ -74,9 +74,12 @@ qmk compile -kb <keyboard_path> -km <keymap>
 
 # Example: Glorious GMMK 3 100% ANSI (via keymap)
 qmk compile -kb gmmk/gmmk3/p100/ansi -km via
+
+# Example: Keychron V1 ANSI Knob (default keymap with native VIA)
+qmk compile -kb keychron/v1/ansi_encoder -km default
 ```
 
-*(See [Supported Keyboards Matrix](docs/supported_keyboards.md) for all board paths and keymap names).*
+*(See [Supported Keyboards Matrix](docs/luxqmk/supported_keyboards.md) for all board paths and keymap names).*
 
 Compiled `.bin` or `.hex` firmware binaries can be flashed directly using **[LuxQMK Studio](https://github.com/LuxQMK/luxqmk_studio)** (integrated Smart Flasher with automatic backup & restore) or via `wb32-dfu-updater_cli` / `dfu-util`.
 
