@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.6] - 2026-11-21
+
+### Changed
+- **QMK Upstream Base (`v0.34.8`)**: Merged `qmk/qmk_firmware` `master` into `develop`, including the ChibiOS EP0 control OUT buffer sizing fix (`tmk_core/protocol/chibios/usb_main.c`) for STM32 USBv1 and WB32 MCUs.
+
+---
+
 ## [0.3.5] - 2026-10-01
 
 ### Added

@@ -818,6 +818,11 @@ def generate_catalog(artifacts_dir, output_dir, tag_version, repo_slug, base_url
         print("[!] Refusing to write empty catalog.json to protect production portal from being wiped.")
         sys.exit(1)
 
+    # Parse firmware changelog from CHANGELOG.md
+    fw_changelog_path = os.path.join(ROOT_DIR, "CHANGELOG.md")
+    fw_changelog = parse_changelog_file(fw_changelog_path)
+    latest_fw_bullets = fw_changelog[0]["bullets"] if fw_changelog else []
+
     # Sort entries: LuxQMK Enhanced first, then alphabetical
     entries.sort(key=lambda x: (0 if x["tier"] == "luxqmk_enhanced" else 1, x["name"]))
 
@@ -829,6 +834,8 @@ def generate_catalog(artifacts_dir, output_dir, tag_version, repo_slug, base_url
         "domain": "files.luxqmk.click",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "total_keyboards": len(entries),
+        "latest_changelog": latest_fw_bullets,
+        "changelog": fw_changelog,
         "keyboards": entries
     }
 
@@ -836,13 +843,82 @@ def generate_catalog(artifacts_dir, output_dir, tag_version, repo_slug, base_url
     with open(catalog_json_path, "w", encoding="utf-8") as f:
         json.dump(catalog_data, f, indent=2)
 
+    # Standalone changelog.json endpoint
+    changelog_json_path = os.path.join(output_dir, "changelog.json")
+    with open(changelog_json_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "version": tag_version,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "releases": fw_changelog
+        }, f, indent=2)
+
+    if os.path.basename(os.path.normpath(output_dir)).lower() == "firmware":
+        root_dist = os.path.dirname(os.path.normpath(output_dir))
+        with open(os.path.join(root_dist, "changelog.json"), "w", encoding="utf-8") as f:
+            json.dump({
+                "version": tag_version,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "releases": fw_changelog
+            }, f, indent=2)
+
     print(f"[+] Successfully generated catalog.json with {len(entries)} keyboards at {catalog_json_path}")
+    print(f"[+] Successfully generated changelog.json with {len(fw_changelog)} release entries at {changelog_json_path}")
 
     # Generate studio/version.json manifest
     generate_studio_manifest(output_dir, tag_version)
 
     # Generate Cloudflare Pages redirect assets and index.html fallback
     generate_redirect_assets(output_dir)
+
+def parse_changelog_file(changelog_path):
+    """
+    Parses Keep-a-Changelog formatted Markdown file into a structured list of releases.
+    """
+    if not os.path.exists(changelog_path):
+        return []
+
+    releases = []
+    current_release = None
+    current_section = None
+
+    try:
+        with open(changelog_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line_clean = line.strip()
+                if line_clean.startswith("## ["):
+                    if current_release:
+                        releases.append(current_release)
+                    
+                    header_part = line_clean[3:].strip()
+                    ver_end = header_part.find("]")
+                    ver = header_part[1:ver_end] if ver_end != -1 else header_part
+                    date_part = header_part[ver_end+1:].lstrip(" -").strip() if ver_end != -1 else ""
+                    
+                    current_release = {
+                        "version": ver,
+                        "date": date_part,
+                        "sections": {},
+                        "bullets": []
+                    }
+                    current_section = "General"
+                elif line_clean.startswith("### ") and current_release:
+                    sec_name = line_clean[4:].strip()
+                    current_section = sec_name
+                    if sec_name not in current_release["sections"]:
+                        current_release["sections"][sec_name] = []
+                elif line_clean.startswith("- ") and current_release:
+                    bullet = line_clean[2:].strip()
+                    if current_section not in current_release["sections"]:
+                        current_release["sections"][current_section] = []
+                    current_release["sections"][current_section].append(bullet)
+                    current_release["bullets"].append(f"[{current_section}] {bullet}" if current_section != "General" else bullet)
+        
+        if current_release:
+            releases.append(current_release)
+    except Exception as e:
+        print(f"[!] Warning: Failed to parse changelog from {changelog_path}: {e}")
+
+    return releases
 
 def get_latest_studio_version_info():
     """
@@ -880,12 +956,17 @@ def get_latest_studio_version_info():
 def generate_studio_manifest(output_dir, release_tag=None):
     """
     Generates studio/version.json manifest for LuxQMK Studio OTA update detection.
-    Resolves the actual LuxQMK Studio application release version.
+    Resolves the actual LuxQMK Studio application release version and injects changelog.
     """
     studio_tag = get_latest_studio_version_info()
     clean_version = studio_tag.lstrip("v")
     studio_dir = os.path.join(output_dir, "studio")
     os.makedirs(studio_dir, exist_ok=True)
+
+    # Read LuxQMK Studio changelog
+    studio_cl_path = os.path.abspath(os.path.join(ROOT_DIR, "..", "luxqmk_studio", "CHANGELOG.md"))
+    studio_cl_entries = parse_changelog_file(studio_cl_path)
+    studio_bullets = studio_cl_entries[0]["bullets"] if studio_cl_entries else []
 
     studio_data = {
         "version": clean_version,
@@ -893,7 +974,8 @@ def generate_studio_manifest(output_dir, release_tag=None):
         "release_name": f"LuxQMK Studio {studio_tag}",
         "release_date": datetime.now(timezone.utc).isoformat(),
         "min_compatible_firmware": "0.3.2",
-        "changelog": [],
+        "changelog": studio_bullets,
+        "changelog_history": studio_cl_entries,
         "downloads": {
             "windows_installer": f"https://github.com/LuxQMK/luxqmk_studio/releases/download/{studio_tag}/LuxQMK-Studio-Setup-{clean_version}.exe",
             "web_app": "https://studio.luxqmk.click"
@@ -915,10 +997,7 @@ def generate_studio_manifest(output_dir, release_tag=None):
         os.makedirs(parent_studio_dir, exist_ok=True)
         with open(os.path.join(parent_studio_dir, "version.json"), "w", encoding="utf-8") as f:
             json.dump(studio_data, f, indent=2)
-        with open(os.path.join(parent_studio_dir, "latest.json"), "w", encoding="utf-8") as f:
-            json.dump(studio_data, f, indent=2)
-
-    print(f"[+] Generated studio update manifest at {studio_version_path} (Studio version: {clean_version})")
+    print(f"[+] Generated studio update manifest at {studio_version_path} (Studio version: {clean_version}, {len(studio_bullets)} changelog items)")
 
 def generate_redirect_assets(output_dir):
     """
