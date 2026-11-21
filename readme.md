@@ -4,10 +4,10 @@
 [![LuxQMK Studio](https://img.shields.io/badge/Companion%20App-LuxQMK%20Studio%20v1.4.5-00b4d8.svg?style=flat)](https://github.com/LuxQMK/luxqmk_studio)
 [![Web App](https://img.shields.io/badge/Web%20App-studio.luxqmk.click-00f0ff.svg?style=flat)](https://studio.luxqmk.click)
 [![Website](https://img.shields.io/badge/Website-luxqmk.click-3b82f6.svg?style=flat)](https://luxqmk.click)
-[![QMK Base](https://img.shields.io/badge/QMK%20Base-v0.34.4-blue.svg?style=flat)](https://github.com/qmk/qmk_firmware)
+[![QMK Base](https://img.shields.io/badge/QMK%20Base-v0.34.8-blue.svg?style=flat)](https://github.com/qmk/qmk_firmware)
 [![License: GPL](https://img.shields.io/badge/License-GPLv2%20%2F%20GPLv3-green.svg)](LICENSE)
 
-**LuxQMK** is an advanced, heavily extended fork of [QMK Firmware](https://github.com/qmk/qmk_firmware) (upstream base `v0.34.4`).
+**LuxQMK** is an advanced, heavily extended fork of [QMK Firmware](https://github.com/qmk/qmk_firmware) (upstream base `v0.34.8`).
 
 It features an extensible userspace runtime engine ([`users/luxqmk/`](users/luxqmk/README.md)), custom Hardware Abstraction Layer (HAL) drivers, real-time dual-layer reactive RGB matrix lighting, CIE1931 perceptual color curves, multi-stop gradient shaders, atomic WebHID direct LED streaming double-buffering, and 1:1 synchronization with **[LuxQMK Studio](https://github.com/LuxQMK/luxqmk_studio)**.
 
